@@ -1,9 +1,10 @@
 /**
- * Simple wallet connection - Freighter only for now
- * We'll add more wallets later once we figure out the SSR issue
+ * Wallet connection and balance management
+ * Uses KchngClient to fetch real balance from deployed contract
  */
 
-import { writable, derived, get } from "svelte/store";
+import { writable, derived } from "svelte/store";
+import { createKchngClient } from "$lib/contracts/kchng";
 
 export interface WalletState {
   connected: boolean;
@@ -25,6 +26,7 @@ const initialState: WalletState = {
 
 function createWalletStore() {
   const { subscribe, set, update } = writable<WalletState>(initialState);
+  const kchngClient = createKchngClient();
 
   /**
    * Check if Freighter is available
@@ -92,16 +94,36 @@ function createWalletStore() {
   }
 
   /**
-   * Load KCHNG balance from contract
-   * TODO: Implement contract call once deployed
+   * Load KCHNG balance from deployed contract
    */
   async function loadBalance(address: string) {
-    // TODO: Call contract to get balance
-    update((s) => ({
-      ...s,
-      balance: 1000000000000n, // Mock balance
-      lastActivity: Math.floor(Date.now() / 1000) - 86400, // 1 day ago
-    }));
+    try {
+      const accountData = await kchngClient.getAccountData(address);
+      update((s) => ({
+        ...s,
+        balance: accountData.balance,
+        lastActivity: Number(accountData.last_activity),
+        error: null,
+      }));
+    } catch (e) {
+      // Set error but don't disconnect - user can retry
+      const errorMsg = e instanceof Error ? e.message : "Failed to load balance";
+      update((s) => ({
+        ...s,
+        error: errorMsg,
+        balance: 0n,
+      }));
+    }
+  }
+
+  /**
+   * Refresh balance (useful after transactions)
+   */
+  async function refreshBalance() {
+    const state = get();
+    if (state.connected && state.address) {
+      await loadBalance(state.address);
+    }
   }
 
   const store = {
@@ -109,9 +131,19 @@ function createWalletStore() {
     connect,
     disconnect,
     loadBalance,
+    refreshBalance,
   };
 
   return store;
+}
+
+function get(): WalletState {
+  let state: WalletState | undefined;
+  const unsubscribe = createWalletStore().subscribe((s) => {
+    state = s;
+  });
+  unsubscribe();
+  return state!;
 }
 
 export const wallet = createWalletStore();

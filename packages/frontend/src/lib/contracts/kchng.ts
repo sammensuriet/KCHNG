@@ -33,12 +33,6 @@ export class KchngClient {
    * @returns Balance in bigint
    */
   async getBalance(accountId: string): Promise<bigint> {
-    // If contract ID is placeholder, return mock data
-    if (this.contractId.startsWith("CDXXXXX") || this.contractId === "") {
-      console.warn("[KchngClient] Using mock data - contract not deployed");
-      return 1000000000000n;
-    }
-
     try {
       const address = new Address(accountId);
       const result = await this.simulateContractCall(this.contractId, "balance", [
@@ -68,15 +62,6 @@ export class KchngClient {
    * @returns Account data
    */
   async getAccountData(accountId: string): Promise<AccountData> {
-    // If contract ID is placeholder, return mock data
-    if (this.contractId.startsWith("CDXXXXX") || this.contractId === "") {
-      console.warn("[KchngClient] Using mock data - contract not deployed");
-      return {
-        last_activity: BigInt(Math.floor(Date.now() / 1000) - 86400),
-        balance: 1000000000000n,
-      };
-    }
-
     try {
       const balance = await this.getBalance(accountId);
 
@@ -107,10 +92,6 @@ export class KchngClient {
     to: string,
     amount: bigint
   ): Promise<string> {
-    if (this.contractId.startsWith("CDXXXXX") || this.contractId === "") {
-      throw new Error("Contract not deployed");
-    }
-
     try {
       const fromAddress = new Address(from);
       const toAddress = new Address(to);
@@ -133,12 +114,6 @@ export class KchngClient {
    * Get total supply
    */
   async getTotalSupply(): Promise<bigint> {
-    // If contract ID is placeholder, return mock data
-    if (this.contractId.startsWith("CDXXXXX") || this.contractId === "") {
-      console.warn("[KchngClient] Using mock data - contract not deployed");
-      return 10000000000000n;
-    }
-
     try {
       const result = await this.simulateContractCall(this.contractId, "total_supply", []);
       if (result) {

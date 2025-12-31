@@ -9,22 +9,16 @@ export type Network = "testnet" | "mainnet" | "standalone";
 
 /**
  * Get network configuration with contract ID
+ * Uses the shared package's configuration which includes the deployed contract IDs
  */
 export function getKchngNetworkConfig(network: Network): NetworkConfig & {
   contractId: string;
 } {
   const baseConfig = getNetworkConfig(network);
 
-  // TODO: Replace with actual deployed contract IDs
-  const contractIds: Record<Network, string> = {
-    testnet: "CDXXXXX.....................", // Placeholder - update after deployment
-    mainnet: "CDXXXXX.....................", // Placeholder - update after deployment
-    standalone: "", // Local testing
-  };
-
   return {
     ...baseConfig,
-    contractId: contractIds[network],
+    contractId: baseConfig.contractId,
   };
 }
 
