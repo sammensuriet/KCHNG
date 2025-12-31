@@ -26,18 +26,43 @@ pub struct KchngToken;
 
 #[contractimpl]
 impl KchngToken {
-    /// Initialize the token with initial supply to the creator
-    pub fn init(env: Env, creator: Address, initial_supply: U256) {
-        // Only allow initialization once
-        if env.storage().instance().has(&U256::from_u32(&env, 1)) {
-            panic!("Already initialized");
-        }
-
+    // Contract constructor - called automatically during deployment
+    // Parameters should be passed via soroban contract deploy -- --creator ADDRESS --initial_supply VALUE
+    pub fn __constructor(env: Env, creator: Address, initial_supply: U256) {
         // Store the creator as admin
         env.storage().instance().set(&U256::from_u32(&env, 0), &creator);
 
-        // Initialize storage flag
-        env.storage().instance().set(&U256::from_u32(&env, 1), &true);
+        // Set initial balance for creator
+        let account_data = AccountData {
+            last_activity: env.ledger().timestamp(),
+            balance: initial_supply.clone(),
+        };
+
+        let mut accounts: Map<Address, AccountData> = Map::new(&env);
+        accounts.set(creator.clone(), account_data);
+
+        env.storage().persistent().set(&U256::from_u32(&env, 2), &accounts);
+
+        // Track total supply
+        env.storage().instance().set(&U256::from_u32(&env, 3), &initial_supply);
+    }
+
+    /// Initialize the token with initial supply to the creator (legacy method)
+    pub fn init(env: Env, creator: Address, initial_supply: U256) {
+        // Check if already initialized by checking if accounts map exists
+        if env.storage().persistent().has(&U256::from_u32(&env, 2)) {
+            // Verify admin matches (get admin from instance storage)
+            let admin_result: Option<Address> = env.storage().instance().get(&U256::from_u32(&env, 0));
+            if let Some(admin) = admin_result {
+                if admin != creator {
+                    panic!("Already initialized with different admin");
+                }
+                return; // Already initialized by same creator, no-op
+            }
+        }
+
+        // Store the creator as admin (this creates instance storage)
+        env.storage().instance().set(&U256::from_u32(&env, 0), &creator);
 
         // Set initial balance for creator
         let account_data = AccountData {

@@ -16,9 +16,9 @@ export const NETWORKS: Record<string, NetworkConfig> = {
   },
   testnet: {
     networkUrl: "https://horizon-testnet.stellar.org",
-    rpcUrl: "https://testnet.soroban.rpc.stellar.org",
+    rpcUrl: "https://soroban-testnet.stellar.org",
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CBWX2LIGYXGGVIDJPZJDSY44YULMS6ENLLGOR3VBAZTCDVR47EGJIGB6", // Deployed KCHNG contract
+    contractId: "CAST22E2ZUBSRVFHQ3E6EOZAW33ZA3JM6NDT7RZSUIWP7RH5HC34SOKB", // Deployed KCHNG contract with __constructor
   },
   futurenet: {
     networkUrl: "https://horizon-futurenet.stellar.org",
