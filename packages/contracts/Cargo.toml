@@ -1,0 +1,16 @@
+[package]
+name = "kchng-contract"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { version = "22", features = ["testutils"] }
+
+[dev-dependencies]
+soroban-sdk = { version = "22", features = ["testutils"] }
+
+[features]
+testutils = ["soroban-sdk/testutils"]

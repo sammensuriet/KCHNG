@@ -1,0 +1,23 @@
+{
+  "name": "@kchng/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "echo \"No tests yet\"",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
