@@ -14,8 +14,7 @@
   },
   "dependencies": {
     "@kchng/shared": "workspace:*",
-    "@stellar/stellar-sdk": "^13.1.0",
-    "svelte-kit-stars": "^0.5.3"
+    "@stellar/stellar-sdk": "^13.1.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.8",
@@ -27,7 +26,7 @@
     "globals": "^15.14.0",
     "prettier": "^3.4.2",
     "prettier-plugin-svelte": "^3.3.2",
-    "svelte": "^4.2.19",
+    "svelte": "^5.0.0",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.19.1",
     "vite": "^6.0.7",
