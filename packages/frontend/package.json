@@ -14,7 +14,9 @@
   },
   "dependencies": {
     "@kchng/shared": "workspace:*",
-    "@stellar/stellar-sdk": "^13.1.0"
+    "@stellar/freighter-api": "^6.0.1",
+    "@stellar/stellar-sdk": "^14.4.3",
+    "buffer": "^6.0.3"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.8",
