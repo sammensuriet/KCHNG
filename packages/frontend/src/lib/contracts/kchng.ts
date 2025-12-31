@@ -34,7 +34,7 @@ export class KchngClient {
    */
   async getBalance(accountId: string): Promise<bigint> {
     // If contract ID is placeholder, return mock data
-    if (this.contractId.startsWith("CDXXXXX")) {
+    if (this.contractId.startsWith("CDXXXXX") || this.contractId === "") {
       console.warn("[KchngClient] Using mock data - contract not deployed");
       return 1000000000000n;
     }
@@ -51,6 +51,12 @@ export class KchngClient {
       }
       return 0n;
     } catch (error) {
+      // If contract is not initialized, return 0 balance
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes("not initialized") || errorMsg.includes("HostError")) {
+        console.warn("[KchngClient] Contract not yet initialized");
+        return 0n;
+      }
       console.error("Error fetching balance:", error);
       throw new Error("Failed to fetch balance from contract");
     }
@@ -63,7 +69,7 @@ export class KchngClient {
    */
   async getAccountData(accountId: string): Promise<AccountData> {
     // If contract ID is placeholder, return mock data
-    if (this.contractId.startsWith("CDXXXXX")) {
+    if (this.contractId.startsWith("CDXXXXX") || this.contractId === "") {
       console.warn("[KchngClient] Using mock data - contract not deployed");
       return {
         last_activity: BigInt(Math.floor(Date.now() / 1000) - 86400),
@@ -101,7 +107,7 @@ export class KchngClient {
     to: string,
     amount: bigint
   ): Promise<string> {
-    if (this.contractId.startsWith("CDXXXXX")) {
+    if (this.contractId.startsWith("CDXXXXX") || this.contractId === "") {
       throw new Error("Contract not deployed");
     }
 
@@ -128,7 +134,7 @@ export class KchngClient {
    */
   async getTotalSupply(): Promise<bigint> {
     // If contract ID is placeholder, return mock data
-    if (this.contractId.startsWith("CDXXXXX")) {
+    if (this.contractId.startsWith("CDXXXXX") || this.contractId === "") {
       console.warn("[KchngClient] Using mock data - contract not deployed");
       return 10000000000000n;
     }
@@ -140,6 +146,12 @@ export class KchngClient {
       }
       return 0n;
     } catch (error) {
+      // If contract is not initialized, return 0
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes("not initialized") || errorMsg.includes("HostError")) {
+        console.warn("[KchngClient] Contract not yet initialized");
+        return 0n;
+      }
       console.error("Error fetching total supply:", error);
       throw new Error("Failed to fetch total supply");
     }
