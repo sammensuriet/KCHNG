@@ -10,21 +10,25 @@ import type { NetworkConfig } from "./types.js";
 export const NETWORKS: Record<string, NetworkConfig> = {
   mainnet: {
     networkUrl: "https://horizon.stellar.org",
+    rpcUrl: "https://mainnet.soroban.rpc.stellar.org",
     networkPassphrase: "Public Global Stellar Network ; September 2015",
     contractId: "", // To be filled after deployment
   },
   testnet: {
     networkUrl: "https://horizon-testnet.stellar.org",
+    rpcUrl: "https://testnet.soroban.rpc.stellar.org",
     networkPassphrase: "Test SDF Network ; September 2015",
     contractId: "", // To be filled after deployment
   },
   futurenet: {
     networkUrl: "https://horizon-futurenet.stellar.org",
+    rpcUrl: "https://futurenet.soroban.rpc.stellar.org",
     networkPassphrase: "Test SDF Future Network ; October 2022",
     contractId: "", // To be filled after deployment
   },
   standalone: {
     networkUrl: "http://localhost:8000",
+    rpcUrl: "http://localhost:8000/soroban/rpc",
     networkPassphrase: "Standalone Network ; February 2017",
     contractId: "", // Local testing
   },

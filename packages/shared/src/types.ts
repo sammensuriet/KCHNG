@@ -57,6 +57,7 @@ export interface TransactionResult {
  */
 export interface NetworkConfig {
   networkUrl: string;
+  rpcUrl: string;
   networkPassphrase: string;
   contractId: string;
 }
