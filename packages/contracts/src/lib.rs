@@ -2,6 +2,7 @@
 use soroban_sdk::{
     contract, contractimpl, contracttype, Address, Env, Map, U256, Vec, String, Bytes,
 };
+use core::cmp::min;
 
 // ============================================================================
 // CONSTANTS
@@ -62,6 +63,7 @@ const KEY_VERIFIER_ASSIGNMENTS: u32 = 800;
 // ============================================================================
 
 /// Type of work being claimed
+#[derive(Clone, PartialEq)]
 #[contracttype]
 pub enum WorkType {
     BasicCare = 0,      // Basic care or agriculture work (1.0× multiplier)
@@ -90,6 +92,7 @@ pub enum GraceType {
 }
 
 /// Status of a work claim
+#[derive(Clone, PartialEq)]
 #[contracttype]
 pub enum ClaimStatus {
     Pending = 0,       // Waiting for verification
@@ -148,6 +151,7 @@ pub struct TrustData {
 }
 
 /// Verifier data for work verification
+#[derive(Clone)]
 #[contracttype]
 pub struct VerifierData {
     pub trust_id: Address,
@@ -159,6 +163,7 @@ pub struct VerifierData {
 }
 
 /// Work claim for time-based token issuance
+#[derive(Clone)]
 #[contracttype]
 pub struct WorkClaim {
     pub claim_id: u64,
@@ -706,6 +711,340 @@ impl KchngToken {
             let trust = Self::get_trust_info(env, account_data.trust_id);
             (trust.annual_rate_bps, trust.demurrage_period_days)
         }
+    }
+
+    // ============================================================================
+    // WORK VERIFICATION SYSTEM (Phase 4)
+    // ============================================================================
+
+    /// Register as a verifier for a trust
+    /// Must stake 100 KCHNG to become a verifier
+    pub fn register_verifier(env: Env, verifier: Address, trust_id: Address) {
+        verifier.require_auth();
+
+        // Verify trust exists
+        let _trust = Self::get_trust_info(env.clone(), trust_id.clone());
+
+        // Get verifier's account
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let verifier_account = match accounts.get(verifier.clone()) {
+            Some(data) => data,
+            None => panic!("Account not found"),
+        };
+
+        // Check verifier has enough balance to stake
+        let stake_amount = U256::from_u128(&env, VERIFIER_STAKE as u128);
+        let balance_after_demurrage =
+            Self::calculate_balance_with_demurrage(&env, verifier.clone(), &verifier_account);
+
+        if balance_after_demurrage < stake_amount {
+            panic!("Insufficient balance to stake");
+        }
+
+        // Register verifier
+        let mut verifiers: Map<Address, VerifierData> =
+            env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+
+        if verifiers.contains_key(verifier.clone()) {
+            panic!("Already registered as verifier");
+        }
+
+        let verifier_data = VerifierData {
+            trust_id: trust_id.clone(),
+            stake: stake_amount.clone(),
+            reputation_score: 500, // Start at neutral reputation
+            verified_claims: 0,
+            rejected_claims: 0,
+            fraud_reports: 0,
+        };
+
+        verifiers.set(verifier.clone(), verifier_data);
+        env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
+
+        // Deduct stake from verifier's balance (transfer to contract)
+        // For simplicity, we'll just track the stake - in production you'd escrow it
+        let mut updated_verifier = verifier_account;
+        updated_verifier.balance = balance_after_demurrage.sub(&stake_amount);
+        updated_verifier.last_activity = env.ledger().timestamp();
+        accounts.set(verifier, updated_verifier);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+    }
+
+    /// Submit a work claim for verification
+    /// Returns the claim ID
+    pub fn submit_work_claim(
+        env: Env,
+        worker: Address,
+        work_type: WorkType,
+        minutes_worked: u64,
+        evidence_hash: Bytes,
+        gps_lat: Option<i64>,
+        gps_lon: Option<i64>,
+    ) -> u64 {
+        worker.require_auth();
+
+        // Validate minimum work time
+        if minutes_worked < MIN_WORK_MINUTES {
+            panic!("Work must be at least 15 minutes");
+        }
+
+        // Get worker's account
+        let accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let worker_account = match accounts.get(worker.clone()) {
+            Some(data) => data,
+            None => panic!("Account not found"),
+        };
+
+        // Worker must be in a trust
+        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+        if worker_account.trust_id == zero_address {
+            panic!("Must join a trust before submitting work claims");
+        }
+
+        // Get next claim ID
+        let mut claim_id_u256: U256 = env.storage().instance().get(&KEY_NEXT_CLAIM_ID).unwrap();
+        let claim_id = claim_id_u256.to_u128().unwrap() as u64;
+
+        // Assign verifiers (2-5 random verifiers from the same trust)
+        let verifiers: Map<Address, VerifierData> =
+            env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+
+        let mut trust_verifiers: Vec<Address> = Vec::new(&env);
+        for (verifier_addr, verifier_data) in verifiers.iter() {
+            if verifier_data.trust_id == worker_account.trust_id {
+                trust_verifiers.push_back(verifier_addr);
+            }
+        }
+
+        if trust_verifiers.len() < MIN_VERIFIERS {
+            panic!("Not enough verifiers in trust");
+        }
+
+        // Assign MIN_VERIFIERS verifiers (in production, would select randomly)
+        let mut assigned_verifiers: Vec<Address> = Vec::new(&env);
+        let count = min(MIN_VERIFIERS, trust_verifiers.len());
+        for i in 0..count {
+            if i < trust_verifiers.len() {
+                assigned_verifiers.push_back(trust_verifiers.get(i).unwrap());
+            }
+        }
+
+        // Calculate multiplier and tokens to mint
+        let multiplier = work_type.multiplier();
+        let base_kchng = minutes_worked / MINUTES_PER_KCHNG; // 30 min = 1 KCHNG
+        let _kchng_to_mint = (base_kchng * multiplier as u64) / 100;
+
+        // Create work claim
+        let claim = WorkClaim {
+            claim_id,
+            worker: worker.clone(),
+            work_type,
+            minutes_worked,
+            evidence_hash,
+            gps_lat,
+            gps_lon,
+            submitted_at: env.ledger().timestamp(),
+            verifiers_assigned: assigned_verifiers.clone(),
+            approvals_received: 0,
+            rejections_received: 0,
+            status: ClaimStatus::Pending,
+            multiplier,
+        };
+
+        // Store claim
+        let mut claims: Map<u64, WorkClaim> =
+            env.storage().persistent().get(&KEY_WORK_CLAIMS).unwrap_or(Map::new(&env));
+        claims.set(claim_id, claim);
+        env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
+
+        // Store verifier assignments for lookup
+        let mut assignments: Map<u64, Vec<Address>> =
+            env.storage().persistent().get(&KEY_VERIFIER_ASSIGNMENTS).unwrap_or(Map::new(&env));
+        assignments.set(claim_id, assigned_verifiers);
+        env.storage().persistent().set(&KEY_VERIFIER_ASSIGNMENTS, &assignments);
+
+        // Increment claim ID counter
+        claim_id_u256 = U256::from_u128(&env, (claim_id + 1) as u128);
+        env.storage().instance().set(&KEY_NEXT_CLAIM_ID, &claim_id_u256);
+
+        claim_id
+    }
+
+    /// Approve a work claim (verifier only)
+    pub fn approve_work_claim(env: Env, verifier: Address, claim_id: u64) {
+        verifier.require_auth();
+
+        let mut claims: Map<u64, WorkClaim> =
+            env.storage().persistent().get(&KEY_WORK_CLAIMS).unwrap();
+        let mut claim = match claims.get(claim_id) {
+            Some(c) => c,
+            None => panic!("Claim not found"),
+        };
+
+        if claim.status != ClaimStatus::Pending {
+            panic!("Claim is not pending");
+        }
+
+        // Verify this verifier was assigned to this claim
+        let assignments: Map<u64, Vec<Address>> =
+            env.storage().persistent().get(&KEY_VERIFIER_ASSIGNMENTS).unwrap_or(Map::new(&env));
+        let assigned_verifiers = match assignments.get(claim_id) {
+            Some(v) => v,
+            None => panic!("No verifiers assigned"),
+        };
+
+        let mut is_assigned = false;
+        for i in 0..assigned_verifiers.len() {
+            if assigned_verifiers.get(i).unwrap() == verifier {
+                is_assigned = true;
+                break;
+            }
+        }
+
+        if !is_assigned {
+            panic!("Verifier not assigned to this claim");
+        }
+
+        // Record approval
+        claim.approvals_received += 1;
+        claims.set(claim_id, claim.clone());
+        env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
+
+        // Update verifier stats
+        let mut verifiers: Map<Address, VerifierData> =
+            env.storage().persistent().get(&KEY_VERIFIERS).unwrap();
+        let mut verifier_data = verifiers.get(verifier.clone()).unwrap();
+        verifier_data.verified_claims += 1;
+        verifiers.set(verifier, verifier_data);
+        env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
+
+        // Check if we have enough approvals (simple majority)
+        // Need more than half of assigned verifiers to approve
+        let total_verifiers = assigned_verifiers.len() as u32;
+        let required = (total_verifiers / 2) + 1;
+
+        if claim.approvals_received >= required {
+            // Mint tokens to worker
+            let base_kchng = claim.minutes_worked / MINUTES_PER_KCHNG;
+            let kchng_to_mint = (base_kchng * claim.multiplier as u64) / 100;
+            let amount = U256::from_u128(&env, kchng_to_mint as u128);
+
+            let mut accounts: Map<Address, AccountData> =
+                env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+            let worker_data = accounts.get(claim.worker.clone()).unwrap();
+            let mut updated_worker = worker_data;
+            updated_worker.balance = updated_worker.balance.add(&amount);
+            updated_worker.last_activity = env.ledger().timestamp();
+            updated_worker.contribution_hours += claim.minutes_worked / 60;
+            accounts.set(claim.worker.clone(), updated_worker);
+            env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+
+            // Update total supply
+            let mut total_supply: U256 = env.storage().instance().get(&KEY_TOTAL_SUPPLY).unwrap();
+            total_supply = total_supply.add(&amount);
+            env.storage().instance().set(&KEY_TOTAL_SUPPLY, &total_supply);
+
+            // Mark claim as approved
+            claim.status = ClaimStatus::Approved;
+            claims.set(claim_id, claim);
+            env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
+        }
+    }
+
+    /// Reject a work claim (verifier only)
+    pub fn reject_work_claim(env: Env, verifier: Address, claim_id: u64) {
+        verifier.require_auth();
+
+        let mut claims: Map<u64, WorkClaim> =
+            env.storage().persistent().get(&KEY_WORK_CLAIMS).unwrap();
+        let mut claim = match claims.get(claim_id) {
+            Some(c) => c,
+            None => panic!("Claim not found"),
+        };
+
+        if claim.status != ClaimStatus::Pending {
+            panic!("Claim is not pending");
+        }
+
+        // Verify this verifier was assigned to this claim
+        let assignments: Map<u64, Vec<Address>> =
+            env.storage().persistent().get(&KEY_VERIFIER_ASSIGNMENTS).unwrap_or(Map::new(&env));
+        let assigned_verifiers = match assignments.get(claim_id) {
+            Some(v) => v,
+            None => panic!("No verifiers assigned"),
+        };
+
+        let mut is_assigned = false;
+        for i in 0..assigned_verifiers.len() {
+            if assigned_verifiers.get(i).unwrap() == verifier {
+                is_assigned = true;
+                break;
+            }
+        }
+
+        if !is_assigned {
+            panic!("Verifier not assigned to this claim");
+        }
+
+        // Record rejection
+        claim.rejections_received += 1;
+        claims.set(claim_id, claim.clone());
+        env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
+
+        // Update verifier stats
+        let mut verifiers: Map<Address, VerifierData> =
+            env.storage().persistent().get(&KEY_VERIFIERS).unwrap();
+        let mut verifier_data = verifiers.get(verifier.clone()).unwrap();
+        verifier_data.rejected_claims += 1;
+        verifiers.set(verifier, verifier_data);
+        env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
+
+        // Check if we have enough rejections to reject the claim
+        let total_verifiers = assigned_verifiers.len() as u32;
+        let required = (total_verifiers / 2) + 1;
+
+        if claim.rejections_received >= required {
+            // Mark claim as rejected
+            claim.status = ClaimStatus::Rejected;
+            claims.set(claim_id, claim);
+            env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
+        }
+    }
+
+    /// Get work claim details
+    pub fn get_work_claim(env: Env, claim_id: u64) -> WorkClaim {
+        let claims: Map<u64, WorkClaim> =
+            env.storage().persistent().get(&KEY_WORK_CLAIMS).unwrap();
+
+        match claims.get(claim_id) {
+            Some(claim) => claim,
+            None => panic!("Claim not found"),
+        }
+    }
+
+    /// Get pending claims for a verifier
+    pub fn get_verifier_pending_claims(env: Env, verifier: Address) -> Vec<u64> {
+        let claims: Map<u64, WorkClaim> =
+            env.storage().persistent().get(&KEY_WORK_CLAIMS).unwrap_or(Map::new(&env));
+
+        let mut pending_claims = Vec::new(&env);
+        for (claim_id, claim) in claims.iter() {
+            if claim.status == ClaimStatus::Pending {
+                // Check if verifier is assigned
+                for i in 0..claim.verifiers_assigned.len() {
+                    if claim.verifiers_assigned.get(i).unwrap() == verifier {
+                        pending_claims.push_back(claim_id);
+                        break;
+                    }
+                }
+            }
+        }
+        pending_claims
     }
 }
 
