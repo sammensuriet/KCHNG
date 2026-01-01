@@ -4,15 +4,12 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
-    deploy-rs.url = "github:serokell/deploy-rs";
-    deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
-    deploy-rs,
   }: let
     # Shared configuration for all apps in the monorepo
     mkApp = {
@@ -87,8 +84,10 @@
           echo ""
           echo "Nix commands:"
           echo "  nix build .#kchng-frontend     - Build KCHNG frontend"
-          echo "  nix build .#podman-image       - Build Podman image"
           echo "  nix develop                    - Enter dev shell"
+          echo ""
+          echo "Deployment:"
+          echo "  See https://github.com/pokho/okdeployman"
         '';
       };
 
@@ -123,22 +122,4 @@
         };
       };
     });
-
-  # deploy-rs deployment configuration
-  deploy = {
-    nodes = {
-      kachi-ng = {
-        hostname = "102.68.84.79";
-        sshUser = "deployman";
-        profiles = {
-          kchng = {
-            path = deploy-rs.lib.x86_64-linux.activate.nix {
-              profilePath = "/nix/var/nix/profiles/per-user/deployman/kchng";
-            };
-          };
-        };
-      };
-    };
-  };
 }
-
