@@ -4,7 +4,10 @@
  */
 
 import { writable, derived } from "svelte/store";
-import { createKchngClient } from "$lib/contracts/kchng";
+
+// Dynamically import stellar-sdk only when needed (on client-side, after user interaction)
+// This avoids CommonJS bundling issues with Vite
+let createKchngClient: any = null;
 
 export interface WalletState {
   connected: boolean;
@@ -26,7 +29,6 @@ const initialState: WalletState = {
 
 function createWalletStore() {
   const { subscribe, set, update } = writable<WalletState>(initialState);
-  const kchngClient = createKchngClient();
 
   /**
    * Check if Freighter is available
@@ -95,9 +97,17 @@ function createWalletStore() {
 
   /**
    * Load KCHNG balance from deployed contract
+   * Dynamically imports KchngClient to avoid bundling issues
    */
   async function loadBalance(address: string) {
     try {
+      // Dynamically import the contract client
+      if (!createKchngClient) {
+        const { createKchngClient: client } = await import("$lib/contracts/kchng");
+        createKchngClient = client;
+      }
+
+      const kchngClient = createKchngClient();
       const accountData = await kchngClient.getAccountData(address);
       update((s) => ({
         ...s,

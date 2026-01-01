@@ -1,5 +1,5 @@
 <script lang="ts">
-  // import { calculateBalanceWithDemurrage } from "@kchng/shared";
+  import { calculateBalanceWithDemurrage } from "@kchng/shared";
 </script>
 
 <div class="hero">

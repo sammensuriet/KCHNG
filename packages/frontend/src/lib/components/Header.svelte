@@ -1,7 +1,6 @@
 <script lang="ts">
-  // TODO: Re-enable wallet integration after fixing stellar-sdk bundling
-  // import { wallet, truncatedAddress, formattedBalance } from "$lib/stores/wallet";
-  // import DemurrageInfo from "./DemurrageInfo.svelte";
+  import { wallet, truncatedAddress, formattedBalance } from "$lib/stores/wallet";
+  import DemurrageInfo from "./DemurrageInfo.svelte";
 
   let showMenu = $state(false);
 </script>
@@ -12,8 +11,55 @@
   </div>
 
   <div class="header-right">
-    <!-- TODO: Wallet integration coming soon -->
-    <button class="btn-connect" disabled>Wallet Coming Soon</button>
+    {#if $wallet.error}
+      <div class="error-message">
+        {$wallet.error}
+        <button class="error-dismiss" onclick={() => wallet.disconnect()}>×</button>
+      </div>
+    {/if}
+
+    {#if !$wallet.connected}
+      <button class="btn-connect" onclick={() => wallet.connect()}>
+        Connect Wallet
+      </button>
+    {:else}
+      <div class="wallet-info">
+        <button class="btn-wallet" onclick={() => (showMenu = !showMenu)}>
+          <span class="wallet-address">{truncatedAddress}</span>
+          <span class="wallet-balance">{$formattedBalance} KCHNG</span>
+        </button>
+
+        {#if showMenu}
+          <div class="wallet-dropdown">
+            <div class="dropdown-section">
+              <div class="dropdown-label">Connected as</div>
+              <div class="dropdown-value">{$wallet.walletName}</div>
+            </div>
+
+            <div class="dropdown-section">
+              <div class="dropdown-label">Address</div>
+              <div class="dropdown-value dropdown-address">{$wallet.address}</div>
+            </div>
+
+            <div class="dropdown-section">
+              <div class="dropdown-label">Balance</div>
+              <div class="dropdown-value">{$formattedBalance} KCHNG</div>
+            </div>
+
+            <div class="dropdown-section">
+              <div class="dropdown-label">Demurrage</div>
+              <DemurrageInfo compact={true} />
+            </div>
+
+            <hr class="dropdown-divider" />
+
+            <button class="btn-disconnect" onclick={() => wallet.disconnect()}>
+              Disconnect
+            </button>
+          </div>
+        {/if}
+      </div>
+    {/if}
   </div>
 </header>
 
@@ -151,6 +197,37 @@
   }
 
   .btn-disconnect:hover {
+    background: #fecaca;
+  }
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: 6px;
+    font-size: 0.875rem;
+  }
+
+  .error-dismiss {
+    background: none;
+    border: none;
+    color: #991b1b;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+  }
+
+  .error-dismiss:hover {
     background: #fecaca;
   }
 
