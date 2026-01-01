@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { wallet, truncatedAddress, formattedBalance } from "$lib/stores/wallet";
-  import DemurrageInfo from "./DemurrageInfo.svelte";
+  // TODO: Re-enable wallet integration after fixing stellar-sdk bundling
+  // import { wallet, truncatedAddress, formattedBalance } from "$lib/stores/wallet";
+  // import DemurrageInfo from "./DemurrageInfo.svelte";
 
   let showMenu = $state(false);
 </script>
@@ -11,55 +12,8 @@
   </div>
 
   <div class="header-right">
-    {#if $wallet.error}
-      <div class="error-message">
-        {$wallet.error}
-        <button class="error-dismiss" onclick={() => wallet.disconnect()}>×</button>
-      </div>
-    {/if}
-
-    {#if !$wallet.connected}
-      <button class="btn-connect" onclick={() => wallet.connect()}>
-        Connect Wallet
-      </button>
-    {:else}
-      <div class="wallet-info">
-        <button class="btn-wallet" onclick={() => (showMenu = !showMenu)}>
-          <span class="wallet-address">{truncatedAddress}</span>
-          <span class="wallet-balance">{$formattedBalance} KCHNG</span>
-        </button>
-
-        {#if showMenu}
-          <div class="wallet-dropdown">
-            <div class="dropdown-section">
-              <div class="dropdown-label">Connected as</div>
-              <div class="dropdown-value">{$wallet.walletName}</div>
-            </div>
-
-            <div class="dropdown-section">
-              <div class="dropdown-label">Address</div>
-              <div class="dropdown-value dropdown-address">{$wallet.address}</div>
-            </div>
-
-            <div class="dropdown-section">
-              <div class="dropdown-label">Balance</div>
-              <div class="dropdown-value">{$formattedBalance} KCHNG</div>
-            </div>
-
-            <div class="dropdown-section">
-              <div class="dropdown-label">Demurrage</div>
-              <DemurrageInfo compact={true} />
-            </div>
-
-            <hr class="dropdown-divider" />
-
-            <button class="btn-disconnect" onclick={() => wallet.disconnect()}>
-              Disconnect
-            </button>
-          </div>
-        {/if}
-      </div>
-    {/if}
+    <!-- TODO: Wallet integration coming soon -->
+    <button class="btn-connect" disabled>Wallet Coming Soon</button>
   </div>
 </header>
 
