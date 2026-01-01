@@ -27,7 +27,7 @@ const MAX_ANNUAL_RATE_BPS: u32 = 1500; // 15% maximum
 // Verification
 const MIN_VERIFIERS: u32 = 2;
 const MAX_VERIFIERS: u32 = 5;
-const VERIFIER_STAKE: u64 = 100 * 10_000_000_000_000_000; // 100 KCHNG (18 decimals)
+const VERIFIER_STAKE: u64 = 100_000; // 100,000 KCHNG
 
 // Grace Periods
 const MAX_GRACE_PERIODS_PER_YEAR: u32 = 3;
@@ -134,7 +134,7 @@ pub struct AccountData {
     pub balance: U256,
     pub last_activity: u64,
     pub grace_period_end: u64,     // Timestamp when grace ends (0 if not in grace)
-    pub trust_id: Address,         // Trust membership (zero address if none)
+    pub trust_id: Option<Address>, // Trust membership (None if none)
     pub contribution_hours: u64,   // Total hours contributed
     pub grace_periods_used: u32,   // Grace periods used this year
     pub last_grace_year: u32,      // Year of last grace period
@@ -157,7 +157,7 @@ pub struct TrustData {
 #[derive(Clone)]
 #[contracttype]
 pub struct VerifierData {
-    pub trust_id: Address,
+    pub trust_id: Option<Address>,
     pub stake: U256,
     pub reputation_score: u32,     // 0-1000
     pub verified_claims: u32,
@@ -205,7 +205,7 @@ pub struct Proposal {
     pub proposal_type: ProposalType,
     pub title: String,
     pub description: String,
-    pub trust_id: Address,             // Zero address for protocol-level
+    pub trust_id: Option<Address>,     // None for protocol-level
     pub new_rate_bps: Option<u32>,     // For rate change proposals
     pub created_at: u64,
     pub review_end: u64,
@@ -254,7 +254,7 @@ impl KchngToken {
             balance: initial_supply.clone(),
             last_activity: env.ledger().timestamp(),
             grace_period_end: 0,
-            trust_id: Address::generate(&env), // Use generated address as placeholder
+            trust_id: None,
             contribution_hours: 0,
             grace_periods_used: 0,
             last_grace_year: 0,
@@ -297,7 +297,7 @@ impl KchngToken {
             balance: initial_supply.clone(),
             last_activity: env.ledger().timestamp(),
             grace_period_end: 0,
-            trust_id: Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
+            trust_id: None,
             contribution_hours: 0,
             grace_periods_used: 0,
             last_grace_year: 0,
@@ -351,7 +351,6 @@ impl KchngToken {
             env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
 
         let current_time = env.ledger().timestamp();
-        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
 
         // Update sender
         let mut updated_from = from_data;
@@ -364,7 +363,7 @@ impl KchngToken {
             balance: U256::from_u32(&env, 0),
             last_activity: current_time,
             grace_period_end: 0,
-            trust_id: zero_address.clone(),
+            trust_id: None,
             contribution_hours: 0,
             grace_periods_used: 0,
             last_grace_year: 0,
@@ -390,12 +389,11 @@ impl KchngToken {
             env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
 
         let current_time = env.ledger().timestamp();
-        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
         let to_data = accounts.get(to.clone()).unwrap_or(AccountData {
             balance: U256::from_u32(&env, 0),
             last_activity: current_time,
             grace_period_end: 0,
-            trust_id: zero_address.clone(),
+            trust_id: None,
             contribution_hours: 0,
             grace_periods_used: 0,
             last_grace_year: 0,
@@ -509,14 +507,14 @@ impl KchngToken {
             balance: U256::from_u32(&env, 0),
             last_activity: env.ledger().timestamp(),
             grace_period_end: 0,
-            trust_id: Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
+            trust_id: None,
             contribution_hours: 0,
             grace_periods_used: 0,
             last_grace_year: 0,
         });
 
         let mut updated_governor = governor_data;
-        updated_governor.trust_id = governor.clone();
+        updated_governor.trust_id = Some(governor.clone());
         accounts.set(governor, updated_governor);
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
     }
@@ -542,20 +540,24 @@ impl KchngToken {
         let mut accounts: Map<Address, AccountData> =
             env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
 
-        let member_data = match accounts.get(member.clone()) {
-            Some(data) => data,
-            None => panic!("Account not found"),
-        };
+        let member_data = accounts.get(member.clone()).unwrap_or(AccountData {
+            balance: U256::from_u32(&env, 0),
+            last_activity: env.ledger().timestamp(),
+            grace_period_end: 0,
+            trust_id: None,
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
+        });
 
         // Check if already in a trust
-        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
-        if member_data.trust_id != zero_address {
+        if member_data.trust_id.is_some() {
             panic!("Already a member of a trust");
         }
 
         // Update member's trust membership
         let mut updated_member = member_data;
-        updated_member.trust_id = trust_id.clone();
+        updated_member.trust_id = Some(trust_id.clone());
         accounts.set(member.clone(), updated_member);
 
         // Update trust member count
@@ -595,16 +597,13 @@ impl KchngToken {
     }
 
     /// Get the trust ID for an account
-    pub fn get_account_trust(env: Env, account: Address) -> Address {
+    pub fn get_account_trust(env: Env, account: Address) -> Option<Address> {
         let accounts: Map<Address, AccountData> =
             env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
 
         match accounts.get(account) {
-            Some(data) => data.trust_id,
-            None => {
-                // Return zero address for accounts not in a trust
-                Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
-            }
+            Some(data) => data.trust_id.clone(),
+            None => None,
         }
     }
 
@@ -621,7 +620,7 @@ impl KchngToken {
                     balance: U256::from_u32(&env, 0),
                     last_activity: env.ledger().timestamp(),
                     grace_period_end: 0,
-                    trust_id: Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
+                    trust_id: None,
                     contribution_hours: 0,
                     grace_periods_used: 0,
                     last_grace_year: 0,
@@ -669,20 +668,22 @@ impl KchngToken {
         }
 
         // Get trust-specific demurrage parameters
-        let zero_address = Address::from_str(env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
-        let (annual_rate_bps, period_days) = if data.trust_id == zero_address {
-            // Not in a trust, use default rate (12% annual, 30 day period)
-            (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS)
-        } else {
-            // Get trust data
-            let trusts: Map<Address, TrustData> =
-                env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+        let (annual_rate_bps, period_days) = match &data.trust_id {
+            None => {
+                // Not in a trust, use default rate (12% annual, 30 day period)
+                (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS)
+            }
+            Some(trust_id) => {
+                // Get trust data
+                let trusts: Map<Address, TrustData> =
+                    env.storage().persistent().get(&KEY_TRUSTS).unwrap();
 
-            match trusts.get(data.trust_id.clone()) {
-                Some(trust) => (trust.annual_rate_bps, trust.demurrage_period_days),
-                None => {
-                    // Trust not found, use default
-                    (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS)
+                match trusts.get(trust_id.clone()) {
+                    Some(trust) => (trust.annual_rate_bps, trust.demurrage_period_days),
+                    None => {
+                        // Trust not found, use default
+                        (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS)
+                    }
                 }
             }
         };
@@ -744,13 +745,12 @@ impl KchngToken {
             None => panic!("Account not found"),
         };
 
-        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
-
-        if account_data.trust_id == zero_address {
-            (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS)
-        } else {
-            let trust = Self::get_trust_info(env, account_data.trust_id);
-            (trust.annual_rate_bps, trust.demurrage_period_days)
+        match &account_data.trust_id {
+            None => (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS),
+            Some(trust_id) => {
+                let trust = Self::get_trust_info(env, trust_id.clone());
+                (trust.annual_rate_bps, trust.demurrage_period_days)
+            }
         }
     }
 
@@ -793,7 +793,7 @@ impl KchngToken {
         }
 
         let verifier_data = VerifierData {
-            trust_id: trust_id.clone(),
+            trust_id: Some(trust_id.clone()),
             stake: stake_amount.clone(),
             reputation_score: 500, // Start at neutral reputation
             verified_claims: 0,
@@ -841,10 +841,8 @@ impl KchngToken {
         };
 
         // Worker must be in a trust
-        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
-        if worker_account.trust_id == zero_address {
-            panic!("Must join a trust before submitting work claims");
-        }
+        let worker_trust_id = worker_account.trust_id.as_ref()
+            .expect("Must join a trust before submitting work claims");
 
         // Get next claim ID
         let mut claim_id_u256: U256 = env.storage().instance().get(&KEY_NEXT_CLAIM_ID).unwrap();
@@ -856,7 +854,7 @@ impl KchngToken {
 
         let mut trust_verifiers: Vec<Address> = Vec::new(&env);
         for (verifier_addr, verifier_data) in verifiers.iter() {
-            if verifier_data.trust_id == worker_account.trust_id {
+            if verifier_data.trust_id.as_ref() == Some(worker_trust_id) {
                 trust_verifiers.push_back(verifier_addr);
             }
         }
@@ -1114,7 +1112,7 @@ impl KchngToken {
         };
 
         // Minimum stake for oracles
-        let oracle_stake = U256::from_u128(&env, 500 * 10_000_000_000_000_000); // 500 KCHNG
+        let oracle_stake = U256::from_u128(&env, 500_000); // 500,000 KCHNG
 
         // Simple balance check (without demurrage for oracle registration)
         if oracle_account.balance < oracle_stake {
@@ -1344,13 +1342,9 @@ impl KchngToken {
             None => panic!("Account not found"),
         };
 
-        // Get from trust
-        let from_trust = from_data.trust_id.clone();
-
-        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
-        if from_trust == zero_address {
-            panic!("Must be in a trust to perform cross-trust swap");
-        }
+        // Get from trust (clone to avoid borrow issues)
+        let from_trust = from_data.trust_id.clone()
+            .expect("Must be in a trust to perform cross-trust swap");
 
         // Calculate exchange rate
         let exchange_rate_bps = Self::calculate_exchange_rate(env.clone(), from_trust.clone(), dest_trust.clone());
@@ -1374,7 +1368,7 @@ impl KchngToken {
         let mut updated_from = from_data;
         updated_from.balance = balance_after_demurrage.sub(&amount);
         updated_from.last_activity = env.ledger().timestamp();
-        updated_from.trust_id = dest_trust.clone(); // Move to destination trust
+        updated_from.trust_id = Some(dest_trust.clone()); // Move to destination trust
         accounts.set(from.clone(), updated_from);
 
         // Update trust member counts
@@ -1384,7 +1378,7 @@ impl KchngToken {
         // Decrement source trust count
         if let Some(mut source_trust_data) = trusts.get(from_trust.clone()) {
             source_trust_data.member_count -= 1;
-            trusts.set(from_trust, source_trust_data);
+            trusts.set(from_trust.clone(), source_trust_data);
         }
 
         // Increment destination trust count
@@ -1425,7 +1419,7 @@ impl KchngToken {
         proposal_type: ProposalType,
         title: String,
         description: String,
-        trust_id: Address,
+        trust_id: Option<Address>,
         new_rate_bps: Option<u32>,
     ) -> u64 {
         proposer.require_auth();
@@ -1434,10 +1428,11 @@ impl KchngToken {
         match proposal_type {
             ProposalType::RateChange | ProposalType::TrustParameters => {
                 // Must be governor of the trust
+                let trust_addr = trust_id.as_ref().expect("Trust-specific proposals require a trust_id");
                 let trusts: Map<Address, TrustData> =
                     env.storage().persistent().get(&KEY_TRUSTS).unwrap();
 
-                let trust_data = match trusts.get(trust_id.clone()) {
+                let trust_data = match trusts.get(trust_addr.clone()) {
                     Some(data) => data,
                     None => panic!("Trust not found"),
                 };
@@ -1533,8 +1528,7 @@ impl KchngToken {
         }
 
         // Verify voter is a trust member for trust-specific proposals
-        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
-        if proposal.trust_id != zero_address {
+        if let Some(proposal_trust) = &proposal.trust_id {
             let accounts: Map<Address, AccountData> =
                 env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
 
@@ -1543,7 +1537,7 @@ impl KchngToken {
                 None => panic!("Not a trust member"),
             };
 
-            if account.trust_id != proposal.trust_id {
+            if account.trust_id.as_ref() != Some(proposal_trust) {
                 panic!("Not a member of this trust");
             }
         }
@@ -1591,19 +1585,20 @@ impl KchngToken {
                     let total_votes = proposal.votes_for + proposal.votes_against;
 
                     // Get member count for quorum calculation
-                    let member_count = if proposal.trust_id
-                        == Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
-                    {
-                        // Protocol proposal: use total accounts as quorum base
-                        let accounts: Map<Address, AccountData> =
-                            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
-                        accounts.len() as u32
-                    } else {
-                        // Trust proposal: use trust member count
-                        let trusts: Map<Address, TrustData> =
-                            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
-                        let trust_data = trusts.get(proposal.trust_id.clone()).unwrap();
-                        trust_data.member_count
+                    let member_count = match &proposal.trust_id {
+                        None => {
+                            // Protocol proposal: use total accounts as quorum base
+                            let accounts: Map<Address, AccountData> =
+                                env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+                            accounts.len() as u32
+                        }
+                        Some(trust_id) => {
+                            // Trust proposal: use trust member count
+                            let trusts: Map<Address, TrustData> =
+                                env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+                            let trust_data = trusts.get(trust_id.clone()).unwrap();
+                            trust_data.member_count
+                        }
                     };
 
                     // Check quorum (40% participation required)
@@ -1659,13 +1654,13 @@ impl KchngToken {
             panic!("Implementation date has not passed");
         }
 
-        // Clone trust_id before match to avoid partial move
-        let trust_id = proposal.trust_id.clone();
-
         // Execute proposal based on type
         match proposal.proposal_type {
             ProposalType::RateChange => {
                 if let Some(new_rate) = proposal.new_rate_bps {
+                    let trust_id = proposal.trust_id.as_ref()
+                        .expect("Rate change requires a trust");
+
                     let mut trusts: Map<Address, TrustData> =
                         env.storage().persistent().get(&KEY_TRUSTS).unwrap();
 
@@ -1675,13 +1670,16 @@ impl KchngToken {
                     };
 
                     trust_data.annual_rate_bps = new_rate;
-                    trusts.set(trust_id, trust_data);
+                    trusts.set(trust_id.clone(), trust_data);
                     env.storage().persistent().set(&KEY_TRUSTS, &trusts);
                 }
             }
             ProposalType::Emergency => {
                 if let Some(new_rate) = proposal.new_rate_bps {
                     // Emergency rate can exceed MAX_ANNUAL_RATE_BPS temporarily
+                    let trust_id = proposal.trust_id.as_ref()
+                        .expect("Emergency rate change requires a trust");
+
                     let mut trusts: Map<Address, TrustData> =
                         env.storage().persistent().get(&KEY_TRUSTS).unwrap();
 
@@ -1691,7 +1689,7 @@ impl KchngToken {
                     };
 
                     trust_data.annual_rate_bps = new_rate;
-                    trusts.set(trust_id, trust_data);
+                    trusts.set(trust_id.clone(), trust_data);
                     env.storage().persistent().set(&KEY_TRUSTS, &trusts);
                 }
             }
@@ -1699,6 +1697,9 @@ impl KchngToken {
                 // Handle trust parameter changes
                 // For now, only rate changes are supported
                 if let Some(new_rate) = proposal.new_rate_bps {
+                    let trust_id = proposal.trust_id.as_ref()
+                        .expect("Trust parameter change requires a trust");
+
                     let mut trusts: Map<Address, TrustData> =
                         env.storage().persistent().get(&KEY_TRUSTS).unwrap();
 
@@ -1708,7 +1709,7 @@ impl KchngToken {
                     };
 
                     trust_data.annual_rate_bps = new_rate;
-                    trusts.set(trust_id, trust_data);
+                    trusts.set(trust_id.clone(), trust_data);
                     env.storage().persistent().set(&KEY_TRUSTS, &trusts);
                 }
             }

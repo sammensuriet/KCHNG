@@ -3,8 +3,9 @@
 use soroban_sdk::U256;
 use soroban_sdk::{Address, Env, String, Bytes};
 use soroban_sdk::testutils::Address as _;
+use soroban_sdk::testutils::Ledger as _;
 
-use crate::{KchngToken, KchngTokenClient, WorkType, ClaimStatus, GraceType, ProposalType, ProposalStatus};
+use crate::{KchngToken, KchngTokenClient, WorkType, ClaimStatus, ProposalType, ProposalStatus};
 
 // ==========================================================================
 // LEGACY TESTS (Basic Token Functionality)
@@ -119,14 +120,12 @@ fn test_insufficient_balance() {
 fn test_register_trust() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register a trust with 12% annual rate (1200 bps)
     client.register_trust(
@@ -149,15 +148,13 @@ fn test_register_trust() {
 fn test_join_trust() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let member = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust
     client.register_trust(
@@ -172,11 +169,11 @@ fn test_join_trust() {
 
     // Verify membership
     let account = client.get_account(&member);
-    assert_eq!(account.trust_id, governor);
+    assert_eq!(account.trust_id, Some(governor.clone()));
 
-    // Verify member count
+    // Verify member count (governor was already counted in register_trust)
     let trust_info = client.get_trust_info(&governor);
-    assert_eq!(trust_info.member_count, 1);
+    assert_eq!(trust_info.member_count, 2);
 }
 
 // ==========================================================================
@@ -187,15 +184,13 @@ fn test_join_trust() {
 fn test_submit_work_claim() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let worker = Address::generate(&env);
     let governor = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust and join it (required for work claims)
     client.register_trust(
@@ -205,6 +200,17 @@ fn test_submit_work_claim() {
         &30u64,
     );
     client.join_trust(&worker, &governor);
+
+    // Register verifiers to enable work claims (need at least 2)
+    let verifier = Address::generate(&env);
+    let verifier2 = Address::generate(&env);
+    let stake_amount = U256::from_u32(&env, 100_000);
+    client.transfer(&admin, &verifier, &stake_amount);
+    client.transfer(&admin, &verifier2, &stake_amount);
+    client.join_trust(&verifier, &governor);
+    client.join_trust(&verifier2, &governor);
+    client.register_verifier(&verifier, &governor);
+    client.register_verifier(&verifier2, &governor);
 
     // Submit work claim (30 minutes basic work)
     let evidence_hash = Bytes::from_array(&env, &[0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0]);
@@ -230,16 +236,14 @@ fn test_submit_work_claim() {
 fn test_approve_work_claim() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let worker = Address::generate(&env);
     let verifier = Address::generate(&env);
     let governor = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust and join it
     client.register_trust(
@@ -249,11 +253,17 @@ fn test_approve_work_claim() {
         &30u64,
     );
     client.join_trust(&worker, &governor);
+    client.join_trust(&verifier, &governor);
 
-    // Register verifier (requires stake)
+    // Register verifiers (requires at least 2 for MIN_VERIFIERS)
     let stake_amount = U256::from_u32(&env, 100_000);
     client.transfer(&admin, &verifier, &stake_amount);
     client.register_verifier(&verifier, &governor);
+
+    let verifier2 = Address::generate(&env);
+    client.transfer(&admin, &verifier2, &stake_amount);
+    client.join_trust(&verifier2, &governor);
+    client.register_verifier(&verifier2, &governor);
 
     // Submit work claim
     let evidence_hash = Bytes::from_array(&env, &[0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0]);
@@ -282,14 +292,12 @@ fn test_approve_work_claim() {
 fn test_register_oracle() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let oracle = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Give oracle enough stake (500 KCHNG required)
     let stake_amount = U256::from_u32(&env, 500_000);
@@ -308,16 +316,14 @@ fn test_register_oracle() {
 fn test_activate_grace_period() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let oracle = Address::generate(&env);
     let account = Address::generate(&env);
     let governor = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
     client.register_trust(
@@ -351,7 +357,7 @@ fn test_activate_grace_period() {
 
     // Verify account is in trust
     let account_data = client.get_account(&account);
-    assert_eq!(account_data.trust_id, governor);
+    assert_eq!(account_data.trust_id, Some(governor));
 }
 
 // ==========================================================================
@@ -362,15 +368,13 @@ fn test_activate_grace_period() {
 fn test_calculate_exchange_rate() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let trust_a = Address::generate(&env);
     let trust_b = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust A (12% rate)
     client.register_trust(&trust_a, &String::from_str(&env, "Trust A"), &1200u32, &30u64);
@@ -390,16 +394,14 @@ fn test_calculate_exchange_rate() {
 fn test_cross_trust_swap() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let trust_a = Address::generate(&env);
     let trust_b = Address::generate(&env);
     let user = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts
     client.register_trust(&trust_a, &String::from_str(&env, "Trust A"), &1200u32, &30u64);
@@ -415,7 +417,7 @@ fn test_cross_trust_swap() {
 
     // Verify user is now in trust B
     let account = client.get_account(&user);
-    assert_eq!(account.trust_id, trust_b);
+    assert_eq!(account.trust_id, Some(trust_b));
 }
 
 // ==========================================================================
@@ -426,14 +428,12 @@ fn test_cross_trust_swap() {
 fn test_create_proposal() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust
     client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
@@ -444,7 +444,7 @@ fn test_create_proposal() {
         &ProposalType::RateChange,
         &String::from_str(&env, "Reduce Rate to 10%"),
         &String::from_str(&env, "Lowering rate due to increased velocity"),
-        &governor,
+        &Some(governor.clone()),
         &Some(1000u32), // 10%
     );
 
@@ -459,15 +459,13 @@ fn test_create_proposal() {
 fn test_vote_on_proposal() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let voter = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust and proposal
     client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
@@ -479,12 +477,26 @@ fn test_vote_on_proposal() {
         &ProposalType::RateChange,
         &String::from_str(&env, "Test"),
         &String::from_str(&env, "Test"),
-        &governor,
+        &Some(governor.clone()),
         &Some(1000u32),
     );
 
-    // Advance time to voting period
-    // Note: In real tests, use env.ledger().set()
+    // Advance time to voting period (skip 7-day review period)
+    use soroban_sdk::testutils::LedgerInfo;
+    let current_info = env.ledger().get();
+    env.ledger().set(LedgerInfo {
+        sequence_number: current_info.sequence_number + 1,
+        timestamp: current_info.timestamp + (8 * 24 * 60 * 60),
+        protocol_version: current_info.protocol_version,
+        base_reserve: current_info.base_reserve,
+        min_persistent_entry_ttl: current_info.min_persistent_entry_ttl,
+        min_temp_entry_ttl: current_info.min_temp_entry_ttl,
+        max_entry_ttl: current_info.max_entry_ttl,
+        network_id: current_info.network_id,
+    });
+
+    // Process proposal to move to voting period
+    client.process_proposal(&proposal_id);
 
     // Vote
     client.vote_on_proposal(&voter, &proposal_id, &true);
