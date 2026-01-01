@@ -84,10 +84,10 @@ export interface AccountData {
   balance: Amount;
   last_activity: Timestamp;
   grace_period_end: Timestamp;     // Timestamp when grace ends (0 if not in grace)
-  trust_id: AccountId;             // Trust membership (zero address if none)
+  trust_id: AccountId | null;      // Trust membership (null if none)
   contribution_hours: number;      // Total hours contributed
   grace_periods_used: number;      // Grace periods used this year
-  last_grace_year: number;         // Year of last grace period,
+  last_grace_year: number;         // Year of last grace period
 }
 
 /**
@@ -107,12 +107,12 @@ export interface TrustData {
  * Verifier data for work verification
  */
 export interface VerifierData {
-  trust_id: AccountId;
+  trust_id: AccountId | null;
   stake: Amount;
   reputation_score: number;        // 0-1000
   verified_claims: number;
   rejected_claims: number;
-  fraud_reports: number,
+  fraud_reports: number;
 }
 
 /**
@@ -165,7 +165,7 @@ export interface Proposal {
   proposal_type: ProposalType;
   title: string;
   description: string;
-  trust_id: AccountId;             // Zero address for protocol-level
+  trust_id: AccountId | null;       // Null for protocol-level
   new_rate_bps?: number;           // For rate change proposals
   created_at: Timestamp;
   review_end: Timestamp;
@@ -174,7 +174,7 @@ export interface Proposal {
   status: ProposalStatus;
   votes_for: number;
   votes_against: number;
-  voters: AccountId[],
+  voters: AccountId[];
 }
 
 // ============================================================================
