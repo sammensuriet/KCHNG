@@ -103,6 +103,7 @@ pub enum ClaimStatus {
 }
 
 /// Status of a governance proposal
+#[derive(Clone, PartialEq)]
 #[contracttype]
 pub enum ProposalStatus {
     Review = 0,        // In review period (7 days)
@@ -114,6 +115,7 @@ pub enum ProposalStatus {
 }
 
 /// Type of proposal
+#[derive(Clone)]
 #[contracttype]
 pub enum ProposalType {
     RateChange = 0,           // Change trust demurrage rate
@@ -195,6 +197,7 @@ pub struct GracePeriod {
 }
 
 /// Governance proposal
+#[derive(Clone)]
 #[contracttype]
 pub struct Proposal {
     pub proposal_id: u64,
@@ -1372,6 +1375,343 @@ impl KchngToken {
         let rate_factor = U256::from_u128(&env, exchange_rate_bps as u128);
         let tmp = amount.mul(&rate_factor);
         tmp.div(&U256::from_u128(&env, 10000))
+    }
+
+    // =========================================================================
+    // GOVERNANCE SYSTEM
+    // =========================================================================
+
+    /// Create a governance proposal
+    /// Proposer must be a trust governor for trust-specific proposals
+    /// or admin for protocol-level proposals
+    pub fn create_proposal(
+        env: Env,
+        proposer: Address,
+        proposal_type: ProposalType,
+        title: String,
+        description: String,
+        trust_id: Address,
+        new_rate_bps: Option<u32>,
+    ) -> u64 {
+        proposer.require_auth();
+
+        // Validate proposer authority
+        match proposal_type {
+            ProposalType::RateChange | ProposalType::TrustParameters => {
+                // Must be governor of the trust
+                let trusts: Map<Address, TrustData> =
+                    env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+                let trust_data = match trusts.get(trust_id.clone()) {
+                    Some(data) => data,
+                    None => panic!("Trust not found"),
+                };
+
+                if trust_data.governor != proposer {
+                    panic!("Only trust governors can propose trust changes");
+                }
+            }
+            ProposalType::ProtocolUpgrade | ProposalType::Emergency => {
+                // Must be admin
+                let admin: Address = env.storage().instance().get(&KEY_ADMIN).unwrap();
+                if admin != proposer {
+                    panic!("Only admin can propose protocol changes");
+                }
+            }
+        }
+
+        // Validate rate change if provided
+        if let Some(rate) = new_rate_bps {
+            if rate < MIN_ANNUAL_RATE_BPS || rate > MAX_ANNUAL_RATE_BPS {
+                panic!("Rate must be within protocol bounds (5-15%)");
+            }
+        }
+
+        // Calculate proposal timeline
+        let current_timestamp = env.ledger().timestamp();
+        let review_end = current_timestamp + (REVIEW_PERIOD_DAYS * SECONDS_PER_DAY);
+        let vote_end = review_end + (VOTE_PERIOD_DAYS * SECONDS_PER_DAY);
+        let implementation_date = vote_end + (IMPLEMENTATION_NOTICE_DAYS * SECONDS_PER_DAY);
+
+        // Generate proposal ID
+        let mut proposals: Map<u64, Proposal> =
+            env.storage().persistent().get(&KEY_PROPOSALS).unwrap_or(Map::new(&env));
+        let proposal_id: u64 = proposals.len().into();
+
+        // Create proposal
+        let proposal = Proposal {
+            proposal_id,
+            proposer: proposer.clone(),
+            proposal_type,
+            title,
+            description,
+            trust_id,
+            new_rate_bps,
+            created_at: current_timestamp,
+            review_end,
+            vote_end,
+            implementation_date,
+            status: ProposalStatus::Review,
+            votes_for: 0,
+            votes_against: 0,
+            voters: Vec::new(&env),
+        };
+
+        proposals.set(proposal_id, proposal);
+        env.storage().persistent().set(&KEY_PROPOSALS, &proposals);
+
+        proposal_id
+    }
+
+    /// Vote on a governance proposal
+    /// Only trust members can vote on trust-specific proposals
+    /// Admin can vote on protocol proposals
+    pub fn vote_on_proposal(env: Env, voter: Address, proposal_id: u64, support: bool) {
+        voter.require_auth();
+
+        let mut proposals: Map<u64, Proposal> =
+            env.storage().persistent().get(&KEY_PROPOSALS).unwrap();
+
+        let mut proposal = match proposals.get(proposal_id) {
+            Some(p) => p,
+            None => panic!("Proposal not found"),
+        };
+
+        // Check if proposal is in voting period
+        if proposal.status != ProposalStatus::Voting {
+            panic!("Proposal is not in voting period");
+        }
+
+        let current_timestamp = env.ledger().timestamp();
+
+        // Check if voting period has ended
+        if current_timestamp > proposal.vote_end {
+            proposal.status = ProposalStatus::Expired;
+            proposals.set(proposal_id, proposal);
+            env.storage().persistent().set(&KEY_PROPOSALS, &proposals);
+            panic!("Voting period has ended");
+        }
+
+        // Check if already voted
+        if proposal.voters.contains(voter.clone()) {
+            panic!("Already voted on this proposal");
+        }
+
+        // Verify voter is a trust member for trust-specific proposals
+        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+        if proposal.trust_id != zero_address {
+            let accounts: Map<Address, AccountData> =
+                env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+            let account = match accounts.get(voter.clone()) {
+                Some(a) => a,
+                None => panic!("Not a trust member"),
+            };
+
+            if account.trust_id != proposal.trust_id {
+                panic!("Not a member of this trust");
+            }
+        }
+
+        // Record vote
+        if support {
+            proposal.votes_for += 1;
+        } else {
+            proposal.votes_against += 1;
+        }
+
+        // Add to voters list
+        proposal.voters.push_back(voter);
+
+        proposals.set(proposal_id, proposal);
+        env.storage().persistent().set(&KEY_PROPOSALS, &proposals);
+    }
+
+    /// Process a proposal and update its status
+    /// Transitions from Review to Voting, or Voting to Approved/Rejected
+    pub fn process_proposal(env: Env, proposal_id: u64) {
+        let mut proposals: Map<u64, Proposal> =
+            env.storage().persistent().get(&KEY_PROPOSALS).unwrap();
+
+        let mut proposal = match proposals.get(proposal_id) {
+            Some(p) => p,
+            None => panic!("Proposal not found"),
+        };
+
+        let current_timestamp = env.ledger().timestamp();
+
+        match proposal.status {
+            ProposalStatus::Review => {
+                // Transition to voting if review period ended
+                if current_timestamp >= proposal.review_end {
+                    proposal.status = ProposalStatus::Voting;
+                    proposals.set(proposal_id, proposal);
+                    env.storage().persistent().set(&KEY_PROPOSALS, &proposals);
+                }
+            }
+            ProposalStatus::Voting => {
+                // Check if voting period ended
+                if current_timestamp >= proposal.vote_end {
+                    // Calculate quorum and results
+                    let total_votes = proposal.votes_for + proposal.votes_against;
+
+                    // Get member count for quorum calculation
+                    let member_count = if proposal.trust_id
+                        == Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+                    {
+                        // Protocol proposal: use total accounts as quorum base
+                        let accounts: Map<Address, AccountData> =
+                            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+                        accounts.len() as u32
+                    } else {
+                        // Trust proposal: use trust member count
+                        let trusts: Map<Address, TrustData> =
+                            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+                        let trust_data = trusts.get(proposal.trust_id.clone()).unwrap();
+                        trust_data.member_count
+                    };
+
+                    // Check quorum (40% participation required)
+                    let quorum_met = total_votes >= (member_count * 40 / 100);
+
+                    if !quorum_met {
+                        proposal.status = ProposalStatus::Expired;
+                    } else {
+                        // Check approval (60% support required, or 80% for emergency)
+                        let approval_threshold = match proposal.proposal_type {
+                            ProposalType::Emergency => 80,
+                            _ => 60,
+                        };
+
+                        let approval_percentage = (proposal.votes_for * 100) / total_votes;
+
+                        if approval_percentage >= approval_threshold {
+                            proposal.status = ProposalStatus::Approved;
+                        } else {
+                            proposal.status = ProposalStatus::Rejected;
+                        }
+                    }
+
+                    proposals.set(proposal_id, proposal);
+                    env.storage().persistent().set(&KEY_PROPOSALS, &proposals);
+                }
+            }
+            _ => {
+                panic!("Proposal cannot be processed in current state");
+            }
+        }
+    }
+
+    /// Implement an approved proposal
+    /// Can only be called after implementation date has passed
+    pub fn implement_proposal(env: Env, proposal_id: u64) {
+        let mut proposals: Map<u64, Proposal> =
+            env.storage().persistent().get(&KEY_PROPOSALS).unwrap();
+
+        let proposal = match proposals.get(proposal_id) {
+            Some(p) => p,
+            None => panic!("Proposal not found"),
+        };
+
+        // Check proposal is approved
+        if proposal.status != ProposalStatus::Approved {
+            panic!("Proposal is not approved");
+        }
+
+        // Check implementation date has passed
+        let current_timestamp = env.ledger().timestamp();
+        if current_timestamp < proposal.implementation_date {
+            panic!("Implementation date has not passed");
+        }
+
+        // Clone trust_id before match to avoid partial move
+        let trust_id = proposal.trust_id.clone();
+
+        // Execute proposal based on type
+        match proposal.proposal_type {
+            ProposalType::RateChange => {
+                if let Some(new_rate) = proposal.new_rate_bps {
+                    let mut trusts: Map<Address, TrustData> =
+                        env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+                    let mut trust_data = match trusts.get(trust_id.clone()) {
+                        Some(t) => t,
+                        None => panic!("Trust not found"),
+                    };
+
+                    trust_data.annual_rate_bps = new_rate;
+                    trusts.set(trust_id, trust_data);
+                    env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+                }
+            }
+            ProposalType::Emergency => {
+                if let Some(new_rate) = proposal.new_rate_bps {
+                    // Emergency rate can exceed MAX_ANNUAL_RATE_BPS temporarily
+                    let mut trusts: Map<Address, TrustData> =
+                        env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+                    let mut trust_data = match trusts.get(trust_id.clone()) {
+                        Some(t) => t,
+                        None => panic!("Trust not found"),
+                    };
+
+                    trust_data.annual_rate_bps = new_rate;
+                    trusts.set(trust_id, trust_data);
+                    env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+                }
+            }
+            ProposalType::TrustParameters => {
+                // Handle trust parameter changes
+                // For now, only rate changes are supported
+                if let Some(new_rate) = proposal.new_rate_bps {
+                    let mut trusts: Map<Address, TrustData> =
+                        env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+                    let mut trust_data = match trusts.get(trust_id.clone()) {
+                        Some(t) => t,
+                        None => panic!("Trust not found"),
+                    };
+
+                    trust_data.annual_rate_bps = new_rate;
+                    trusts.set(trust_id, trust_data);
+                    env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+                }
+            }
+            ProposalType::ProtocolUpgrade => {
+                // Protocol upgrades require contract upgrade
+                // This is a placeholder for future implementation
+                panic!("Protocol upgrades must be executed via contract upgrade");
+            }
+        }
+
+        // Mark proposal as implemented
+        let mut proposal = proposal;
+        proposal.status = ProposalStatus::Implemented;
+        proposals.set(proposal_id, proposal);
+        env.storage().persistent().set(&KEY_PROPOSALS, &proposals);
+    }
+
+    /// Get proposal details
+    pub fn get_proposal(env: Env, proposal_id: u64) -> Proposal {
+        let proposals: Map<u64, Proposal> =
+            env.storage().persistent().get(&KEY_PROPOSALS).unwrap();
+
+        match proposals.get(proposal_id) {
+            Some(p) => p,
+            None => panic!("Proposal not found"),
+        }
+    }
+
+    /// Get all proposals
+    pub fn get_all_proposals(env: Env) -> Vec<u64> {
+        let proposals: Map<u64, Proposal> =
+            env.storage().persistent().get(&KEY_PROPOSALS).unwrap_or(Map::new(&env));
+
+        let mut keys = Vec::new(&env);
+        for (k, _) in proposals.iter() {
+            keys.push_back(k);
+        }
+        keys
     }
 }
 
