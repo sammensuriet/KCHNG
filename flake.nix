@@ -4,12 +4,15 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
+    deploy-rs.url = "github:serokell/deploy-rs";
+    deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
+    deploy-rs,
   }: let
     # Shared configuration for all apps in the monorepo
     mkApp = {
@@ -119,17 +122,23 @@
           contractId = "CAST22E2ZUBSRVFHQ3E6EOZAW33ZA3JM6NDT7RZSUIWP7RH5HC34SOKB";
         };
       };
+    });
 
-      # Deployment configurations
-      deploy = {
-        kchng = {
-          hostname = "102.68.84.79";
-          port = 5173;
-          domain = "kachi.ng";
-          contractId = "CAST22E2ZUBSRVFHQ3E6EOZAW33ZA3JM6NDT7RZSUIWP7RH5HC34SOKB";
-          rpcUrl = "https://soroban-testnet.stellar.org";
-          network = "testnet";
+  # deploy-rs deployment configuration
+  deploy = {
+    nodes = {
+      kachi-ng = {
+        hostname = "102.68.84.79";
+        sshUser = "deployman";
+        profiles = {
+          kchng = {
+            path = deploy-rs.lib.x86_64-linux.activate.nix {
+              profilePath = "/nix/var/nix/profiles/per-user/deployman/kchng";
+            };
+          };
         };
       };
-    });
+    };
+  };
 }
+
