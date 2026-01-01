@@ -4,14 +4,12 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
-    nodejs-nix.url = "github:svanderwn/nodejs-nix";
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
-    ...
   }: let
     # Shared configuration for all apps in the monorepo
     mkApp = {
