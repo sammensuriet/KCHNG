@@ -93,7 +93,7 @@ pub enum GraceType {
 }
 
 /// Status of a work claim
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 #[contracttype]
 pub enum ClaimStatus {
     Pending = 0,       // Waiting for verification
@@ -103,7 +103,7 @@ pub enum ClaimStatus {
 }
 
 /// Status of a governance proposal
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 #[contracttype]
 pub enum ProposalStatus {
     Review = 0,        // In review period (7 days)
@@ -115,7 +115,7 @@ pub enum ProposalStatus {
 }
 
 /// Type of proposal
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 #[contracttype]
 pub enum ProposalType {
     RateChange = 0,           // Change trust demurrage rate
@@ -240,39 +240,6 @@ pub struct KchngToken;
 
 #[contractimpl]
 impl KchngToken {
-    // Contract constructor - called automatically during deployment
-    // Parameters should be passed via soroban contract deploy -- --creator ADDRESS --initial_supply VALUE
-    pub fn __constructor(env: Env, creator: Address, initial_supply: U256) {
-        // Store the creator as admin
-        env.storage().instance().set(&KEY_ADMIN, &creator);
-
-        // Set protocol version
-        env.storage().instance().set(&KEY_PROTOCOL_VERSION, &U256::from_u32(&env, 1));
-
-        // Set initial balance for creator
-        let account_data = AccountData {
-            balance: initial_supply.clone(),
-            last_activity: env.ledger().timestamp(),
-            grace_period_end: 0,
-            trust_id: Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
-            contribution_hours: 0,
-            grace_periods_used: 0,
-            last_grace_year: 0,
-        };
-
-        let mut accounts: Map<Address, AccountData> = Map::new(&env);
-        accounts.set(creator.clone(), account_data);
-
-        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
-
-        // Track total supply
-        env.storage().instance().set(&KEY_TOTAL_SUPPLY, &initial_supply);
-
-        // Initialize counters
-        env.storage().instance().set(&KEY_NEXT_CLAIM_ID, &U256::from_u32(&env, 1));
-        env.storage().instance().set(&KEY_NEXT_PROPOSAL_ID, &U256::from_u32(&env, 1));
-    }
-
     /// Initialize the token with initial supply to the creator (legacy method)
     pub fn init(env: Env, creator: Address, initial_supply: U256) {
         // Check if already initialized
@@ -604,6 +571,41 @@ impl KchngToken {
             None => {
                 // Return zero address for accounts not in a trust
                 Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+            }
+        }
+    }
+
+    /// Get full account data
+    pub fn get_account(env: Env, account: Address) -> AccountData {
+        let accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        match accounts.get(account) {
+            Some(data) => data,
+            None => {
+                // Return default account data for new accounts
+                AccountData {
+                    balance: U256::from_u32(&env, 0),
+                    last_activity: env.ledger().timestamp(),
+                    grace_period_end: 0,
+                    trust_id: Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
+                    contribution_hours: 0,
+                    grace_periods_used: 0,
+                    last_grace_year: 0,
+                }
+            }
+        }
+    }
+
+    /// Get oracle data
+    pub fn get_oracle(env: Env, oracle: Address) -> OracleData {
+        let oracles: Map<Address, OracleData> =
+            env.storage().persistent().get(&KEY_ORACLES).unwrap();
+
+        match oracles.get(oracle) {
+            Some(data) => data,
+            None => {
+                panic!("Oracle not found");
             }
         }
     }
