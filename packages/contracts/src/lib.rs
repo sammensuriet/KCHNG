@@ -1,23 +1,225 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Map, U256};
+use soroban_sdk::{
+    contract, contractimpl, contracttype, Address, Env, Map, U256, Vec, String, Bytes,
+};
 
-// Constants for demurrage calculation
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+// Time Standard
+const MINUTES_PER_KCHNG: u64 = 30;
+const MIN_WORK_MINUTES: u64 = 15;
+
+// Time
 const SECONDS_PER_DAY: u64 = 86_400;
-const DEMURRAGE_PERIOD_DAYS: u64 = 7;
-const DEMURRAGE_AMOUNT: u64 = 2; // KCHNG burned per 7 days of inactivity
+const SECONDS_PER_HOUR: u64 = 3_600;
 
-/// Tracks the last activity timestamp for each account
+// Demurrage (Wörgl model: 1% monthly = ~12.7% annual)
+const DEFAULT_ANNUAL_RATE_BPS: u32 = 1200; // 12% in basis points (100 = 1%)
+const DEFAULT_PERIOD_DAYS: u64 = 30; // Monthly demurrage
+
+// Protocol constraints
+const MIN_ANNUAL_RATE_BPS: u32 = 500; // 5% minimum
+const MAX_ANNUAL_RATE_BPS: u32 = 1500; // 15% maximum
+
+// Verification
+const MIN_VERIFIERS: u32 = 2;
+const MAX_VERIFIERS: u32 = 5;
+const VERIFIER_STAKE: u64 = 100 * 10_000_000_000_000_000; // 100 KCHNG (18 decimals)
+
+// Grace Periods
+const MAX_GRACE_PERIODS_PER_YEAR: u32 = 3;
+const MIN_CONTRIBUTION_HOURS: u64 = 30;
+
+// Governance
+const PROPOSAL_STAKE: u64 = 100 * 10_000_000_000_000_000; // 100 KCHNG
+const REVIEW_PERIOD_DAYS: u64 = 7;
+const VOTE_PERIOD_DAYS: u64 = 3;
+const IMPLEMENTATION_NOTICE_DAYS: u64 = 30;
+
+// ============================================================================
+// STORAGE KEYS
+// ============================================================================
+
+// Storage keys as u32 constants (standard Soroban pattern)
+const KEY_ADMIN: u32 = 0;
+const KEY_PROTOCOL_VERSION: u32 = 1;
+const KEY_TOTAL_SUPPLY: u32 = 2;
+const KEY_NEXT_CLAIM_ID: u32 = 3;
+const KEY_NEXT_PROPOSAL_ID: u32 = 4;
+const KEY_ACCOUNTS: u32 = 100;
+const KEY_TRUSTS: u32 = 200;
+const KEY_VERIFIERS: u32 = 300;
+const KEY_WORK_CLAIMS: u32 = 400;
+const KEY_GRACE_PERIODS: u32 = 500;
+const KEY_PROPOSALS: u32 = 600;
+const KEY_ORACLES: u32 = 700;
+const KEY_VERIFIER_ASSIGNMENTS: u32 = 800;
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+/// Type of work being claimed
 #[contracttype]
-pub struct AccountData {
-    pub last_activity: u64,
-    pub balance: U256,
+pub enum WorkType {
+    BasicCare = 0,      // Basic care or agriculture work (1.0× multiplier)
+    SkilledCare = 1,    // Skilled care or heavy labor (1.3× multiplier)
+    Training = 2,       // Teaching or training (1.5× multiplier)
+    EmergencyCare = 3,  // Emergency response (2.0× multiplier)
 }
 
-/// Data for apps that want to implement additional demurrage
+impl WorkType {
+    pub fn multiplier(&self) -> u32 {
+        match self {
+            WorkType::BasicCare => 100,     // 1.0×
+            WorkType::SkilledCare => 130,   // 1.3×
+            WorkType::Training => 150,      // 1.5×
+            WorkType::EmergencyCare => 200, // 2.0×
+        }
+    }
+}
+
+/// Type of grace period
+#[contracttype]
+pub enum GraceType {
+    Emergency = 0,     // Emergency pause (14-90 days, oracle-activated)
+    Illness = 1,       // Illness or injury (30+ days automatic)
+    Community = 2,     // Community voted (30-180 days)
+}
+
+/// Status of a work claim
+#[contracttype]
+pub enum ClaimStatus {
+    Pending = 0,       // Waiting for verification
+    Approved = 1,      // Approved and tokens minted
+    Rejected = 2,      // Rejected by verifiers
+    Expired = 3,       // Verification window expired
+}
+
+/// Status of a governance proposal
+#[contracttype]
+pub enum ProposalStatus {
+    Review = 0,        // In review period (7 days)
+    Voting = 1,        // In voting period (3 days)
+    Approved = 2,      // Approved, awaiting implementation
+    Rejected = 3,      // Rejected by community
+    Implemented = 4,   // Successfully implemented
+    Expired = 5,       // Expired without passing
+}
+
+/// Type of proposal
+#[contracttype]
+pub enum ProposalType {
+    RateChange = 0,           // Change trust demurrage rate
+    TrustParameters = 1,      // Adjust trust parameters
+    ProtocolUpgrade = 2,      // Protocol-level upgrade
+    Emergency = 3,            // Emergency measure (crisis exception)
+}
+
+// ============================================================================
+// DATA STRUCTURES
+// ============================================================================
+
+/// Account data including demurrage tracking
+#[contracttype]
+pub struct AccountData {
+    pub balance: U256,
+    pub last_activity: u64,
+    pub grace_period_end: u64,     // Timestamp when grace ends (0 if not in grace)
+    pub trust_id: Address,         // Trust membership (zero address if none)
+    pub contribution_hours: u64,   // Total hours contributed
+    pub grace_periods_used: u32,   // Grace periods used this year
+    pub last_grace_year: u32,      // Year of last grace period
+}
+
+/// Trust (community organization) data
+#[contracttype]
+pub struct TrustData {
+    pub name: String,
+    pub governor: Address,
+    pub annual_rate_bps: u32,      // Annual demurrage rate in basis points
+    pub demurrage_period_days: u64,
+    pub member_count: u32,
+    pub is_active: bool,
+    pub created_at: u64,
+}
+
+/// Verifier data for work verification
+#[contracttype]
+pub struct VerifierData {
+    pub trust_id: Address,
+    pub stake: U256,
+    pub reputation_score: u32,     // 0-1000
+    pub verified_claims: u32,
+    pub rejected_claims: u32,
+    pub fraud_reports: u32,
+}
+
+/// Work claim for time-based token issuance
+#[contracttype]
+pub struct WorkClaim {
+    pub claim_id: u64,
+    pub worker: Address,
+    pub work_type: WorkType,
+    pub minutes_worked: u64,
+    pub evidence_hash: Bytes,   // Hash of evidence (photo, GPS, notes)
+    pub gps_lat: Option<i64>,
+    pub gps_lon: Option<i64>,
+    pub submitted_at: u64,
+    pub verifiers_assigned: Vec<Address>,
+    pub approvals_received: u32,
+    pub rejections_received: u32,
+    pub status: ClaimStatus,
+    pub multiplier: u32,
+}
+
+/// Grace period data
+#[contracttype]
+pub struct GracePeriod {
+    pub account: Address,
+    pub grace_type: GraceType,
+    pub start_time: u64,
+    pub end_time: u64,
+    pub oracle_verified: bool,
+    pub extension_votes: u32,
+}
+
+/// Governance proposal
+#[contracttype]
+pub struct Proposal {
+    pub proposal_id: u64,
+    pub proposer: Address,
+    pub proposal_type: ProposalType,
+    pub title: String,
+    pub description: String,
+    pub trust_id: Address,             // Zero address for protocol-level
+    pub new_rate_bps: Option<u32>,     // For rate change proposals
+    pub created_at: u64,
+    pub review_end: u64,
+    pub vote_end: u64,
+    pub implementation_date: u64,
+    pub status: ProposalStatus,
+    pub votes_for: u32,
+    pub votes_against: u32,
+    pub voters: Vec<Address>,          // To prevent double voting
+}
+
+/// Oracle for grace period verification
+#[contracttype]
+pub struct OracleData {
+    pub oracle_address: Address,
+    pub stake: U256,
+    pub reputation_score: u32,
+    pub grace_periods_granted: u32,
+}
+
+/// Legacy app demurrage entry (for backward compatibility)
 #[contracttype]
 pub struct AppDemurrageEntry {
     pub app_id: Address,
-    pub additional_rate: u64, // Additional demurrage per period (basis points or custom)
+    pub additional_rate: u64,
 }
 
 /// KCHNG Token Contract with native on-chain demurrage
@@ -30,62 +232,84 @@ impl KchngToken {
     // Parameters should be passed via soroban contract deploy -- --creator ADDRESS --initial_supply VALUE
     pub fn __constructor(env: Env, creator: Address, initial_supply: U256) {
         // Store the creator as admin
-        env.storage().instance().set(&U256::from_u32(&env, 0), &creator);
+        env.storage().instance().set(&KEY_ADMIN, &creator);
+
+        // Set protocol version
+        env.storage().instance().set(&KEY_PROTOCOL_VERSION, &U256::from_u32(&env, 1));
 
         // Set initial balance for creator
         let account_data = AccountData {
-            last_activity: env.ledger().timestamp(),
             balance: initial_supply.clone(),
+            last_activity: env.ledger().timestamp(),
+            grace_period_end: 0,
+            trust_id: Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
         };
 
         let mut accounts: Map<Address, AccountData> = Map::new(&env);
         accounts.set(creator.clone(), account_data);
 
-        env.storage().persistent().set(&U256::from_u32(&env, 2), &accounts);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
 
         // Track total supply
-        env.storage().instance().set(&U256::from_u32(&env, 3), &initial_supply);
+        env.storage().instance().set(&KEY_TOTAL_SUPPLY, &initial_supply);
+
+        // Initialize counters
+        env.storage().instance().set(&KEY_NEXT_CLAIM_ID, &U256::from_u32(&env, 1));
+        env.storage().instance().set(&KEY_NEXT_PROPOSAL_ID, &U256::from_u32(&env, 1));
     }
 
     /// Initialize the token with initial supply to the creator (legacy method)
     pub fn init(env: Env, creator: Address, initial_supply: U256) {
-        // Check if already initialized by checking if accounts map exists
-        if env.storage().persistent().has(&U256::from_u32(&env, 2)) {
-            // Verify admin matches (get admin from instance storage)
-            let admin_result: Option<Address> = env.storage().instance().get(&U256::from_u32(&env, 0));
+        // Check if already initialized
+        if env.storage().persistent().has(&KEY_ACCOUNTS) {
+            let admin_result: Option<Address> = env.storage().instance().get(&KEY_ADMIN);
             if let Some(admin) = admin_result {
                 if admin != creator {
                     panic!("Already initialized with different admin");
                 }
-                return; // Already initialized by same creator, no-op
+                return;
             }
         }
 
-        // Store the creator as admin (this creates instance storage)
-        env.storage().instance().set(&U256::from_u32(&env, 0), &creator);
+        // Store the creator as admin
+        env.storage().instance().set(&KEY_ADMIN, &creator);
+
+        // Set protocol version
+        env.storage().instance().set(&KEY_PROTOCOL_VERSION, &U256::from_u32(&env, 1));
 
         // Set initial balance for creator
         let account_data = AccountData {
-            last_activity: env.ledger().timestamp(),
             balance: initial_supply.clone(),
+            last_activity: env.ledger().timestamp(),
+            grace_period_end: 0,
+            trust_id: Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
         };
 
         let mut accounts: Map<Address, AccountData> = Map::new(&env);
         accounts.set(creator.clone(), account_data);
 
-        env.storage().persistent().set(&U256::from_u32(&env, 2), &accounts);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
 
         // Track total supply
-        env.storage().instance().set(&U256::from_u32(&env, 3), &initial_supply);
+        env.storage().instance().set(&KEY_TOTAL_SUPPLY, &initial_supply);
+
+        // Initialize counters
+        env.storage().instance().set(&KEY_NEXT_CLAIM_ID, &U256::from_u32(&env, 1));
+        env.storage().instance().set(&KEY_NEXT_PROPOSAL_ID, &U256::from_u32(&env, 1));
     }
 
     /// Get the current balance of an account (after applying demurrage)
     pub fn balance(env: Env, account: Address) -> U256 {
         let accounts: Map<Address, AccountData> =
-            env.storage().persistent().get(&U256::from_u32(&env, 2)).unwrap();
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
 
         if let Some(data) = accounts.get(account.clone()) {
-            // Calculate and return balance with demurrage applied
             Self::calculate_balance_with_demurrage(&env, account, &data)
         } else {
             U256::from_u32(&env, 0)
@@ -97,15 +321,13 @@ impl KchngToken {
         from.require_auth();
 
         let accounts: Map<Address, AccountData> =
-            env.storage().persistent().get(&U256::from_u32(&env, 2)).unwrap();
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
 
-        // Check if sender exists and has balance
         let from_data = match accounts.get(from.clone()) {
             Some(data) => data,
             None => panic!("Insufficient balance"),
         };
 
-        // Apply demurrage to sender
         let balance_after_demurrage =
             Self::calculate_balance_with_demurrage(&env, from.clone(), &from_data);
 
@@ -114,19 +336,26 @@ impl KchngToken {
         }
 
         let mut accounts: Map<Address, AccountData> =
-            env.storage().persistent().get(&U256::from_u32(&env, 2)).unwrap();
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
 
-        // Update sender with demurrage applied and transfer amount deducted
+        let current_time = env.ledger().timestamp();
+        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+
+        // Update sender
         let mut updated_from = from_data;
         updated_from.balance = balance_after_demurrage.sub(&amount);
-        updated_from.last_activity = env.ledger().timestamp();
+        updated_from.last_activity = current_time;
         accounts.set(from.clone(), updated_from);
 
-        // Get and update recipient balance
-        let current_time = env.ledger().timestamp();
+        // Get and update recipient
         let to_data = accounts.get(to.clone()).unwrap_or(AccountData {
-            last_activity: current_time,
             balance: U256::from_u32(&env, 0),
+            last_activity: current_time,
+            grace_period_end: 0,
+            trust_id: zero_address.clone(),
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
         });
 
         let mut updated_to = to_data;
@@ -134,25 +363,30 @@ impl KchngToken {
         updated_to.last_activity = current_time;
         accounts.set(to.clone(), updated_to);
 
-        env.storage().persistent().set(&U256::from_u32(&env, 2), &accounts);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
     }
 
     /// Mint new tokens (admin only)
     pub fn mint(env: Env, admin: Address, to: Address, amount: U256) {
-        // Verify admin
-        let stored_admin: Address = env.storage().instance().get(&U256::from_u32(&env, 0)).unwrap();
+        let stored_admin: Address = env.storage().instance().get(&KEY_ADMIN).unwrap();
         admin.require_auth();
         if admin != stored_admin {
             panic!("Not authorized");
         }
 
         let mut accounts: Map<Address, AccountData> =
-            env.storage().persistent().get(&U256::from_u32(&env, 2)).unwrap();
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
 
         let current_time = env.ledger().timestamp();
+        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
         let to_data = accounts.get(to.clone()).unwrap_or(AccountData {
-            last_activity: current_time,
             balance: U256::from_u32(&env, 0),
+            last_activity: current_time,
+            grace_period_end: 0,
+            trust_id: zero_address.clone(),
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
         });
 
         let mut updated_to = to_data;
@@ -160,22 +394,22 @@ impl KchngToken {
         updated_to.last_activity = current_time;
         accounts.set(to.clone(), updated_to);
 
-        env.storage().persistent().set(&U256::from_u32(&env, 2), &accounts);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
 
         // Update total supply
-        let mut total_supply: U256 = env.storage().instance().get(&U256::from_u32(&env, 3)).unwrap();
+        let mut total_supply: U256 = env.storage().instance().get(&KEY_TOTAL_SUPPLY).unwrap();
         total_supply = total_supply.add(&amount);
-        env.storage().instance().set(&U256::from_u32(&env, 3), &total_supply);
+        env.storage().instance().set(&KEY_TOTAL_SUPPLY, &total_supply);
     }
 
     /// Get the total supply
     pub fn total_supply(env: Env) -> U256 {
-        env.storage().instance().get(&U256::from_u32(&env, 3)).unwrap()
+        env.storage().instance().get(&KEY_TOTAL_SUPPLY).unwrap()
     }
 
     /// Register an app for additional demurrage logic
     pub fn register_app(env: Env, admin: Address, app_id: Address, additional_rate: u64) {
-        let stored_admin: Address = env.storage().instance().get(&U256::from_u32(&env, 0)).unwrap();
+        let stored_admin: Address = env.storage().instance().get(&KEY_ADMIN).unwrap();
         admin.require_auth();
         if admin != stored_admin {
             panic!("Not authorized");
@@ -200,6 +434,13 @@ impl KchngToken {
         data: &AccountData,
     ) -> U256 {
         let current_timestamp = env.ledger().timestamp();
+
+        // Check if account is in a grace period
+        if data.grace_period_end > 0 && current_timestamp < data.grace_period_end {
+            // Demurrage is paused during grace period
+            return data.balance.clone();
+        }
+
         let last_activity: u64 = data.last_activity;
 
         if current_timestamp <= last_activity {
@@ -209,15 +450,17 @@ impl KchngToken {
         let inactive_seconds = current_timestamp - last_activity;
         let inactive_days = inactive_seconds / SECONDS_PER_DAY;
 
+        // TODO: Phase 3 will update this to use percentage-based demurrage
+        // For now, keep the existing 2 KCHNG per 7-day period logic
+        const DEMURRAGE_PERIOD_DAYS: u64 = 7;
+        const DEMURRAGE_AMOUNT: u64 = 2;
+
         if inactive_days < DEMURRAGE_PERIOD_DAYS {
             return data.balance.clone();
         }
 
-        // Calculate number of complete 7-day periods
         let periods = inactive_days / DEMURRAGE_PERIOD_DAYS;
         let base_burn = periods * DEMURRAGE_AMOUNT;
-
-        // Apply base demurrage - use from_u128 for larger values
         let burn_amount = U256::from_u128(env, base_burn as u128);
 
         if data.balance > burn_amount {

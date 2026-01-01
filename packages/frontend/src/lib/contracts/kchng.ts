@@ -6,7 +6,8 @@ import pkg from "@stellar/stellar-sdk";
 const { Contract, Address, xdr } = pkg;
 const { Server: SorobanRpcServer, Api } = pkg.rpc;
 
-import { networkConfig } from "$lib/config/networks";
+import { getNetworkConfig } from "@kchng/shared";
+import type { NetworkName } from "$lib/stores/wallet";
 import type { AccountData } from "./types";
 
 // Type for the contract's balance() return value
@@ -22,11 +23,11 @@ export class KchngClient {
   private contractId: string;
   private server: InstanceType<typeof SorobanRpcServer>;
 
-  constructor(contractId: string, rpcUrl: string) {
+  constructor(contractId: string, rpcUrl: string, networkPassphrase: string) {
     this.contractId = contractId;
     this.contract = new Contract(contractId);
     this.server = new SorobanRpcServer(rpcUrl, {
-      allowHttp: networkConfig.networkPassphrase === "Test SDF Network ; September 2015",
+      allowHttp: networkPassphrase === "Test SDF Network ; September 2015",
     });
   }
 
@@ -200,8 +201,9 @@ export class KchngClient {
 }
 
 /**
- * Create a KCHNG client with the current network's contract ID
+ * Create a KCHNG client with the specified network's contract ID
  */
-export function createKchngClient(): KchngClient {
-  return new KchngClient(networkConfig.contractId, networkConfig.rpcUrl);
+export function createKchngClient(network: NetworkName = "testnet"): KchngClient {
+  const config = getNetworkConfig(network);
+  return new KchngClient(config.contractId, config.rpcUrl, config.networkPassphrase);
 }

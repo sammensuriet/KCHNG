@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Wallet Debug - kachi.ng</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #eee; }
+    h1 { color: #4CAF50; }
+    .result { margin: 10px 0; padding: 10px; background: #2a2a2a; border-left: 3px solid #4CAF50; }
+    .error { border-left-color: #f44336; }
+    .success { border-left-color: #4CAF50; }
+    code { background: #333; padding: 2px 6px; border-radius: 3px; }
+    button { padding: 10px 20px; margin: 10px 0; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #45a049; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Wallet Extension Debug</h1>
+  <div id="results"></div>
+  <button onclick="testFreighter()">Test Freighter Connection</button>
+  <button onclick="checkAllWallets()">Check All Wallets</button>
+
+  <script>
+    const results = document.getElementById('results');
+
+    function addResult(message, isError = false) {
+      const div = document.createElement('div');
+      div.className = 'result ' + (isError ? 'error' : 'success');
+      div.innerHTML = message;
+      results.appendChild(div);
+    }
+
+    function testFreighter() {
+      results.innerHTML = '';
+      addResult('<strong>Testing Freighter Wallet...</strong>');
+
+      // Check if window.freighter exists
+      addResult('window.freighter exists: ' + (typeof window.freighter !== 'undefined'), typeof window.freighter === 'undefined');
+
+      if (window.freighter) {
+        addResult('Freighter type: ' + typeof window.freighter);
+        addResult('Freighter methods: ' + Object.keys(window.freighter).join(', '));
+
+        // Test isConnected
+        if (typeof window.freighter.isConnected === 'function') {
+          window.freighter.isConnected()
+            .then(connected => addResult('isConnected(): ' + connected))
+            .catch(err => addResult('isConnected() error: ' + err.message, true));
+        }
+
+        // Test getPublicKey
+        if (typeof window.freighter.getPublicKey === 'function') {
+          window.freighter.getPublicKey()
+            .then(key => addResult('getPublicKey(): ' + key.substring(0, 10) + '...'))
+            .catch(err => addResult('getPublicKey() error: ' + err.message, true));
+        }
+
+        // Test requestAccess
+        if (typeof window.freighter.requestAccess === 'function') {
+          addResult('requestAccess() - <button onclick="requestAccess()">Click to connect</button>');
+        }
+      } else {
+        addResult('⚠️ Freighter not found on window object', true);
+        addResult('Possible causes:', true);
+        addResult('1. Freighter extension not installed', true);
+        addResult('2. Extension disabled for this site', true);
+        addResult('3. Browser security settings blocking extension', true);
+        addResult('4. Content Security Policy blocking injection', true);
+      }
+    }
+
+    function requestAccess() {
+      if (window.freighter && typeof window.freighter.requestAccess === 'function') {
+        window.freighter.requestAccess()
+          .then(() => addResult('✓ Access granted!'))
+          .then(() => window.freighter.getPublicKey())
+          .then(key => addResult('Public key: ' + key))
+          .catch(err => addResult('Error: ' + err.message, true));
+      }
+    }
+
+    function checkAllWallets() {
+      results.innerHTML = '';
+      addResult('<strong>Checking all known wallet objects...</strong>');
+
+      const wallets = [
+        'freighter',
+        'stellar',
+        'xbull',
+        'rabet',
+        'allo',
+        'wallet'
+      ];
+
+      wallets.forEach(wallet => {
+        const exists = typeof window[wallet] !== 'undefined';
+        addResult('window.' + wallet + ': ' + (exists ? '✓ Found' : '✗ Not found'), !exists);
+        if (exists) {
+          addResult('  Type: ' + typeof window[wallet]);
+          addResult('  Methods: ' + Object.keys(window[wallet]).filter(k => typeof window[wallet][k] === 'function').join(', '));
+        }
+      });
+
+      // Check for Content-Security-Policy
+      addResult('<br><strong>Security Headers:</strong>');
+      const metas = document.querySelectorAll('meta[http-equiv="Content-Security-Policy"]');
+      addResult('CSP meta tags: ' + metas.length, metas.length > 0);
+      
+      if (metas.length > 0) {
+        metas.forEach(meta => {
+          addResult('CSP: ' + meta.getAttribute('content'), true);
+        });
+      }
+    }
+
+    // Auto-run on load
+    window.onload = () => {
+      addResult('Page loaded. Running initial checks...');
+      addResult('User agent: ' + navigator.userAgent.substring(0, 50) + '...');
+      addResult('URL: ' + window.location.href);
+      checkAllWallets();
+    };
+  </script>
+</body>
+</html>

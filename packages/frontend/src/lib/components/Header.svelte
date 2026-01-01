@@ -1,13 +1,35 @@
 <script lang="ts">
-  import { wallet, truncatedAddress, formattedBalance } from "$lib/stores/wallet";
+  import { wallet, truncatedAddress, formattedBalance, type NetworkName } from "$lib/stores/wallet";
+  import { get } from "svelte/store";
   import DemurrageInfo from "./DemurrageInfo.svelte";
 
   let showMenu = $state(false);
+  let showNetworkSelector = $state(false);
+  let currentNetwork = $state(get(wallet).network);
+
+  // Subscribe to wallet changes to sync network state
+  $effect(() => {
+    currentNetwork = get(wallet).network;
+  });
+
+  const networks: { id: NetworkName; label: string }[] = [
+    { id: "testnet", label: "Testnet" },
+    { id: "mainnet", label: "Mainnet" },
+  ];
+
+  async function switchNetwork(network: NetworkName) {
+    showNetworkSelector = false;
+    currentNetwork = network;
+  }
 </script>
 
 <header class="header">
   <div class="header-left">
     <a href="/" class="logo">KCHNG</a>
+    <div class="network-badge">
+      <span class="network-dot"></span>
+      {currentNetwork.toUpperCase()}
+    </div>
   </div>
 
   <div class="header-right">
@@ -19,7 +41,28 @@
     {/if}
 
     {#if !$wallet.connected}
-      <button class="btn-connect" onclick={() => wallet.connect()}>
+      <div class="network-selector">
+        <button
+          class="btn-network"
+          onclick={() => (showNetworkSelector = !showNetworkSelector)}
+        >
+          {currentNetwork.toUpperCase()} ▼
+        </button>
+        {#if showNetworkSelector}
+          <div class="network-dropdown">
+            {#each networks as network}
+              <button
+                class="network-option"
+                class:active={currentNetwork === network.id}
+                onclick={() => switchNetwork(network.id)}
+              >
+                {network.label}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+      <button class="btn-connect" onclick={() => wallet.connect(currentNetwork)}>
         Connect Wallet
       </button>
     {:else}
@@ -34,6 +77,11 @@
             <div class="dropdown-section">
               <div class="dropdown-label">Connected as</div>
               <div class="dropdown-value">{$wallet.walletName}</div>
+            </div>
+
+            <div class="dropdown-section">
+              <div class="dropdown-label">Network</div>
+              <div class="dropdown-value">{$wallet.network.toUpperCase()}</div>
             </div>
 
             <div class="dropdown-section">
@@ -53,7 +101,10 @@
 
             <hr class="dropdown-divider" />
 
-            <button class="btn-disconnect" onclick={() => wallet.disconnect()}>
+            <button
+              class="btn-disconnect"
+              onclick={() => wallet.disconnect()}
+            >
               Disconnect
             </button>
           </div>
@@ -79,6 +130,7 @@
   .header-left {
     display: flex;
     align-items: center;
+    gap: 1rem;
   }
 
   .logo {
@@ -91,10 +143,87 @@
     text-decoration: none;
   }
 
+  .network-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+  }
+
+  .network-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+  }
+
   .header-right {
     display: flex;
     align-items: center;
+    gap: 0.75rem;
     position: relative;
+  }
+
+  .network-selector {
+    position: relative;
+  }
+
+  .btn-network {
+    padding: 0.5rem 1rem;
+    background: white;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+  }
+
+  .btn-network:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+
+  .network-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    padding: 0.25rem;
+    z-index: 101;
+    min-width: 120px;
+  }
+
+  .network-option {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #374151;
+    transition: background 0.15s;
+  }
+
+  .network-option:hover {
+    background: #f3f4f6;
+  }
+
+  .network-option.active {
+    background: #ede9fe;
+    color: #7c3aed;
+    font-weight: 500;
   }
 
   .btn-connect {
@@ -238,6 +367,10 @@
 
     .logo {
       font-size: 1.25rem;
+    }
+
+    .network-badge {
+      display: none;
     }
 
     .wallet-dropdown {

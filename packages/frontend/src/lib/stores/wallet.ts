@@ -1,10 +1,14 @@
 /**
  * Wallet connection and balance management
+ * Uses @creit.tech/stellar-wallets-kit for multi-wallet support
  * Uses KchngClient to fetch real balance from deployed contract
  */
 
 import { writable, derived, get } from "svelte/store";
 import { browser } from "$app/environment";
+import { getNetworkConfig } from "@kchng/shared";
+
+export type NetworkName = "testnet" | "mainnet" | "futurenet" | "standalone";
 
 export interface WalletState {
   connected: boolean;
@@ -13,6 +17,7 @@ export interface WalletState {
   lastActivity: number;
   walletName: string | null;
   error: string | null;
+  network: NetworkName;
 }
 
 const initialState: WalletState = {
@@ -22,81 +27,112 @@ const initialState: WalletState = {
   lastActivity: 0,
   walletName: null,
   error: null,
+  network: "testnet",
 };
 
-// Dynamically import stellar-sdk only when needed (on client-side, after user interaction)
-// This avoids CommonJS bundling issues with Vite
-let createKchngClient: any = null;
+let walletsKit: any = null;
+let modalElement: any = null;
 
 function createWalletStore() {
-  // Don't initialize wallet during SSR
-  if (!browser) {
-    const { subscribe } = writable<WalletState>(initialState);
-    return {
-      subscribe,
-      connect: () => console.warn("Wallet only available in browser"),
-      disconnect: () => {},
-      loadBalance: () => Promise.resolve(),
-      refreshBalance: () => Promise.resolve(),
-    };
-  }
-
   const { subscribe, set, update } = writable<WalletState>(initialState);
 
   /**
-   * Check if Freighter is available
+   * Initialize Stellar Wallets Kit and connect
    */
-  async function isFreighterAvailable(): Promise<boolean> {
-    if (!window.freighter) {
-      return false;
-    }
-    try {
-      const isConnected = await window.freighter.isConnected();
-      return isConnected;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Connect to Freighter wallet
-   */
-  async function connect() {
+  async function connect(network: NetworkName = "testnet") {
     if (typeof window === "undefined") {
       update((s) => ({ ...s, error: "Wallet only available in browser" }));
       return;
     }
 
     try {
-      // Check if Freighter is installed
-      if (!window.freighter) {
-        update((s) => ({
-          ...s,
-          error: "Freighter wallet not found. Please install the Freighter extension.",
-        }));
-        return;
+      console.log("[Wallet] Starting connection for network:", network);
+
+      // Dynamically import the wallet kit and modal
+      const { StellarWalletsKit, allowAllModules, WalletNetwork, StellarWalletsModal } = await import("@creit.tech/stellar-wallets-kit");
+
+      // Map network name to WalletNetwork enum
+      let walletNetwork: string;
+      switch (network) {
+        case "mainnet":
+          walletNetwork = WalletNetwork.PUBLIC;
+          break;
+        case "testnet":
+          walletNetwork = WalletNetwork.TESTNET;
+          break;
+        case "futurenet":
+          walletNetwork = WalletNetwork.FUTURENET;
+          break;
+        case "standalone":
+          walletNetwork = WalletNetwork.STANDALONE;
+          break;
+        default:
+          walletNetwork = WalletNetwork.TESTNET;
       }
 
-      // Request access and get address
-      await window.freighter.requestAccess();
+      // Initialize the kit
+      if (!walletsKit) {
+        walletsKit = new StellarWalletsKit({
+          modules: allowAllModules(),
+          network: walletNetwork,
+        });
+      }
 
-      const addressObj = await window.freighter.getPublicKey();
-      const address = addressObj;
+      // Create and show the modal for wallet selection
+      console.log("[Wallet] Creating modal");
+      const modal = new StellarWalletsModal({
+        onWalletSelected: (wallet: any) => {
+          console.log("[Wallet] Wallet selected:", wallet);
+        },
+        onConnected: (wallet: any) => {
+          console.log("[Wallet] Connected to wallet:", wallet);
+          // Get the address from the kit
+          walletsKit.getAddress().then(({ address }: any) => {
+            console.log("[Wallet] Got address:", address);
+            update((s) => ({
+              ...s,
+              connected: true,
+              address,
+              network,
+              walletName: wallet.name || "Wallet",
+              error: null,
+            }));
+            loadBalance(address, network);
+          }).catch((err: any) => {
+            console.error("[Wallet] Error getting address:", err);
+            update((s) => ({
+              ...s,
+              error: err.message || "Failed to get wallet address",
+            }));
+          });
+        },
+        onDisconnected: () => {
+          console.log("[Wallet] Disconnected");
+          set(initialState);
+        },
+        onError: (err: any) => {
+          console.error("[Wallet] Modal error:", err);
+          update((s) => ({
+            ...s,
+            error: err.message || "Wallet connection failed",
+          }));
+        },
+        network: walletNetwork,
+        allowedWallets: await walletsKit.getSupportedWallets(),
+      });
 
-      update((s) => ({
-        ...s,
-        connected: true,
-        address,
-        walletName: "Freighter",
-        error: null,
-      }));
+      // Show the modal
+      console.log("[Wallet] Opening modal");
+      modal.open();
+      modalElement = modal;
 
-      // Load balance after connection
-      await loadBalance(address);
     } catch (e: unknown) {
+      console.error("[Wallet] Connection error:", e);
+      const errorMsg = e instanceof Error ? e.message : "Failed to connect wallet";
+      console.error("[Wallet] Error message:", errorMsg);
       update((s) => ({
         ...s,
-        error: e instanceof Error ? e.message : "Failed to connect wallet",
+        error: errorMsg,
       }));
     }
   }
@@ -105,6 +141,18 @@ function createWalletStore() {
    * Disconnect wallet
    */
   function disconnect() {
+    if (modalElement) {
+      try {
+        modalElement.close();
+      } catch (e) {
+        console.error("[Wallet] Error closing modal:", e);
+      }
+      modalElement = null;
+    }
+    if (walletsKit) {
+      walletsKit.disconnect();
+      walletsKit = null;
+    }
     set(initialState);
   }
 
@@ -112,15 +160,11 @@ function createWalletStore() {
    * Load KCHNG balance from deployed contract
    * Dynamically imports KchngClient to avoid bundling issues
    */
-  async function loadBalance(address: string) {
+  async function loadBalance(address: string, network: NetworkName) {
     try {
       // Dynamically import the contract client
-      if (!createKchngClient) {
-        const { createKchngClient: client } = await import("$lib/contracts/kchng");
-        createKchngClient = client;
-      }
-
-      const kchngClient = createKchngClient();
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient(network);
       const accountData = await kchngClient.getAccountData(address);
       update((s) => ({
         ...s,
@@ -131,6 +175,7 @@ function createWalletStore() {
     } catch (e) {
       // Set error but don't disconnect - user can retry
       const errorMsg = e instanceof Error ? e.message : "Failed to load balance";
+      console.error("[Wallet] Balance load error:", errorMsg);
       update((s) => ({
         ...s,
         error: errorMsg,
@@ -143,9 +188,24 @@ function createWalletStore() {
    * Refresh balance (useful after transactions)
    */
   async function refreshBalance() {
-    const state = get();
+    const state = get(store);
     if (state.connected && state.address) {
-      await loadBalance(state.address);
+      await loadBalance(state.address, state.network);
+    }
+  }
+
+  /**
+   * Switch network
+   */
+  async function switchNetwork(network: NetworkName) {
+    const state = get(store);
+    if (state.connected) {
+      // Disconnect and reconnect with new network
+      walletsKit = null;
+      modalElement = null;
+      await connect(network);
+    } else {
+      update((s) => ({ ...s, network }));
     }
   }
 
@@ -155,6 +215,7 @@ function createWalletStore() {
     disconnect,
     loadBalance,
     refreshBalance,
+    switchNetwork,
   };
 
   return store;
@@ -176,19 +237,3 @@ export const formattedBalance = derived(
     return $wallet.balance.toString();
   }
 );
-
-// Add Freighter types to window
-declare global {
-  interface Window {
-    freighter?: {
-      isConnected(): Promise<boolean>;
-      requestAccess(): Promise<void>;
-      getPublicKey(): Promise<string>;
-      signTransaction(xdr: string, opts?: {
-        network?: string;
-        networkPassphrase?: string;
-        account?: string;
-      }): Promise<string>;
-    };
-  }
-}
