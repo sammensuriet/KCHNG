@@ -1261,6 +1261,118 @@ impl KchngToken {
         accounts.set(account, updated_account);
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
     }
+
+    // ============================================================================
+    // CROSS-TRUST EXCHANGE (Phase 6)
+    // ============================================================================
+
+    /// Calculate exchange rate between two trusts
+    /// Returns the multiplier for converting from source to destination trust
+    /// Formula: (1 - r_source) / (1 - r_dest)
+    /// Example: Trust A (12%) → Trust B (8%) = (1 - 0.12) / (1 - 0.08) = 0.957
+    pub fn calculate_exchange_rate(env: Env, source_trust: Address, dest_trust: Address) -> u64 {
+        let source_trust_data = Self::get_trust_info(env.clone(), source_trust);
+        let dest_trust_data = Self::get_trust_info(env, dest_trust);
+
+        // Convert basis points to rate (e.g., 1200 bps = 0.12)
+        let source_rate = source_trust_data.annual_rate_bps as u64;
+        let dest_rate = dest_trust_data.annual_rate_bps as u64;
+
+        // Formula: (1 - r_source) / (1 - r_dest)
+        // Using basis points: (10000 - source_rate) / (10000 - dest_rate)
+        let numerator = 10000 - source_rate;
+        let denominator = 10000 - dest_rate;
+
+        // Return as basis points (multiply by 10000 for precision)
+        (numerator * 10000) / denominator
+    }
+
+    /// Swap tokens from source trust to destination trust
+    /// Uses rate-adjusted calculation to account for different demurrage rates
+    pub fn cross_trust_swap(
+        env: Env,
+        from: Address,
+        dest_trust: Address,
+        amount: U256,
+    ) {
+        from.require_auth();
+
+        // Get accounts
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let from_data = match accounts.get(from.clone()) {
+            Some(data) => data,
+            None => panic!("Account not found"),
+        };
+
+        // Get from trust
+        let from_trust = from_data.trust_id.clone();
+
+        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+        if from_trust == zero_address {
+            panic!("Must be in a trust to perform cross-trust swap");
+        }
+
+        // Calculate exchange rate
+        let exchange_rate_bps = Self::calculate_exchange_rate(env.clone(), from_trust.clone(), dest_trust.clone());
+
+        // Calculate destination amount: amount * exchange_rate / 10000
+        let _dest_amount = {
+            let rate_factor = U256::from_u128(&env, exchange_rate_bps as u128);
+            let tmp = amount.mul(&rate_factor);
+            tmp.div(&U256::from_u128(&env, 10000))
+        };
+
+        // Check from account has enough balance after demurrage
+        let balance_after_demurrage =
+            Self::calculate_balance_with_demurrage(&env, from.clone(), &from_data);
+
+        if balance_after_demurrage < amount {
+            panic!("Insufficient balance");
+        }
+
+        // Update from account (deduct amount, update trust membership)
+        let mut updated_from = from_data;
+        updated_from.balance = balance_after_demurrage.sub(&amount);
+        updated_from.last_activity = env.ledger().timestamp();
+        updated_from.trust_id = dest_trust.clone(); // Move to destination trust
+        accounts.set(from.clone(), updated_from);
+
+        // Update trust member counts
+        let mut trusts: Map<Address, TrustData> =
+            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+        // Decrement source trust count
+        if let Some(mut source_trust_data) = trusts.get(from_trust.clone()) {
+            source_trust_data.member_count -= 1;
+            trusts.set(from_trust, source_trust_data);
+        }
+
+        // Increment destination trust count
+        if let Some(mut dest_trust_data) = trusts.get(dest_trust.clone()) {
+            dest_trust_data.member_count += 1;
+            trusts.set(dest_trust, dest_trust_data);
+        }
+
+        env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+    }
+
+    /// Simulate a cross-trust swap without executing it
+    /// Returns the amount that would be received in the destination trust
+    pub fn simulate_cross_trust_swap(
+        env: Env,
+        source_trust: Address,
+        dest_trust: Address,
+        amount: U256,
+    ) -> U256 {
+        let exchange_rate_bps = Self::calculate_exchange_rate(env.clone(), source_trust, dest_trust);
+
+        let rate_factor = U256::from_u128(&env, exchange_rate_bps as u128);
+        let tmp = amount.mul(&rate_factor);
+        tmp.div(&U256::from_u128(&env, 10000))
+    }
 }
 
 #[cfg(test)]
