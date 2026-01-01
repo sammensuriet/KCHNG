@@ -84,6 +84,7 @@ impl WorkType {
 }
 
 /// Type of grace period
+#[derive(Clone, PartialEq)]
 #[contracttype]
 pub enum GraceType {
     Emergency = 0,     // Emergency pause (14-90 days, oracle-activated)
@@ -182,6 +183,7 @@ pub struct WorkClaim {
 }
 
 /// Grace period data
+#[derive(Clone)]
 #[contracttype]
 pub struct GracePeriod {
     pub account: Address,
@@ -213,6 +215,7 @@ pub struct Proposal {
 }
 
 /// Oracle for grace period verification
+#[derive(Clone)]
 #[contracttype]
 pub struct OracleData {
     pub oracle_address: Address,
@@ -1045,6 +1048,218 @@ impl KchngToken {
             }
         }
         pending_claims
+    }
+
+    // ============================================================================
+    // GRACE PERIOD SYSTEM (Phase 5)
+    // ============================================================================
+
+    /// Register as a grace period oracle
+    /// Oracles can activate grace periods for accounts in hardship
+    pub fn register_oracle(env: Env, oracle: Address) {
+        oracle.require_auth();
+
+        let mut oracles: Map<Address, OracleData> =
+            env.storage().persistent().get(&KEY_ORACLES).unwrap_or(Map::new(&env));
+
+        if oracles.contains_key(oracle.clone()) {
+            panic!("Already registered as oracle");
+        }
+
+        // Verify oracle has enough balance to stake
+        let accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let oracle_account = match accounts.get(oracle.clone()) {
+            Some(data) => data,
+            None => panic!("Account not found"),
+        };
+
+        // Minimum stake for oracles
+        let oracle_stake = U256::from_u128(&env, 500 * 10_000_000_000_000_000); // 500 KCHNG
+
+        // Simple balance check (without demurrage for oracle registration)
+        if oracle_account.balance < oracle_stake {
+            panic!("Insufficient balance to register as oracle");
+        }
+
+        let oracle_data = OracleData {
+            oracle_address: oracle.clone(),
+            stake: oracle_stake,
+            reputation_score: 500,
+            grace_periods_granted: 0,
+        };
+
+        oracles.set(oracle, oracle_data);
+        env.storage().persistent().set(&KEY_ORACLES, &oracles);
+    }
+
+    /// Activate a grace period for an account
+    /// Parameters:
+    /// - oracle: Address of the oracle activating the grace period
+    /// - account: Account to activate grace period for
+    /// - grace_type: Type of grace period
+    /// - duration_days: Length of grace period
+    pub fn activate_grace_period(
+        env: Env,
+        oracle: Address,
+        account: Address,
+        grace_type: GraceType,
+        duration_days: u64,
+    ) {
+        oracle.require_auth();
+
+        // Verify oracle is registered
+        let oracles: Map<Address, OracleData> =
+            env.storage().persistent().get(&KEY_ORACLES).unwrap_or(Map::new(&env));
+
+        if !oracles.contains_key(oracle.clone()) {
+            panic!("Not a registered oracle");
+        }
+
+        // Get account data
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let account_data = match accounts.get(account.clone()) {
+            Some(data) => data,
+            None => panic!("Account not found"),
+        };
+
+        // Check anti-abuse: max 3 grace periods per year, requires 30+ contribution hours
+        let current_year = env.ledger().timestamp() / (365 * SECONDS_PER_DAY);
+
+        if account_data.last_grace_year == current_year as u32 {
+            if account_data.grace_periods_used >= MAX_GRACE_PERIODS_PER_YEAR {
+                panic!("Maximum grace periods used for this year");
+            }
+        }
+
+        if account_data.contribution_hours < MIN_CONTRIBUTION_HOURS {
+            panic!("Must have at least 30 contribution hours to qualify for grace period");
+        }
+
+        // Validate duration based on grace type
+        let max_days = match grace_type {
+            GraceType::Emergency => 90,   // Emergency: up to 90 days
+            GraceType::Illness => 60,     // Illness: up to 60 days
+            GraceType::Community => 180,  // Community: up to 180 days
+        };
+
+        if duration_days > max_days {
+            panic!("Duration exceeds maximum for this grace type");
+        }
+
+        let current_time = env.ledger().timestamp();
+        let end_time = current_time + (duration_days * SECONDS_PER_DAY);
+
+        // Create grace period
+        let grace_period = GracePeriod {
+            account: account.clone(),
+            grace_type,
+            start_time: current_time,
+            end_time,
+            oracle_verified: true,
+            extension_votes: 0,
+        };
+
+        // Store grace period
+        let mut grace_periods: Map<Address, GracePeriod> =
+            env.storage().persistent().get(&KEY_GRACE_PERIODS).unwrap_or(Map::new(&env));
+        grace_periods.set(account.clone(), grace_period);
+        env.storage().persistent().set(&KEY_GRACE_PERIODS, &grace_periods);
+
+        // Update account data
+        let mut updated_account = account_data;
+        updated_account.grace_period_end = end_time;
+
+        if updated_account.last_grace_year != current_year as u32 {
+            updated_account.last_grace_year = current_year as u32;
+            updated_account.grace_periods_used = 1;
+        } else {
+            updated_account.grace_periods_used += 1;
+        }
+
+        accounts.set(account.clone(), updated_account);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+
+        // Update oracle stats
+        let mut oracles: Map<Address, OracleData> =
+            env.storage().persistent().get(&KEY_ORACLES).unwrap();
+        let mut oracle_data = oracles.get(oracle.clone()).unwrap();
+        oracle_data.grace_periods_granted += 1;
+        oracles.set(oracle, oracle_data);
+        env.storage().persistent().set(&KEY_ORACLES, &oracles);
+    }
+
+    /// Check if an account is currently in a grace period
+    pub fn is_in_grace_period(env: Env, account: Address) -> bool {
+        let accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        match accounts.get(account) {
+            Some(data) => {
+                let current_time = env.ledger().timestamp();
+                data.grace_period_end > 0 && current_time < data.grace_period_end
+            }
+            None => false,
+        }
+    }
+
+    /// Get grace period details for an account
+    pub fn get_grace_period(env: Env, account: Address) -> Option<GracePeriod> {
+        let grace_periods: Map<Address, GracePeriod> =
+            env.storage().persistent().get(&KEY_GRACE_PERIODS).unwrap_or(Map::new(&env));
+
+        grace_periods.get(account)
+    }
+
+    /// Extend an existing grace period (requires community voting)
+    pub fn extend_grace_period(env: Env, account: Address, additional_days: u64) {
+        // Check if account has an active grace period
+        let mut grace_periods: Map<Address, GracePeriod> =
+            env.storage().persistent().get(&KEY_GRACE_PERIODS).unwrap_or(Map::new(&env));
+
+        let mut grace_period = match grace_periods.get(account.clone()) {
+            Some(gp) => gp,
+            None => panic!("No active grace period found"),
+        };
+
+        // Can only extend community-voted grace periods
+        if grace_period.grace_type != GraceType::Community {
+            panic!("Only community grace periods can be extended");
+        }
+
+        // Maximum total duration for community grace periods is 180 days
+        let current_duration = (grace_period.end_time - grace_period.start_time) / SECONDS_PER_DAY;
+        let new_duration = current_duration + additional_days;
+
+        if new_duration > 180 {
+            panic!("Extended grace period would exceed maximum of 180 days");
+        }
+
+        // Extend the grace period
+        grace_period.end_time += additional_days * SECONDS_PER_DAY;
+        grace_period.extension_votes += 1;
+
+        let new_end_time = grace_period.end_time;
+
+        grace_periods.set(account.clone(), grace_period);
+        env.storage().persistent().set(&KEY_GRACE_PERIODS, &grace_periods);
+
+        // Update account's grace_period_end
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let account_data = match accounts.get(account.clone()) {
+            Some(data) => data,
+            None => panic!("Account not found"),
+        };
+
+        let mut updated_account = account_data;
+        updated_account.grace_period_end = new_end_time;
+        accounts.set(account, updated_account);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
     }
 }
 
