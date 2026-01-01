@@ -2,7 +2,10 @@
  * KCHNG Soroban contract client
  */
 
-import { Contract, Address, SorobanRpc, xdr } from "@stellar/stellar-sdk";
+import pkg from "@stellar/stellar-sdk";
+const { Contract, Address, xdr } = pkg;
+const { Server: SorobanRpcServer, Api } = pkg.rpc;
+
 import { networkConfig } from "$lib/config/networks";
 import type { AccountData } from "./types";
 
@@ -17,12 +20,12 @@ interface BalanceResult {
 export class KchngClient {
   private contract: Contract;
   private contractId: string;
-  private server: SorobanRpc.Server;
+  private server: InstanceType<typeof SorobanRpcServer>;
 
   constructor(contractId: string, rpcUrl: string) {
     this.contractId = contractId;
     this.contract = new Contract(contractId);
-    this.server = new SorobanRpc.Server(rpcUrl, {
+    this.server = new SorobanRpcServer(rpcUrl, {
       allowHttp: networkConfig.networkPassphrase === "Test SDF Network ; September 2015",
     });
   }
@@ -144,7 +147,7 @@ export class KchngClient {
       const transaction = this.prepareInvocation(contractId, method, args);
       const simResult = await this.server.simulateTransaction(transaction);
 
-      if (SorobanRpc.Api.isSimulationSuccess(simResult)) {
+      if (Api.isSimulationSuccess(simResult)) {
         if (simResult.result?.retval) {
           return simResult.result.retval;
         }
