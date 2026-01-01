@@ -135,6 +135,7 @@ pub struct AccountData {
 }
 
 /// Trust (community organization) data
+#[derive(Clone)]
 #[contracttype]
 pub struct TrustData {
     pub name: String,
@@ -425,6 +426,175 @@ impl KchngToken {
         apps.set(app_id, entry);
 
         env.storage().persistent().set(&U256::from_u32(&env, 4), &apps);
+    }
+
+    // ============================================================================
+    // TRUST SYSTEM (Phase 2)
+    // ============================================================================
+
+    /// Register a new community trust
+    /// Parameters:
+    /// - governor: Address that will govern this trust
+    /// - name: Human-readable name for the trust
+    /// - annual_rate_bps: Annual demurrage rate in basis points (500-1500 = 5-15%)
+    /// - demurrage_period_days: How often to apply demurrage (default: 30 days)
+    pub fn register_trust(
+        env: Env,
+        governor: Address,
+        name: String,
+        annual_rate_bps: u32,
+        demurrage_period_days: u64,
+    ) {
+        governor.require_auth();
+
+        // Validate rate is within protocol constraints
+        if annual_rate_bps < MIN_ANNUAL_RATE_BPS || annual_rate_bps > MAX_ANNUAL_RATE_BPS {
+            panic!("Rate must be between 5% and 15% annually");
+        }
+
+        // Validate period is reasonable (7-365 days)
+        if demurrage_period_days < 7 || demurrage_period_days > 365 {
+            panic!("Period must be between 7 and 365 days");
+        }
+
+        // Use governor address as the trust ID for simplicity
+        let trust_id = governor.clone();
+
+        // Check if trust already exists
+        let trusts: Map<Address, TrustData> = env
+            .storage()
+            .persistent()
+            .get(&KEY_TRUSTS)
+            .unwrap_or(Map::new(&env));
+
+        if trusts.contains_key(trust_id.clone()) {
+            panic!("Trust already exists for this governor");
+        }
+
+        // Create trust data
+        let trust = TrustData {
+            name: name.clone(),
+            governor: governor.clone(),
+            annual_rate_bps,
+            demurrage_period_days,
+            member_count: 1, // Governor counts as first member
+            is_active: true,
+            created_at: env.ledger().timestamp(),
+        };
+
+        // Store trust
+        let mut trusts: Map<Address, TrustData> = env
+            .storage()
+            .persistent()
+            .get(&KEY_TRUSTS)
+            .unwrap_or(Map::new(&env));
+        trusts.set(trust_id, trust);
+        env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+
+        // Update governor's account to be part of this trust
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+        let governor_data = accounts.get(governor.clone()).unwrap_or(AccountData {
+            balance: U256::from_u32(&env, 0),
+            last_activity: env.ledger().timestamp(),
+            grace_period_end: 0,
+            trust_id: Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
+        });
+
+        let mut updated_governor = governor_data;
+        updated_governor.trust_id = governor.clone();
+        accounts.set(governor, updated_governor);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+    }
+
+    /// Join an existing trust
+    pub fn join_trust(env: Env, member: Address, trust_id: Address) {
+        member.require_auth();
+
+        // Get trust data
+        let trusts: Map<Address, TrustData> =
+            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+        let trust = match trusts.get(trust_id.clone()) {
+            Some(t) => t,
+            None => panic!("Trust not found"),
+        };
+
+        if !trust.is_active {
+            panic!("Trust is not active");
+        }
+
+        // Get and update member's account
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let member_data = match accounts.get(member.clone()) {
+            Some(data) => data,
+            None => panic!("Account not found"),
+        };
+
+        // Check if already in a trust
+        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+        if member_data.trust_id != zero_address {
+            panic!("Already a member of a trust");
+        }
+
+        // Update member's trust membership
+        let mut updated_member = member_data;
+        updated_member.trust_id = trust_id.clone();
+        accounts.set(member.clone(), updated_member);
+
+        // Update trust member count
+        let mut trusts: Map<Address, TrustData> =
+            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+        let mut updated_trust = trust;
+        updated_trust.member_count += 1;
+        trusts.set(trust_id, updated_trust);
+
+        // Save changes
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+        env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+    }
+
+    /// Get information about a specific trust
+    pub fn get_trust_info(env: Env, trust_id: Address) -> TrustData {
+        let trusts: Map<Address, TrustData> =
+            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+        match trusts.get(trust_id) {
+            Some(trust) => trust,
+            None => panic!("Trust not found"),
+        }
+    }
+
+    /// Get list of all registered trust IDs
+    pub fn get_all_trusts(env: Env) -> Vec<Address> {
+        let trusts: Map<Address, TrustData> =
+            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+        let mut trust_ids = Vec::new(&env);
+        for (trust_id, _) in trusts.iter() {
+            trust_ids.push_back(trust_id);
+        }
+        trust_ids
+    }
+
+    /// Get the trust ID for an account
+    pub fn get_account_trust(env: Env, account: Address) -> Address {
+        let accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        match accounts.get(account) {
+            Some(data) => data.trust_id,
+            None => {
+                // Return zero address for accounts not in a trust
+                Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+            }
+        }
     }
 
     /// Calculate balance after applying demurrage
