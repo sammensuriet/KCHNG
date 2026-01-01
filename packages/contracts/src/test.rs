@@ -14,13 +14,12 @@ use crate::{KchngToken, KchngTokenClient, WorkType, ClaimStatus, GraceType, Prop
 fn test_init() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    // Register contract with constructor arguments
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Verify total supply
     assert_eq!(client.total_supply(), initial_supply);
@@ -33,15 +32,13 @@ fn test_init() {
 fn test_transfer() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
     let transfer_amount = U256::from_u32(&env, 100);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Transfer
     client.transfer(&admin, &user, &transfer_amount);
@@ -56,14 +53,12 @@ fn test_transfer() {
 fn test_demurrage_application() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Give user some tokens
     let user_amount = U256::from_u32(&env, 100);
@@ -81,15 +76,13 @@ fn test_demurrage_application() {
 fn test_mint() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
     let mint_amount = U256::from_u32(&env, 50_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Mint to user
     client.mint(&admin, &user, &mint_amount);
@@ -106,14 +99,12 @@ fn test_mint() {
 fn test_insufficient_balance() {
     let env = Env::default();
     env.mock_all_auths();
-    let contract_id = env.register(KchngToken, ());
-    let client = KchngTokenClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
     let initial_supply = U256::from_u32(&env, 1_000_000);
 
-    client.init(&admin, &initial_supply);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
 
     // Try to transfer more than available
     let too_much = U256::from_u32(&env, 2_000_000);

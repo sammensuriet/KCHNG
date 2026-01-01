@@ -240,6 +240,39 @@ pub struct KchngToken;
 
 #[contractimpl]
 impl KchngToken {
+    // Contract constructor - called automatically during deployment
+    // Parameters are passed via soroban contract deploy or in tests via env.register()
+    pub fn __constructor(env: Env, creator: Address, initial_supply: U256) {
+        // Store the creator as admin
+        env.storage().instance().set(&KEY_ADMIN, &creator);
+
+        // Set protocol version
+        env.storage().instance().set(&KEY_PROTOCOL_VERSION, &U256::from_u32(&env, 1));
+
+        // Set initial balance for creator
+        let account_data = AccountData {
+            balance: initial_supply.clone(),
+            last_activity: env.ledger().timestamp(),
+            grace_period_end: 0,
+            trust_id: Address::generate(&env), // Use generated address as placeholder
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
+        };
+
+        let mut accounts: Map<Address, AccountData> = Map::new(&env);
+        accounts.set(creator.clone(), account_data);
+
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+
+        // Track total supply
+        env.storage().instance().set(&KEY_TOTAL_SUPPLY, &initial_supply);
+
+        // Initialize counters
+        env.storage().instance().set(&KEY_NEXT_CLAIM_ID, &U256::from_u32(&env, 1));
+        env.storage().instance().set(&KEY_NEXT_PROPOSAL_ID, &U256::from_u32(&env, 1));
+    }
+
     /// Initialize the token with initial supply to the creator (legacy method)
     pub fn init(env: Env, creator: Address, initial_supply: U256) {
         // Check if already initialized
