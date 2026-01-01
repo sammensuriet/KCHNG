@@ -3,11 +3,8 @@
  * Uses KchngClient to fetch real balance from deployed contract
  */
 
-import { writable, derived } from "svelte/store";
-
-// Dynamically import stellar-sdk only when needed (on client-side, after user interaction)
-// This avoids CommonJS bundling issues with Vite
-let createKchngClient: any = null;
+import { writable, derived, get } from "svelte/store";
+import { browser } from "$app/environment";
 
 export interface WalletState {
   connected: boolean;
@@ -27,7 +24,23 @@ const initialState: WalletState = {
   error: null,
 };
 
+// Dynamically import stellar-sdk only when needed (on client-side, after user interaction)
+// This avoids CommonJS bundling issues with Vite
+let createKchngClient: any = null;
+
 function createWalletStore() {
+  // Don't initialize wallet during SSR
+  if (!browser) {
+    const { subscribe } = writable<WalletState>(initialState);
+    return {
+      subscribe,
+      connect: () => console.warn("Wallet only available in browser"),
+      disconnect: () => {},
+      loadBalance: () => Promise.resolve(),
+      refreshBalance: () => Promise.resolve(),
+    };
+  }
+
   const { subscribe, set, update } = writable<WalletState>(initialState);
 
   /**
@@ -145,15 +158,6 @@ function createWalletStore() {
   };
 
   return store;
-}
-
-function get(): WalletState {
-  let state: WalletState | undefined;
-  const unsubscribe = createWalletStore().subscribe((s) => {
-    state = s;
-  });
-  unsubscribe();
-  return state!;
 }
 
 export const wallet = createWalletStore();
