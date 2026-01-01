@@ -597,7 +597,12 @@ impl KchngToken {
         }
     }
 
-    /// Calculate balance after applying demurrage
+    // ============================================================================
+    // ENHANCED DEMURRAGE (Phase 3)
+    // ============================================================================
+
+    /// Calculate balance after applying trust-specific percentage-based demurrage
+    /// Uses the Wörgl model: ~12.7% annual (1% monthly) with trust-specific rates
     fn calculate_balance_with_demurrage(
         env: &Env,
         _account: Address,
@@ -617,26 +622,89 @@ impl KchngToken {
             return data.balance.clone();
         }
 
+        // Get trust-specific demurrage parameters
+        let zero_address = Address::from_str(env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+        let (annual_rate_bps, period_days) = if data.trust_id == zero_address {
+            // Not in a trust, use default rate (12% annual, 30 day period)
+            (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS)
+        } else {
+            // Get trust data
+            let trusts: Map<Address, TrustData> =
+                env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+            match trusts.get(data.trust_id.clone()) {
+                Some(trust) => (trust.annual_rate_bps, trust.demurrage_period_days),
+                None => {
+                    // Trust not found, use default
+                    (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS)
+                }
+            }
+        };
+
         let inactive_seconds = current_timestamp - last_activity;
         let inactive_days = inactive_seconds / SECONDS_PER_DAY;
 
-        // TODO: Phase 3 will update this to use percentage-based demurrage
-        // For now, keep the existing 2 KCHNG per 7-day period logic
-        const DEMURRAGE_PERIOD_DAYS: u64 = 7;
-        const DEMURRAGE_AMOUNT: u64 = 2;
-
-        if inactive_days < DEMURRAGE_PERIOD_DAYS {
+        // Calculate how many complete demurrage periods have passed
+        if inactive_days < period_days {
             return data.balance.clone();
         }
 
-        let periods = inactive_days / DEMURRAGE_PERIOD_DAYS;
-        let base_burn = periods * DEMURRAGE_AMOUNT;
-        let burn_amount = U256::from_u128(env, base_burn as u128);
+        let periods = inactive_days / period_days;
 
-        if data.balance > burn_amount {
-            data.balance.sub(&burn_amount)
+        // Calculate percentage-based demurrage
+        // Formula: balance * (1 - (annual_rate / 100) / (365 / period_days))^periods
+        // Simplified: For 1% monthly (12% annual), each period reduces by 1%
+        // period_rate_bps = annual_rate_bps * period_days / 36500
+
+        // Calculate the per-period rate in basis points
+        // Example: 1200 bps annual (12%), 30 day period
+        // period_rate = 1200 * 30 / 36500 ≈ 0.986% per period (roughly 1%)
+        let period_rate_bps = (annual_rate_bps as u64) * period_days / 36500;
+
+        // Calculate total burn amount across all periods
+        let mut balance = data.balance.clone();
+
+        for _ in 0..periods {
+            // Calculate burn for this period: balance * period_rate_bps / 10000
+            let burn_amount = {
+                // balance * period_rate_bps / 10000
+                let rate_factor = U256::from_u128(env, period_rate_bps as u128);
+                let tmp = balance.mul(&rate_factor);
+                tmp.div(&U256::from_u128(env, 10000))
+            };
+
+            balance = if balance > burn_amount {
+                balance.sub(&burn_amount)
+            } else {
+                U256::from_u32(env, 0)
+            };
+
+            // Early exit if balance is zero
+            if balance == U256::from_u32(env, 0) {
+                break;
+            }
+        }
+
+        balance
+    }
+
+    /// Get the effective demurrage rate for an account
+    pub fn get_account_demurrage_rate(env: Env, account: Address) -> (u32, u64) {
+        let accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let account_data = match accounts.get(account) {
+            Some(data) => data,
+            None => panic!("Account not found"),
+        };
+
+        let zero_address = Address::from_str(&env, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+
+        if account_data.trust_id == zero_address {
+            (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS)
         } else {
-            U256::from_u32(env, 0)
+            let trust = Self::get_trust_info(env, account_data.trust_id);
+            (trust.annual_rate_bps, trust.demurrage_period_days)
         }
     }
 }
