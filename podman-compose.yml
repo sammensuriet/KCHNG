@@ -1,0 +1,61 @@
+version: "3.8"
+
+# Podman Compose configuration for KCHNG deployment
+# This orchestrates all containers for the KCHNG project
+
+services:
+  # KCHNG Frontend
+  kchng-frontend:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: localhost/kchng-frontend:latest
+    container_name: kchng-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=production
+      - PORT=5173
+      - KCHNG_CONTRACT_ID=CAST22E2ZUBSRVFHQ3E6EOZAW33ZA3JM6NDT7RZSUIWP7RH5HC34SOKB
+      - KCHNG_RPC_URL=https://soroban-testnet.stellar.org
+      - KCHNG_NETWORK=testnet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "kachi.ng=kchng-frontend"
+      - "com.centos.systemd.keep_after_exit=true"
+      - "io.containers.autoupdate=registry"
+    volumes:
+      - kchng-logs:/app/logs
+    networks:
+      - kchng-network
+
+  # Future: GbamGbam service
+  # gbamgbam-frontend:
+  #   build:
+  #     context: ./gbamgbam
+  #   image: localhost/gbamgbam-frontend:latest
+  #   container_name: gbamgbam-frontend
+  #   ports:
+  #     - "5174:5174"
+  #   environment:
+  #     - NODE_ENV=production
+  #   restart: unless-stopped
+  #   networks:
+  #     - kchng-network
+
+networks:
+  kchng-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  kchng-logs:
+    driver: local
