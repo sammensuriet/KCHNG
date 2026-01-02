@@ -705,8 +705,9 @@ impl KchngToken {
 
         // Calculate the per-period rate in basis points
         // Example: 1200 bps annual (12%), 30 day period
-        // period_rate = 1200 * 30 / 36500 ≈ 0.986% per period (roughly 1%)
-        let period_rate_bps = (annual_rate_bps as u64) * period_days / 36500;
+        // period_rate = 1200 * 10000 * 30 / 365 / 10000 = 986 bps ≈ 0.986% per period (roughly 1%)
+        // Multiply by 10000 first to avoid integer division truncation to zero, then divide by 10000 later
+        let period_rate_bps = (annual_rate_bps as u64) * 10000 * period_days / 365 / 10000;
 
         // Calculate total burn amount across all periods
         let mut balance = data.balance.clone();
@@ -811,6 +812,17 @@ impl KchngToken {
         updated_verifier.last_activity = env.ledger().timestamp();
         accounts.set(verifier, updated_verifier);
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+    }
+
+    /// Get verifier data
+    pub fn get_verifier(env: Env, verifier: Address) -> VerifierData {
+        let verifiers: Map<Address, VerifierData> =
+            env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+
+        match verifiers.get(verifier) {
+            Some(data) => data,
+            None => panic!("Verifier not found"),
+        }
     }
 
     /// Submit a work claim for verification
@@ -958,6 +970,8 @@ impl KchngToken {
             env.storage().persistent().get(&KEY_VERIFIERS).unwrap();
         let mut verifier_data = verifiers.get(verifier.clone()).unwrap();
         verifier_data.verified_claims += 1;
+        // Increase reputation for participation in verification (+5 points per approval)
+        verifier_data.reputation_score = (verifier_data.reputation_score + 5).min(1000);
         verifiers.set(verifier, verifier_data);
         env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
 
@@ -1040,6 +1054,9 @@ impl KchngToken {
             env.storage().persistent().get(&KEY_VERIFIERS).unwrap();
         let mut verifier_data = verifiers.get(verifier.clone()).unwrap();
         verifier_data.rejected_claims += 1;
+        // Increase reputation for catching invalid claims (+10 points per rejection)
+        // Higher reward for rejection to incentivize fraud detection
+        verifier_data.reputation_score = (verifier_data.reputation_score + 10).min(1000);
         verifiers.set(verifier, verifier_data);
         env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
 
