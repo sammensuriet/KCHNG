@@ -1,0 +1,177 @@
+{
+  "config": {
+    "rounds": 1000,
+    "claims_per_round": 2,
+    "verifiers": 16,
+    "workers": 8
+  },
+  "strategy_stats": {
+    "AC": {
+      "count": 2,
+      "avg_reputation": 302.5,
+      "avg_verified_claims": 220.5,
+      "avg_rejected_claims": 0.0,
+      "final_reputations": [
+        400,
+        205
+      ]
+    },
+    "AD": {
+      "count": 2,
+      "avg_reputation": 5.0,
+      "avg_verified_claims": 26.0,
+      "avg_rejected_claims": 235.5,
+      "final_reputations": [
+        0,
+        10
+      ]
+    },
+    "TFT": {
+      "count": 4,
+      "avg_reputation": 0.0,
+      "avg_verified_claims": 25.25,
+      "avg_rejected_claims": 236.25,
+      "final_reputations": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "TF2T": {
+      "count": 4,
+      "avg_reputation": 972.5,
+      "avg_verified_claims": 221.5,
+      "avg_rejected_claims": 25.25,
+      "final_reputations": [
+        920,
+        970,
+        1000,
+        1000
+      ]
+    },
+    "RAND": {
+      "count": 2,
+      "avg_reputation": 2.5,
+      "avg_verified_claims": 108.5,
+      "avg_rejected_claims": 111.5,
+      "final_reputations": [
+        0,
+        5
+      ]
+    },
+    "GRIM": {
+      "count": 2,
+      "avg_reputation": 245.0,
+      "avg_verified_claims": 135.5,
+      "avg_rejected_claims": 104.0,
+      "final_reputations": [
+        310,
+        180
+      ]
+    }
+  },
+  "worker_stats": {
+    "total_contribution_hours": 536.0,
+    "avg_hours_per_worker": 67.0,
+    "approval_rate": 0.1675
+  },
+  "final_rankings": {
+    "TF2T_3": {
+      "strategy": "TF2T",
+      "reputation": 1000,
+      "verified": 226,
+      "rejected": 11
+    },
+    "TF2T_4": {
+      "strategy": "TF2T",
+      "reputation": 1000,
+      "verified": 233,
+      "rejected": 0
+    },
+    "TF2T_2": {
+      "strategy": "TF2T",
+      "reputation": 970,
+      "verified": 202,
+      "rejected": 51
+    },
+    "TF2T_1": {
+      "strategy": "TF2T",
+      "reputation": 920,
+      "verified": 225,
+      "rejected": 39
+    },
+    "AC_1": {
+      "strategy": "AC",
+      "reputation": 400,
+      "verified": 220,
+      "rejected": 0
+    },
+    "GRIM_1": {
+      "strategy": "GRIM",
+      "reputation": 310,
+      "verified": 135,
+      "rejected": 98
+    },
+    "AC_2": {
+      "strategy": "AC",
+      "reputation": 205,
+      "verified": 221,
+      "rejected": 0
+    },
+    "GRIM_2": {
+      "strategy": "GRIM",
+      "reputation": 180,
+      "verified": 136,
+      "rejected": 110
+    },
+    "AD_2": {
+      "strategy": "AD",
+      "reputation": 10,
+      "verified": 23,
+      "rejected": 222
+    },
+    "RAND_2": {
+      "strategy": "RAND",
+      "reputation": 5,
+      "verified": 103,
+      "rejected": 113
+    },
+    "AD_1": {
+      "strategy": "AD",
+      "reputation": 0,
+      "verified": 29,
+      "rejected": 249
+    },
+    "TFT_1": {
+      "strategy": "TFT",
+      "reputation": 0,
+      "verified": 28,
+      "rejected": 249
+    },
+    "TFT_2": {
+      "strategy": "TFT",
+      "reputation": 0,
+      "verified": 18,
+      "rejected": 224
+    },
+    "TFT_3": {
+      "strategy": "TFT",
+      "reputation": 0,
+      "verified": 25,
+      "rejected": 241
+    },
+    "TFT_4": {
+      "strategy": "TFT",
+      "reputation": 0,
+      "verified": 30,
+      "rejected": 231
+    },
+    "RAND_1": {
+      "strategy": "RAND",
+      "reputation": 0,
+      "verified": 114,
+      "rejected": 110
+    }
+  }
+}

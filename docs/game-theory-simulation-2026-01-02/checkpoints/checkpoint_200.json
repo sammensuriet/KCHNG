@@ -1,0 +1,2001 @@
+{
+  "round": 200,
+  "verifiers": [
+    {
+      "name": "AC_1",
+      "strategy": "AC",
+      "reputation_score": 420,
+      "verified_claims": 34,
+      "rejected_claims": 0,
+      "fraud_reports": 5
+    },
+    {
+      "name": "AC_2",
+      "strategy": "AC",
+      "reputation_score": 375,
+      "verified_claims": 45,
+      "rejected_claims": 0,
+      "fraud_reports": 7
+    },
+    {
+      "name": "AD_1",
+      "strategy": "AD",
+      "reputation_score": 40,
+      "verified_claims": 6,
+      "rejected_claims": 52,
+      "fraud_reports": 0
+    },
+    {
+      "name": "AD_2",
+      "strategy": "AD",
+      "reputation_score": 90,
+      "verified_claims": 3,
+      "rejected_claims": 44,
+      "fraud_reports": 0
+    },
+    {
+      "name": "TFT_1",
+      "strategy": "TFT",
+      "reputation_score": 50,
+      "verified_claims": 7,
+      "rejected_claims": 52,
+      "fraud_reports": 0
+    },
+    {
+      "name": "TFT_2",
+      "strategy": "TFT",
+      "reputation_score": 100,
+      "verified_claims": 5,
+      "rejected_claims": 45,
+      "fraud_reports": 0
+    },
+    {
+      "name": "TFT_3",
+      "strategy": "TFT",
+      "reputation_score": 200,
+      "verified_claims": 3,
+      "rejected_claims": 33,
+      "fraud_reports": 0
+    },
+    {
+      "name": "TFT_4",
+      "strategy": "TFT",
+      "reputation_score": 90,
+      "verified_claims": 7,
+      "rejected_claims": 48,
+      "fraud_reports": 0
+    },
+    {
+      "name": "TF2T_1",
+      "strategy": "TF2T",
+      "reputation_score": 795,
+      "verified_claims": 51,
+      "rejected_claims": 0,
+      "fraud_reports": 0
+    },
+    {
+      "name": "TF2T_2",
+      "strategy": "TF2T",
+      "reputation_score": 785,
+      "verified_claims": 50,
+      "rejected_claims": 1,
+      "fraud_reports": 0
+    },
+    {
+      "name": "TF2T_3",
+      "strategy": "TF2T",
+      "reputation_score": 825,
+      "verified_claims": 59,
+      "rejected_claims": 0,
+      "fraud_reports": 0
+    },
+    {
+      "name": "TF2T_4",
+      "strategy": "TF2T",
+      "reputation_score": 790,
+      "verified_claims": 53,
+      "rejected_claims": 0,
+      "fraud_reports": 0
+    },
+    {
+      "name": "RAND_1",
+      "strategy": "RAND",
+      "reputation_score": 245,
+      "verified_claims": 22,
+      "rejected_claims": 22,
+      "fraud_reports": 3
+    },
+    {
+      "name": "RAND_2",
+      "strategy": "RAND",
+      "reputation_score": 340,
+      "verified_claims": 22,
+      "rejected_claims": 13,
+      "fraud_reports": 3
+    },
+    {
+      "name": "GRIM_1",
+      "strategy": "GRIM",
+      "reputation_score": 645,
+      "verified_claims": 43,
+      "rejected_claims": 9,
+      "fraud_reports": 0
+    },
+    {
+      "name": "GRIM_2",
+      "strategy": "GRIM",
+      "reputation_score": 670,
+      "verified_claims": 44,
+      "rejected_claims": 9,
+      "fraud_reports": 0
+    }
+  ],
+  "workers": [
+    {
+      "name": "worker_1",
+      "balance": 100,
+      "contribution_hours": 22.0,
+      "claims_submitted": 53,
+      "claims_approved": 16,
+      "claims_rejected": 37
+    },
+    {
+      "name": "worker_2",
+      "balance": 100,
+      "contribution_hours": 18.5,
+      "claims_submitted": 50,
+      "claims_approved": 10,
+      "claims_rejected": 40
+    },
+    {
+      "name": "worker_3",
+      "balance": 100,
+      "contribution_hours": 14.5,
+      "claims_submitted": 60,
+      "claims_approved": 12,
+      "claims_rejected": 48
+    },
+    {
+      "name": "worker_4",
+      "balance": 100,
+      "contribution_hours": 17.5,
+      "claims_submitted": 53,
+      "claims_approved": 14,
+      "claims_rejected": 39
+    },
+    {
+      "name": "worker_5",
+      "balance": 100,
+      "contribution_hours": 12.0,
+      "claims_submitted": 48,
+      "claims_approved": 9,
+      "claims_rejected": 39
+    },
+    {
+      "name": "worker_6",
+      "balance": 100,
+      "contribution_hours": 12.0,
+      "claims_submitted": 40,
+      "claims_approved": 6,
+      "claims_rejected": 34
+    },
+    {
+      "name": "worker_7",
+      "balance": 100,
+      "contribution_hours": 24.5,
+      "claims_submitted": 47,
+      "claims_approved": 12,
+      "claims_rejected": 35
+    },
+    {
+      "name": "worker_8",
+      "balance": 100,
+      "contribution_hours": 24.0,
+      "claims_submitted": 49,
+      "claims_approved": 13,
+      "claims_rejected": 36
+    }
+  ],
+  "metrics": [
+    {
+      "round": 1,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 2,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 3,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 4,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 5,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 6,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 7,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 8,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 9,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 10,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 11,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 12,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 13,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 14,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 15,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 16,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 17,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 18,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 19,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 20,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 21,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 22,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 23,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 24,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 25,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 26,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 27,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 28,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 29,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 30,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 31,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 32,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 33,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 34,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 35,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 36,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 37,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 38,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 39,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 40,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 41,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 42,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 43,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 44,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 45,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 46,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 47,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 2,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 48,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 49,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 50,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 51,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 52,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 53,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 54,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 55,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 56,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 57,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 58,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 59,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 60,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 61,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 62,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 63,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 64,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 65,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 66,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 67,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 68,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 69,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 70,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 71,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 72,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 73,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 74,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 75,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 76,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 77,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 78,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 79,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 80,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 81,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 82,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 83,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 84,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 85,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 86,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 87,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 88,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 89,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 90,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 91,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 92,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 93,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 94,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 95,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 96,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 97,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 98,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 99,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 100,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 101,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 102,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 103,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 2,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 104,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 105,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 106,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 107,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 108,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 109,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 110,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 111,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 112,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 113,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 114,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 115,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 116,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 117,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 118,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 119,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 120,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 121,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 122,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 123,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 124,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 125,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 126,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 127,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 128,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 129,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 130,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 131,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 132,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 133,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 134,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 135,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 136,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 137,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 138,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 139,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 140,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 141,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 142,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 143,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 144,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 145,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 146,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 147,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 148,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 149,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 150,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 151,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 152,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 153,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 154,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 155,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 156,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 157,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 158,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 159,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 160,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 161,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 162,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 163,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 164,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 165,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 166,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 167,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 168,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 169,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 170,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 171,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 172,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 173,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 174,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 175,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 176,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 177,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 178,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 179,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 180,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 181,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 182,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 183,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 184,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 185,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 186,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 187,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 188,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 189,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 190,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 191,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 192,
+      "total_claims": 2,
+      "approved_claims": 2,
+      "rejected_claims": 0,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 193,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 2,
+      "fraud_approved": 0,
+      "honest_rejected": 0
+    },
+    {
+      "round": 194,
+      "total_claims": 2,
+      "approved_claims": 1,
+      "rejected_claims": 1,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    },
+    {
+      "round": 195,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 196,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 197,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 198,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 199,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 0,
+      "fraud_approved": 0,
+      "honest_rejected": 2
+    },
+    {
+      "round": 200,
+      "total_claims": 2,
+      "approved_claims": 0,
+      "rejected_claims": 2,
+      "fraud_detected": 1,
+      "fraud_approved": 0,
+      "honest_rejected": 1
+    }
+  ]
+}
