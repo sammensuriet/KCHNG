@@ -1,0 +1,56 @@
+{
+  "test_name": "KCHNG Demurrage Time Capsule Test - Multi-Account",
+  "contract_id": "CDAKPFYVD6LYCKMTQAHLOYLLYO2PVE6YJIH3SS2W4R5GEJJ75UUZCDPX",
+  "network": "testnet",
+  "setup_timestamp": 1767337022,
+  "setup_date": "2026-01-02T07:57:02+01:00",
+  "verify_after_date": "2026-02-01T07:57:02+01:00",
+  "min_verification_days": 30,
+  "accounts": [
+    {
+      "name": "account_1_admin",
+      "identity": "kchng_admin",
+      "public_key": "GCW4XHQLIK3VHXUGNXJ4NFLW5JDWZZ3UT2XJCYTZSO6AQJZUUDB7RVMS",
+      "initial_balance": 699999,
+      "last_activity": 1767326919,
+      "description": "Admin account with existing balance"
+    },
+    {
+      "name": "account_2_time_capsule",
+      "identity": "time_capsule_account2",
+      "public_key": "GBOAA6SIHR6E3LOP4I522OWC3NHGSRS5IUCYIESJ2GO35LFAMR4LUUSV",
+      "initial_balance": 1000,
+      "last_activity": 1767337022,
+      "description": "Fresh account with transferred tokens"
+    }
+  ],
+  "expected_results": {
+    "if_demurrage_works": {
+      "description": "Demurrage applies correctly (~1% per month)",
+      "account_1_expected_balance": 693000,
+      "account_1_expected_loss": 6999,
+      "account_2_expected_balance": 990,
+      "account_2_expected_loss": 10,
+      "note": "Both accounts should lose ~1% after 30 days"
+    },
+    "if_demurrage_broken": {
+      "description": "Integer division bug prevents demurrage",
+      "account_1_expected_balance": 699999,
+      "account_1_expected_loss": 0,
+      "account_2_expected_balance": 1000,
+      "account_2_expected_loss": 0,
+      "bug_location": "packages/contracts/src/lib.rs:709",
+      "bug_formula": "period_rate_bps = (annual_rate_bps * period_days) / 36500",
+      "bug_result": "period_rate_bps = 1200 * 30 / 36500 = 0"
+    }
+  },
+  "verification_command": "bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule.sh",
+  "bug_report": "docs/2026-01-02_demurrage-critical-bug.md",
+  "verification_status": "PENDING",
+  "notes": [
+    "Two accounts provide better test coverage",
+    "Account 1 has large balance (will show ~6999 loss if working)",
+    "Account 2 has small balance (will show ~10 loss if working)",
+    "If both accounts show no loss after 30 days, bug is confirmed"
+  ]
+}
