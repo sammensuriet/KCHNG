@@ -47,7 +47,65 @@ soroban contract invoke \
 
 ---
 
-## Test 2: Bulk Meal Purchase
+## Test 2: Worker Payment Verification ⚠️ CORRECTED
+
+### Initial Test Issue
+**Problem:** First test only checked total supply increase, not worker balance
+
+**Correction Needed:** Verify worker actually receives tokens when claim approved
+
+### Proper Worker Payment Test
+
+**Setup:**
+- **Claim:** Claim #1 (30 minutes, worker: GAM6N54Y5SBFUDV2YRLZB45CBPMAEJO5KACRSAR35F37GYDGGUGNNDK2)
+- **Status:** Already had 1 approval, needed 1 more
+- **Expected:** Worker receives +1 token after final approval
+
+### Before Final Approval
+```
+Worker Balance: 100,001
+Total Supply: 1,000,001
+```
+
+### Execution: Final Approval
+```bash
+soroban contract invoke \
+  --id $CONTRACT_ID \
+  --source-account kchng_admin \
+  --network testnet \
+  --send yes \
+  -- approve_work_claim \
+  --claim_id 1 \
+  --verifier kchng_admin
+```
+
+### After Final Approval
+```
+Worker Balance: 100,002
+Total Supply: 1,000,002
+```
+
+### Results
+
+| Metric | Before | After | Change |
+|--------|--------|-------|--------|
+| **Worker Balance** | 100,001 | 100,002 | **+1** ✅ |
+| **Total Supply** | 1,000,001 | 1,000,002 | **+1** ✅ |
+
+**Verdict:** ✅ **WORKER PAID CORRECTLY**
+
+### Key Finding
+
+**Workers DO receive tokens when claims are approved:**
+- Contract mints tokens directly to worker's balance ✓
+- Total supply increases by same amount ✓
+- Payment is atomic with approval ✓
+
+**Lesson Learned:** Always test worker balance before/after, not just total supply.
+
+---
+
+## Test 3: Bulk Meal Purchase
 
 ### Attempted
 - **Amount:** 30 KCHNG (30 meals)
@@ -60,7 +118,7 @@ soroban contract invoke \
 
 ---
 
-## Test 3: Demurrage Configuration
+## Test 4: Demurrage Configuration
 
 ### Trust Demurrage Settings
 
