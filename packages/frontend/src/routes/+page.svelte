@@ -29,12 +29,31 @@
   </ul>
 </div>
 
-<div class="info">
-  <h2>Coming Soon</h2>
-  <p>
-    The KCHNG platform is under development. Check back soon for wallet
-    integration, merchant tools, and more!
-  </p>
+<div class="cta-section">
+  <h2>Get Started</h2>
+  <p>Connect your wallet to access the full KCHNG platform:</p>
+  <div class="cta-grid">
+    <a href="/dashboard" class="cta-card">
+      <div class="cta-icon">📊</div>
+      <div class="cta-title">Dashboard</div>
+      <div class="cta-desc">View your balance and account details</div>
+    </a>
+    <a href="/trusts" class="cta-card">
+      <div class="cta-icon">🏘️</div>
+      <div class="cta-title">Trusts</div>
+      <div class="cta-desc">Join or create community trusts</div>
+    </a>
+    <a href="/work" class="cta-card">
+      <div class="cta-icon">🔨</div>
+      <div class="cta-title">Work</div>
+      <div class="cta-desc">Submit and verify work claims</div>
+    </a>
+    <a href="/governance" class="cta-card">
+      <div class="cta-icon">🗳️</div>
+      <div class="cta-title">Governance</div>
+      <div class="cta-desc">Vote on proposals</div>
+    </a>
+  </div>
 </div>
 
 <style>
@@ -78,5 +97,53 @@
 
   .info ul {
     line-height: 1.8;
+  }
+
+  .cta-section {
+    margin: 3rem 0;
+    text-align: center;
+  }
+
+  .cta-section h2 {
+    margin-bottom: 0.5rem;
+  }
+
+  .cta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .cta-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 2rem 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+  }
+
+  .cta-card:hover {
+    border-color: #667eea;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px -4px rgb(0 0 0 / 0.1);
+  }
+
+  .cta-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .cta-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #374151;
+  }
+
+  .cta-desc {
+    font-size: 0.875rem;
+    color: #6b7280;
   }
 </style>
