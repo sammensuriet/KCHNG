@@ -1,0 +1,61 @@
+{
+  "test_name": "KCHNG Demurrage Time Capsule Test - Fixed Contract",
+  "contract_id": "CBMICVZ3FOVBLUBGOHU33FLCEO4ZSODIT7RS4GH27LECR6KHPNJP4CNB",
+  "network": "testnet",
+  "setup_timestamp": 1767455208,
+  "setup_date": "2026-01-03T16:46:48+01:00",
+  "verify_after_date": "2026-02-02T16:46:48+01:00",
+  "min_verification_days": 30,
+  "test_description": "Verify FIXED contract applies demurrage correctly",
+  "accounts": [
+    {
+      "name": "account_1_admin",
+      "identity": "kchng_admin",
+      "public_key": "GCW4XHQLIK3VHXUGNXJ4NFLW5JDWZZ3UT2XJCYTZSO6AQJZUUDB7RVMS",
+      "initial_balance": 500000,
+      "last_activity": 1767326919,
+      "description": "Admin account with existing balance",
+      "note": "Admin balance is from earlier testing"
+    },
+    {
+      "name": "account_2_time_capsule",
+      "identity": "fixed_capsule_account2",
+      "public_key": "GAFJAAPDI566PF6KZLDDLN5JU4HVVXJJ52JGF6I5IASI7AOQS225RQ76",
+      "initial_balance": 1000,
+      "last_activity": 1767455208,
+      "description": "Time capsule test account with transferred tokens",
+      "note": "Should show about 1pct loss after 30 days if demurrage is FIXED"
+    }
+  ],
+  "expected_results": {
+    "if_demurrage_fixed": {
+      "description": "Demurrage applies correctly - about 1pct per month",
+      "account_1_expected_balance": "Variable",
+      "account_2_expected_balance": 990,
+      "account_2_expected_loss": 10,
+      "account_2_note": "Should lose about 1pct after 30 days if fix worked"
+    },
+    "if_demurrage_broken": {
+      "description": "Integer division bug still present",
+      "account_1_expected_balance": "Variable",
+      "account_2_expected_balance": 1000,
+      "account_2_expected_loss": 0,
+      "note": "This would mean the fix in the new contract did not work"
+    }
+  },
+  "verification_command": "bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule_fixed.sh",
+  "comparison_contract": {
+    "address": "CDAKPFYVD6LYCKMTQAHLOYLLYO2PVE6YJIH3SS2W4R5GEJJ75UUZCDPX",
+    "description": "Old buggy contract for side-by-side comparison",
+    "verification_date": "2026-02-02T07:57:02+01:00"
+  },
+  "bug_report": "docs/2026-01-02_demurrage-critical-bug.md",
+  "fix_report": "docs/2026-01-02_demurrage-critical-bug.md",
+  "verification_status": "PENDING",
+  "notes": [
+    "Fixed contract should show about 1pct demurrage after 30 days",
+    "This will prove the integer division bug fix works on-chain",
+    "Compare with old contract results from same verification date",
+    "Both contracts tested on same day for accurate comparison"
+  ]
+}
