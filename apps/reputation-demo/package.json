@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsc && node dist/index.js"
+    "dev": "tsc && node dist/index.js",
+    "simulation": "tsc && node dist/simulation.js"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
