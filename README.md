@@ -171,6 +171,7 @@ Pending items:
 | Document | Description |
 |----------|-------------|
 | [PRD](docs/PRD.md) | Product Requirements Document |
+| [Third-Party Integration Guide](docs/THIRD_PARTY_INTEGRATION.md) | Build apps on KCHNG |
 | [DEPLOYMENT_REPORT](docs/DEPLOYMENT_REPORT.md) | Testnet deployment details |
 | [time-standard-token-design](docs/time-standard-token-design.md) | Economic model deep-dive |
 | [contract-improvement-needed](docs/2026-01-02_contract-improvement-needed.md) | Known issues analysis |
