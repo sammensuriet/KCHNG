@@ -4,6 +4,31 @@ This guide explains how third-party applications can integrate with the KCHNG co
 
 ---
 
+## Architecture Overview
+
+**Single-Contract Design**: KCHNG uses a **single contract deployment per network** (Stellar), with **multiple independent trusts** operating within it.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              KCHNG Contract (Testnet)                       │
+│         CDAKPFYVD6LYCKMTQAHLOYLLYO2PVE6YJIH3SS2W4R5GEJJ75UUZCDPX │
+├─────────────────────────────────────────────────────────────┤
+│  Trust A (Elder Care)    │  Trust B (Rural Health)          │
+│  Trust C (Education)     │  Trust D (Emergency)             │
+│  ...                    │  ...                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Benefits of single-contract architecture**:
+- ✅ Shared liquidity across all communities
+- ✅ Built-in cross-trust exchange
+- ✅ Unified governance possible
+- ✅ Single codebase to maintain
+
+Third-party apps interact with this **single contract** to access all trusts and their data.
+
+---
+
 ## Overview
 
 The KCHNG contract provides an **extensible platform** for community currency applications. Third-party apps can:
@@ -15,35 +40,37 @@ The KCHNG contract provides an **extensible platform** for community currency ap
 
 ---
 
-## Architecture
+## Installation
 
+The `@kchng/shared` package provides TypeScript types, network configurations, and utility functions for integrating with KCHNG.
+
+### Install from Git (Current Method)
+
+Since `@kchng/shared` is currently a private package, install directly from the repository:
+
+```bash
+# Using pnpm
+pnpm add git+https://github.com/pokho/KCHNG.git#main --filter=@kchng/shared
+
+# Or from a specific tag/commit
+pnpm add git+https://github.com/pokho/KCHNG.git#v1.0.0
+
+# Or using GitHub shorthand
+pnpm add github:pokho/KCHNG#main --filter=@kchng/shared
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Third-Party Applications                     │
-├─────────────────┬─────────────────┬─────────────────────────────┤
-│  Mobile Apps    │  Web Dashboards │  Analytics & Tools          │
-│  (React Native) │  (SvelteKit)    │  (Python/Node)              │
-└────────┬────────┴────────┬────────┴────────┬────────────────────┘
-         │                 │                 │
-         └─────────────────┴─────────────────┘
-                           │
-         ┌─────────────────┴─────────────────┐
-         │     KCHNG Shared Package (TS)      │
-         │  - Type definitions               │
-         │  - Network configs                 │
-         │  - Demurrage utilities             │
-         └─────────────────┬─────────────────┘
-                           │
-         ┌─────────────────┴─────────────────┐
-         │   Stellar RPC (Soroban)           │
-         │   - Contract queries               │
-         │   - Transaction submission         │
-         └─────────────────┬─────────────────┘
-                           │
-         ┌─────────────────┴─────────────────┐
-         │    KCHNG Smart Contract            │
-         │    (CDAKPFY...CDPX on Testnet)     │
-         └───────────────────────────────────┘
+
+### Install Stellar SDK
+
+```bash
+pnpm add @stellar/stellar-sdk
+```
+
+### Future: npm Registry (When Published)
+
+Once published to npm, installation will be simpler:
+
+```bash
+pnpm add @kchng/shared @stellar/stellar-sdk
 ```
 
 ---
@@ -51,13 +78,6 @@ The KCHNG contract provides an **extensible platform** for community currency ap
 ## Integration Methods
 
 ### Method 1: TypeScript/JavaScript (Recommended)
-
-Use the `@kchng/shared` package for type-safe integration.
-
-**Installation**:
-```bash
-pnpm add @kchng/shared @stellar/stellar-sdk
-```
 
 **Example: Query Verifier Reputation**
 ```typescript
@@ -104,9 +124,9 @@ const currentBalance = calculateBalanceWithDemurrage({
 console.log(`Current balance: ${currentBalance} KCHNG`);
 ```
 
-### Method 2: Python (For Analytics/Tools)
+### Method 2: Python / Other Languages
 
-Use the Stellar SDK for Python.
+For non-JavaScript languages, use the Stellar SDK directly via RPC calls. No `@kchng/shared` equivalent is available - you'll interact with the contract directly.
 
 **Installation**:
 ```bash
