@@ -159,10 +159,13 @@ pub struct TrustData {
 pub struct VerifierData {
     pub trust_id: Option<Address>,
     pub stake: U256,
-    pub reputation_score: u32,     // 0-1000
+    pub reputation_score: u32,     // 0-1000 (general trust, independent of aspects)
     pub verified_claims: u32,
     pub rejected_claims: u32,
     pub fraud_reports: u32,
+    /// Aspect-specific scores (domain string → score 0-1000)
+    /// Default for new aspects is 500 (neutral)
+    pub aspect_scores: Map<Bytes, u32>,
 }
 
 /// Work claim for time-based token issuance
@@ -800,6 +803,7 @@ impl KchngToken {
             verified_claims: 0,
             rejected_claims: 0,
             fraud_reports: 0,
+            aspect_scores: Map::new(&env), // Empty aspects map
         };
 
         verifiers.set(verifier.clone(), verifier_data);
@@ -823,6 +827,64 @@ impl KchngToken {
             Some(data) => data,
             None => panic!("Verifier not found"),
         }
+    }
+
+    /// Update an aspect score for a verifier
+    ///
+    /// Domain-aspect reputation allows for context-specific scoring.
+    /// For example, someone may have high reputation as a dinner guest
+    /// but low reputation as a dinner host.
+    ///
+    /// # Arguments
+    /// * `verifier` - The verifier whose aspect score is being updated
+    /// * `domain` - The aspect domain (e.g., "dinner_guest", "car_driver")
+    /// * `delta` - The change to apply (positive or negative, e.g., +30, -50)
+    /// * `scorer` - The account submitting this score update (must authenticate)
+    ///
+    /// # Behavior
+    /// - If aspect doesn't exist, initializes to 500 (neutral) then applies delta
+    /// - Caps final score at [0, 1000]
+    /// - Requires auth from scorer
+    pub fn update_aspect_score(
+        env: Env,
+        verifier: Address,
+        domain: Bytes,
+        delta: i32,
+        scorer: Address,
+    ) {
+        scorer.require_auth();
+
+        // Prevent self-scoring
+        if scorer == verifier {
+            panic!("Cannot score yourself");
+        }
+
+        // Get existing verifier data - map may not exist yet
+        let verifiers: Map<Address, VerifierData> =
+            env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+
+        if !verifiers.contains_key(verifier.clone()) {
+            panic!("Verifier not found");
+        }
+
+        let mut verifier_data = verifiers.get(verifier.clone()).unwrap();
+
+        // Get current score, defaulting to neutral (500) if not present
+        let current_score = verifier_data.aspect_scores
+            .get(domain.clone())
+            .unwrap_or(500);
+
+        // Apply delta with bounds checking [0, 1000]
+        let new_score = (current_score as i32 + delta).clamp(0, 1000) as u32;
+
+        // Update the aspect score
+        verifier_data.aspect_scores.set(domain, new_score);
+
+        // Get mutable map and update
+        let mut verifiers: Map<Address, VerifierData> =
+            env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+        verifiers.set(verifier, verifier_data);
+        env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
     }
 
     /// Submit a work claim for verification

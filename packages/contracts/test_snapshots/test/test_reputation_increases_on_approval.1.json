@@ -1093,6 +1093,14 @@
                         "map": [
                           {
                             "key": {
+                              "symbol": "aspect_scores"
+                            },
+                            "val": {
+                              "map": []
+                            }
+                          },
+                          {
+                            "key": {
                               "symbol": "fraud_reports"
                             },
                             "val": {
@@ -1153,6 +1161,14 @@
                       },
                       "val": {
                         "map": [
+                          {
+                            "key": {
+                              "symbol": "aspect_scores"
+                            },
+                            "val": {
+                              "map": []
+                            }
+                          },
                           {
                             "key": {
                               "symbol": "fraud_reports"

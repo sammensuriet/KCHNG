@@ -104,15 +104,72 @@ export interface TrustData {
 }
 
 /**
+ * Category of aspect domain for reputation scoring
+ */
+export enum AspectCategory {
+  Hospitality = "hospitality",       // dinner_guest, dinner_host
+  Transportation = "transportation", // driver, passenger
+  Employment = "employment",         // employee, employer
+  Verification = "verification",     // verifier, oracle
+  Community = "community",           // voter, proposer, governor
+}
+
+/**
+ * Domain-aspect identifier for reputation scoring
+ *
+ * Examples: "dinner_guest", "dinner_host", "car_driver", "car_passenger",
+ *           "work_employee", "work_employer", "verifier", "oracle"
+ */
+export type AspectDomain = string;
+
+/**
+ * Aspect-specific reputation score (0-1000)
+ * 500 = neutral (default)
+ * 0 = lowest reputation
+ * 1000 = highest reputation
+ */
+export type AspectScore = number;
+
+/**
  * Verifier data for work verification
  */
 export interface VerifierData {
   trust_id: AccountId | null;
   stake: Amount;
-  reputation_score: number;        // 0-1000
+  reputation_score: number;        // 0-1000 (general trust, independent)
   verified_claims: number;
   rejected_claims: number;
   fraud_reports: number;
+  /**
+   * Optional aspect-specific scores (domain → score)
+   * Stored as Record for JSON serialization, maps to Map<Bytes, u32> in contract
+   */
+  aspect_scores?: Record<AspectDomain, AspectScore>;
+}
+
+/**
+ * Domain-aspect metadata (client-side managed)
+ */
+export interface AspectDomainMetadata {
+  domain: AspectDomain;
+  name: string;                  // Human-readable name
+  description: string;
+  category: AspectCategory;
+  created_by: AccountId;         // Trust leadership that created it
+  created_at: Timestamp;
+  is_active: boolean;
+}
+
+/**
+ * Aspect score update request
+ */
+export interface AspectScoreUpdate {
+  subject: AccountId;            // Account being scored
+  domain: AspectDomain;
+  delta: number;                 // Change to apply (positive or negative)
+  reason?: string;               // Optional justification
+  scored_by: AccountId;          // Account submitting the score
+  timestamp: Timestamp;
 }
 
 /**

@@ -779,3 +779,290 @@ fn test_reputation_caps_at_1000() {
     // Verify it doesn't exceed 1000 (would need 100 approvals to test this fully,
     // but the .min(1000) in the code ensures this)
 }
+
+// ==========================================================================
+// ASPECT-BASED REPUTATION TESTS
+// ==========================================================================
+
+#[test]
+fn test_aspect_score_initializes_to_neutral() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let scorer = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup: register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32, // 12% annual rate
+        &30u64,
+    );
+
+    // Verifier needs to join trust first to have an account
+    client.join_trust(&verifier, &governor);
+    // Give verifier tokens for staking
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+
+    // Update aspect score (first time, should initialize to 500 then apply delta)
+    let domain = Bytes::from_slice(&env, b"dinner_guest");
+    client.update_aspect_score(&verifier, &domain, &30, &scorer);
+
+    let verifier_data = client.get_verifier(&verifier);
+
+    // Check: 500 (neutral) + 30 (delta) = 530
+    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 530);
+
+    // General reputation should be unchanged
+    assert_eq!(verifier_data.reputation_score, 500);
+}
+
+#[test]
+fn test_aspect_score_positive_delta() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let scorer = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup: register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
+    // Join trust (creates account if needed)
+    client.join_trust(&verifier, &governor);
+    // Give verifier tokens for staking
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+
+    let domain = Bytes::from_slice(&env, b"car_driver");
+
+    // First update: 500 + 100 = 600
+    client.update_aspect_score(&verifier, &domain, &100, &scorer);
+    let verifier_data = client.get_verifier(&verifier);
+    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 600);
+
+    // Second update: 600 + 50 = 650
+    client.update_aspect_score(&verifier, &domain, &50, &scorer);
+    let verifier_data = client.get_verifier(&verifier);
+    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 650);
+}
+
+#[test]
+fn test_aspect_score_negative_delta() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let scorer = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup: register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
+    // Join trust (creates account if needed)
+    client.join_trust(&verifier, &governor);
+    // Give verifier tokens for staking
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+
+    let domain = Bytes::from_slice(&env, b"dinner_host");
+
+    // First update: 500 - 50 = 450
+    client.update_aspect_score(&verifier, &domain, &-50, &scorer);
+    let verifier_data = client.get_verifier(&verifier);
+    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 450);
+
+    // Second update: 450 - 30 = 420
+    client.update_aspect_score(&verifier, &domain, &-30, &scorer);
+    let verifier_data = client.get_verifier(&verifier);
+    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 420);
+}
+
+#[test]
+fn test_aspect_score_upper_bound() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let scorer = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup: register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
+    // Join trust (creates account if needed)
+    client.join_trust(&verifier, &governor);
+    // Give verifier tokens for staking
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+
+    let domain = Bytes::from_slice(&env, b"work_employee");
+
+    // Start at 600, add 600 (would be 1200, but should cap at 1000)
+    client.update_aspect_score(&verifier, &domain, &100, &scorer); // 500 + 100 = 600
+    client.update_aspect_score(&verifier, &domain, &600, &scorer); // 600 + 600 = 1200 -> 1000
+
+    let verifier_data = client.get_verifier(&verifier);
+    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 1000);
+}
+
+#[test]
+fn test_aspect_score_lower_bound() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let scorer = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup: register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
+    // Join trust (creates account if needed)
+    client.join_trust(&verifier, &governor);
+    // Give verifier tokens for staking
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+
+    let domain = Bytes::from_slice(&env, b"work_employer");
+
+    // Start at 400, subtract 600 (would be -200, but should floor at 0)
+    client.update_aspect_score(&verifier, &domain, &-100, &scorer); // 500 - 100 = 400
+    client.update_aspect_score(&verifier, &domain, &-600, &scorer); // 400 - 600 = -200 -> 0
+
+    let verifier_data = client.get_verifier(&verifier);
+    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 0);
+}
+
+#[test]
+fn test_aspect_score_multiple_domains() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let scorer = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup: register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
+    // Join trust (creates account if needed)
+    client.join_trust(&verifier, &governor);
+    // Give verifier tokens for staking
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+
+    // Update multiple aspects
+    let guest_domain = Bytes::from_slice(&env, b"dinner_guest");
+    let host_domain = Bytes::from_slice(&env, b"dinner_host");
+    let driver_domain = Bytes::from_slice(&env, b"car_driver");
+
+    client.update_aspect_score(&verifier, &guest_domain, &100, &scorer);  // 600
+    client.update_aspect_score(&verifier, &host_domain, &-50, &scorer);   // 450
+    client.update_aspect_score(&verifier, &driver_domain, &50, &scorer);  // 550
+
+    let verifier_data = client.get_verifier(&verifier);
+    assert_eq!(verifier_data.aspect_scores.get(guest_domain.clone()).unwrap(), 600);
+    assert_eq!(verifier_data.aspect_scores.get(host_domain.clone()).unwrap(), 450);
+    assert_eq!(verifier_data.aspect_scores.get(driver_domain.clone()).unwrap(), 550);
+
+    // General reputation should be unchanged
+    assert_eq!(verifier_data.reputation_score, 500);
+}
+
+#[test]
+#[should_panic(expected = "Cannot score yourself")]
+fn test_aspect_score_prevent_self_scoring() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup: register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
+    // Join trust (creates account if needed)
+    client.join_trust(&verifier, &governor);
+    // Give verifier tokens for staking
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+
+    let domain = Bytes::from_slice(&env, b"dinner_guest");
+    // Try to score yourself - should panic
+    client.update_aspect_score(&verifier, &domain, &30, &verifier);
+}
+
+#[test]
+#[should_panic(expected = "Verifier not found")]
+fn test_aspect_score_verifier_not_found() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let scorer = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Don't register verifier - try to update aspect score anyway
+    let domain = Bytes::from_slice(&env, b"dinner_guest");
+    client.update_aspect_score(&verifier, &domain, &30, &scorer);
+}
