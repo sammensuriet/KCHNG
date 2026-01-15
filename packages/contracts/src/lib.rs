@@ -159,12 +159,13 @@ pub struct TrustData {
 pub struct VerifierData {
     pub trust_id: Option<Address>,
     pub stake: U256,
-    pub reputation_score: u32,     // 0-1000 (general trust, independent of aspects)
+    pub reputation_score: u32,     // 0-1000 (general trust, independent of roles)
     pub verified_claims: u32,
     pub rejected_claims: u32,
     pub fraud_reports: u32,
-    /// Aspect-specific scores (domain string → score 0-1000)
-    /// Default for new aspects is 500 (neutral)
+    /// Role-based scores (compound key "aspect:role" → score 0-1000)
+    /// Default for new roles is 500 (neutral)
+    /// Examples: "dining:guest" → 850, "ride_sharing:driver" → 920
     pub aspect_scores: Map<Bytes, u32>,
 }
 
@@ -829,26 +830,34 @@ impl KchngToken {
         }
     }
 
-    /// Update an aspect score for a verifier
+    /// Update a role-based score for a verifier
     ///
-    /// Domain-aspect reputation allows for context-specific scoring.
-    /// For example, someone may have high reputation as a dinner guest
+    /// Role-based reputation allows for context-specific scoring.
+    /// Hierarchy: Domain → Aspect → Role
+    ///
+    /// For example:
+    ///   - Domain: Hospitality
+    ///     - Aspect: Dining
+    ///       - Role: Guest (score: 850)
+    ///       - Role: Host (score: 400)
+    ///
+    /// This allows someone to have high reputation as a dinner guest
     /// but low reputation as a dinner host.
     ///
     /// # Arguments
-    /// * `verifier` - The verifier whose aspect score is being updated
-    /// * `domain` - The aspect domain (e.g., "dinner_guest", "car_driver")
+    /// * `verifier` - The verifier whose role score is being updated
+    /// * `role_key` - Compound key "aspect:role" (e.g., "dining:guest", "ride_sharing:driver")
     /// * `delta` - The change to apply (positive or negative, e.g., +30, -50)
     /// * `scorer` - The account submitting this score update (must authenticate)
     ///
     /// # Behavior
-    /// - If aspect doesn't exist, initializes to 500 (neutral) then applies delta
+    /// - If role doesn't exist, initializes to 500 (neutral) then applies delta
     /// - Caps final score at [0, 1000]
     /// - Requires auth from scorer
-    pub fn update_aspect_score(
+    pub fn update_role_score(
         env: Env,
         verifier: Address,
-        domain: Bytes,
+        role_key: Bytes,
         delta: i32,
         scorer: Address,
     ) {
@@ -871,14 +880,14 @@ impl KchngToken {
 
         // Get current score, defaulting to neutral (500) if not present
         let current_score = verifier_data.aspect_scores
-            .get(domain.clone())
+            .get(role_key.clone())
             .unwrap_or(500);
 
         // Apply delta with bounds checking [0, 1000]
         let new_score = (current_score as i32 + delta).clamp(0, 1000) as u32;
 
-        // Update the aspect score
-        verifier_data.aspect_scores.set(domain, new_score);
+        // Update the role score
+        verifier_data.aspect_scores.set(role_key, new_score);
 
         // Get mutable map and update
         let mut verifiers: Map<Address, VerifierData> =

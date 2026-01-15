@@ -785,7 +785,7 @@ fn test_reputation_caps_at_1000() {
 // ==========================================================================
 
 #[test]
-fn test_aspect_score_initializes_to_neutral() {
+fn test_role_score_initializes_to_neutral() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
@@ -811,21 +811,21 @@ fn test_aspect_score_initializes_to_neutral() {
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
 
-    // Update aspect score (first time, should initialize to 500 then apply delta)
-    let domain = Bytes::from_slice(&env, b"dinner_guest");
-    client.update_aspect_score(&verifier, &domain, &30, &scorer);
+    // Update role score (first time, should initialize to 500 then apply delta)
+    let role_key = Bytes::from_slice(&env, b"dining:guest");
+    client.update_role_score(&verifier, &role_key, &30, &scorer);
 
     let verifier_data = client.get_verifier(&verifier);
 
     // Check: 500 (neutral) + 30 (delta) = 530
-    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 530);
+    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 530);
 
     // General reputation should be unchanged
     assert_eq!(verifier_data.reputation_score, 500);
 }
 
 #[test]
-fn test_aspect_score_positive_delta() {
+fn test_role_score_positive_delta() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
@@ -850,21 +850,21 @@ fn test_aspect_score_positive_delta() {
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
 
-    let domain = Bytes::from_slice(&env, b"car_driver");
+    let role_key = Bytes::from_slice(&env, b"ride_sharing:driver");
 
     // First update: 500 + 100 = 600
-    client.update_aspect_score(&verifier, &domain, &100, &scorer);
+    client.update_role_score(&verifier, &role_key, &100, &scorer);
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 600);
+    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 600);
 
     // Second update: 600 + 50 = 650
-    client.update_aspect_score(&verifier, &domain, &50, &scorer);
+    client.update_role_score(&verifier, &role_key, &50, &scorer);
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 650);
+    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 650);
 }
 
 #[test]
-fn test_aspect_score_negative_delta() {
+fn test_role_score_negative_delta() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
@@ -889,21 +889,21 @@ fn test_aspect_score_negative_delta() {
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
 
-    let domain = Bytes::from_slice(&env, b"dinner_host");
+    let role_key = Bytes::from_slice(&env, b"dining:host");
 
     // First update: 500 - 50 = 450
-    client.update_aspect_score(&verifier, &domain, &-50, &scorer);
+    client.update_role_score(&verifier, &role_key, &-50, &scorer);
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 450);
+    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 450);
 
     // Second update: 450 - 30 = 420
-    client.update_aspect_score(&verifier, &domain, &-30, &scorer);
+    client.update_role_score(&verifier, &role_key, &-30, &scorer);
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 420);
+    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 420);
 }
 
 #[test]
-fn test_aspect_score_upper_bound() {
+fn test_role_score_upper_bound() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
@@ -928,18 +928,18 @@ fn test_aspect_score_upper_bound() {
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
 
-    let domain = Bytes::from_slice(&env, b"work_employee");
+    let role_key = Bytes::from_slice(&env, b"employment:employee");
 
     // Start at 600, add 600 (would be 1200, but should cap at 1000)
-    client.update_aspect_score(&verifier, &domain, &100, &scorer); // 500 + 100 = 600
-    client.update_aspect_score(&verifier, &domain, &600, &scorer); // 600 + 600 = 1200 -> 1000
+    client.update_role_score(&verifier, &role_key, &100, &scorer); // 500 + 100 = 600
+    client.update_role_score(&verifier, &role_key, &600, &scorer); // 600 + 600 = 1200 -> 1000
 
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 1000);
+    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 1000);
 }
 
 #[test]
-fn test_aspect_score_lower_bound() {
+fn test_role_score_lower_bound() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
@@ -964,18 +964,18 @@ fn test_aspect_score_lower_bound() {
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
 
-    let domain = Bytes::from_slice(&env, b"work_employer");
+    let role_key = Bytes::from_slice(&env, b"employment:employer");
 
     // Start at 400, subtract 600 (would be -200, but should floor at 0)
-    client.update_aspect_score(&verifier, &domain, &-100, &scorer); // 500 - 100 = 400
-    client.update_aspect_score(&verifier, &domain, &-600, &scorer); // 400 - 600 = -200 -> 0
+    client.update_role_score(&verifier, &role_key, &-100, &scorer); // 500 - 100 = 400
+    client.update_role_score(&verifier, &role_key, &-600, &scorer); // 400 - 600 = -200 -> 0
 
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(domain.clone()).unwrap(), 0);
+    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 0);
 }
 
 #[test]
-fn test_aspect_score_multiple_domains() {
+fn test_role_score_multiple_aspects() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
@@ -1000,19 +1000,19 @@ fn test_aspect_score_multiple_domains() {
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
 
-    // Update multiple aspects
-    let guest_domain = Bytes::from_slice(&env, b"dinner_guest");
-    let host_domain = Bytes::from_slice(&env, b"dinner_host");
-    let driver_domain = Bytes::from_slice(&env, b"car_driver");
+    // Update multiple role keys
+    let guest_key = Bytes::from_slice(&env, b"dining:guest");
+    let host_key = Bytes::from_slice(&env, b"dining:host");
+    let driver_key = Bytes::from_slice(&env, b"ride_sharing:driver");
 
-    client.update_aspect_score(&verifier, &guest_domain, &100, &scorer);  // 600
-    client.update_aspect_score(&verifier, &host_domain, &-50, &scorer);   // 450
-    client.update_aspect_score(&verifier, &driver_domain, &50, &scorer);  // 550
+    client.update_role_score(&verifier, &guest_key, &100, &scorer);  // 600
+    client.update_role_score(&verifier, &host_key, &-50, &scorer);   // 450
+    client.update_role_score(&verifier, &driver_key, &50, &scorer);  // 550
 
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(guest_domain.clone()).unwrap(), 600);
-    assert_eq!(verifier_data.aspect_scores.get(host_domain.clone()).unwrap(), 450);
-    assert_eq!(verifier_data.aspect_scores.get(driver_domain.clone()).unwrap(), 550);
+    assert_eq!(verifier_data.aspect_scores.get(guest_key.clone()).unwrap(), 600);
+    assert_eq!(verifier_data.aspect_scores.get(host_key.clone()).unwrap(), 450);
+    assert_eq!(verifier_data.aspect_scores.get(driver_key.clone()).unwrap(), 550);
 
     // General reputation should be unchanged
     assert_eq!(verifier_data.reputation_score, 500);
@@ -1020,7 +1020,7 @@ fn test_aspect_score_multiple_domains() {
 
 #[test]
 #[should_panic(expected = "Cannot score yourself")]
-fn test_aspect_score_prevent_self_scoring() {
+fn test_role_score_prevent_self_scoring() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
@@ -1044,14 +1044,14 @@ fn test_aspect_score_prevent_self_scoring() {
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
 
-    let domain = Bytes::from_slice(&env, b"dinner_guest");
+    let role_key = Bytes::from_slice(&env, b"dining:guest");
     // Try to score yourself - should panic
-    client.update_aspect_score(&verifier, &domain, &30, &verifier);
+    client.update_role_score(&verifier, &role_key, &30, &verifier);
 }
 
 #[test]
 #[should_panic(expected = "Verifier not found")]
-fn test_aspect_score_verifier_not_found() {
+fn test_role_score_verifier_not_found() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
@@ -1062,7 +1062,7 @@ fn test_aspect_score_verifier_not_found() {
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
-    // Don't register verifier - try to update aspect score anyway
-    let domain = Bytes::from_slice(&env, b"dinner_guest");
-    client.update_aspect_score(&verifier, &domain, &30, &scorer);
+    // Don't register verifier - try to update role score anyway
+    let role_key = Bytes::from_slice(&env, b"dining:guest");
+    client.update_role_score(&verifier, &role_key, &30, &scorer);
 }

@@ -1,6 +1,6 @@
-# Domain-Aspect Reputation System Design
+# Role-Based Reputation System Design
 
-**Date:** 2026-01-14
+**Date:** 2026-01-15
 **Status:** Draft
 **Author:** KCHNG Design Team
 
@@ -8,16 +8,16 @@
 
 ## Executive Summary
 
-This document describes an extension to the KCHNG reputation system that supports **domain-aspect dependent reputation** while maintaining full backward compatibility with the existing single-score system.
+This document describes an extension to the KCHNG reputation system that supports **role-based reputation** through a three-level hierarchy: **Domain → Aspect → Role**. This system maintains full backward compatibility with the existing single-score system.
 
 ### Core Design Principles
 
 | Principle | Description |
 |-----------|-------------|
 | **Backward Compatible** | Existing `reputation_score` remains unchanged and independent |
-| **Client-Side Governance** | Domain-aspect CRUD managed by community leadership, not contract-enforced |
-| **Neutral Default** | New aspects initialize at 500 (neutral) |
-| **Optional Extension** | Aspects are additive; accounts may have zero, one, or many aspect scores |
+| **Client-Side Governance** | Aspect/role definitions managed by community leadership, not contract-enforced |
+| **Neutral Default** | New roles initialize at 500 (neutral) |
+| **Optional Extension** | Role scores are additive; accounts may have zero, one, or many role scores |
 
 ### Problem Statement
 
@@ -28,7 +28,29 @@ The current reputation system uses a single scalar score (0-1000) per account. T
 
 ### Solution Overview
 
-Extend `VerifierData` with an optional `aspect_scores` map that stores domain-specific reputation scores, while keeping the existing `reputation_score` as an independent general trustworthiness signal.
+Extend `VerifierData` with an optional `aspect_scores` map that stores **role-based** reputation scores using compound keys (`"aspect:role"`), while keeping the existing `reputation_score` as an independent general trustworthiness signal.
+
+### Hierarchy: Domain → Aspect → Role
+
+```
+Domain (Transportation)
+  └── Aspect (Ride-sharing)
+      ├── Role (Driver) → Score: 920
+      └── Role (Passenger) → Score: 450
+
+Domain (Hospitality)
+  └── Aspect (Dining)
+      ├── Role (Guest) → Score: 850
+      └── Role (Host) → Score: 400
+
+Domain (Employment)
+  ├── Aspect (Work)
+  │   ├── Role (Employee) → Score: 950
+  │   └── Role (Employer) → Score: 550
+  └── Aspect (Management)
+      ├── Role (Manager) → Score: 720
+      └── Role (Report) → Score: 680
+```
 
 ---
 
@@ -40,9 +62,10 @@ Extend `VerifierData` with an optional `aspect_scores` map that stores domain-sp
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Client Layer                            │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
-│  │   Domain    │  │   Aspect    │  │   Scoring   │              │
-│  │ Management  │  │  Scoring    │  │   Display   │              │
-│  │   (CRUD)    │  │  (Update)   │  │   (UI)      │              │
+│  │  Aspect &   │  │    Role     │  │   Scoring   │              │
+│  │  Role       │  │  Scoring    │  │   Display   │              │
+│  │ Management  │  │  (Update)   │  │   (UI)      │              │
+│  │   (CRUD)    │  │             │  │             │              │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘              │
 │         │                │                │                      │
 │         └────────────────┴────────────────┘                      │
@@ -55,7 +78,7 @@ Extend `VerifierData` with an optional `aspect_scores` map that stores domain-sp
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │  VerifierData {                                         │   │
 │  │    reputation_score: u32,           // General (0-1000) │   │
-│  │    aspect_scores: Map<Bytes, u32>,  // Aspects (0-1000) │   │
+│  │    aspect_scores: Map<Bytes, u32>,  // "aspect:role"    │   │
 │  │    ...                                                     │   │
 │  │  }                                                       │   │
 │  └─────────────────────────────────────────────────────────┘   │
@@ -66,7 +89,9 @@ Extend `VerifierData` with an optional `aspect_scores` map that stores domain-sp
 
 | Decision | Rationale |
 |----------|-----------|
-| **Aspect CRUD is client-side** | Reduces contract complexity, allows rapid iteration, keeps storage costs minimal |
+| **3-level hierarchy** | Domain → Aspect → Role provides maximum clarity and flexibility |
+| **Compound key format** | `"aspect:role"` allows simple storage while maintaining semantic clarity |
+| **Aspect/role CRUD is client-side** | Reduces contract complexity, allows rapid iteration |
 | **reputation_score independent** | Preserves existing semantics, avoids derivation complexity |
 | **Neutral default (500)** | Fair starting point, neither positive nor negative bias |
 | **Community leadership governance** | Aligns with KCHNG's trust-based governance model |
@@ -84,12 +109,14 @@ Extend `VerifierData` with an optional `aspect_scores` map that stores domain-sp
 pub struct VerifierData {
     pub trust_id: Option<Address>,
     pub stake: U256,
-    pub reputation_score: u32,            // UNCHANGED: General trust (0-1000)
+    pub reputation_score: u32,     // UNCHANGED: General trust (0-1000)
     pub verified_claims: u32,
     pub rejected_claims: u32,
     pub fraud_reports: u32,
-    // NEW: Optional aspect-specific scores
-    pub aspect_scores: Map<Bytes, u32>,   // Domain string → score (0-1000)
+    /// Role-based scores (compound key "aspect:role" → score 0-1000)
+    /// Default for new roles is 500 (neutral)
+    /// Examples: "dining:guest" → 850, "ride_sharing:driver" → 920
+    pub aspect_scores: Map<Bytes, u32>,
 }
 ```
 
@@ -99,68 +126,87 @@ pub struct VerifierData {
 // packages/shared/src/types.ts
 
 /**
- * Domain-aspect identifier for reputation scoring
- *
- * Examples: "dinner_guest", "dinner_host", "car_driver", "car_passenger",
- *           "work_employee", "work_employer", "verifier", "oracle"
+ * High-level domain for aspect grouping
  */
-export type AspectDomain = string;
+export enum AspectDomain {
+  Hospitality = "hospitality",       // dining, hosting, events
+  Transportation = "transportation", // ride-sharing, car rental, delivery
+  Employment = "employment",         // work, management, freelance
+  Verification = "verification",     // work verification, oracle services
+  Community = "community",           // voting, governance, proposals
+}
 
 /**
- * Aspect-specific reputation score (0-1000)
- * 500 = neutral (default)
- * 0 = lowest reputation
- * 1000 = highest reputation
+ * Specific role within an aspect
+ * Examples: "driver", "passenger", "guest", "host"
  */
-export type AspectScore = number;
+export type AspectRole = string;
 
 /**
- * Extended verifier data with aspect scores
+ * Aspect identifier within a domain
+ * Examples: "ride_sharing", "dining", "freelance_work"
+ */
+export type Aspect = string;
+
+/**
+ * Role-based reputation score (0-1000)
+ * 500 = neutral (default for new roles)
+ */
+export type RoleScore = number;
+
+/**
+ * Compound key type for role-based scoring
+ * Format: "aspect:role" → score
+ */
+export type RoleScoreKey = `${Aspect}:${AspectRole}`;
+
+/**
+ * Verifier data for work verification
  */
 export interface VerifierData {
   trust_id: AccountId | null;
   stake: Amount;
-  reputation_score: number;           // UNCHANGED: General trust
+  reputation_score: number;        // 0-1000 (general trust, independent of roles)
   verified_claims: number;
   rejected_claims: number;
   fraud_reports: number;
-  // NEW: Optional aspect-specific scores
-  aspect_scores?: Map<AspectDomain, AspectScore>;
+  /**
+   * Optional role-based scores (aspect:role → score)
+   * Examples:
+   *   "dining:guest" → 850
+   *   "dining:host" → 400
+   *   "ride_sharing:driver" → 920
+   */
+  role_scores?: Record<RoleScoreKey, RoleScore>;
 }
 
 /**
- * Domain-aspect metadata (client-side managed)
+ * Aspect metadata (client-side managed)
+ *
+ * Defines an aspect (activity) within a domain, including which roles
+ * are available for scoring.
  */
-export interface AspectDomainMetadata {
-  domain: AspectDomain;
-  name: string;                  // Human-readable name
-  description: string;
-  category: AspectCategory;
-  created_by: AccountId;         // Trust leadership that created it
+export interface AspectMetadata {
+  aspect: Aspect;                 // "ride_sharing"
+  name: string;                  // "Ride-sharing"
+  description: string;           // "Shared transportation services"
+  domain: AspectDomain;          // AspectDomain.Transportation
+  roles: AspectRole[];           // ["driver", "passenger"]
+  created_by: AccountId;         // Trust leadership that created this aspect
   created_at: Timestamp;
   is_active: boolean;
 }
 
 /**
- * Category of aspect domain
+ * Role score update request
  */
-export enum AspectCategory {
-  Hospitality = "hospitality",       // dinner_guest, dinner_host
-  Transportation = "transportation", // driver, passenger
-  Employment = "employment",         // employee, employer
-  Verification = "verification",     // verifier, oracle
-  Community = "community",           // voter, proposer, governor
-}
-
-/**
- * Aspect score update request
- */
-export interface AspectScoreUpdate {
+export interface RoleScoreUpdate {
   subject: AccountId;            // Account being scored
-  domain: AspectDomain;
+  aspect: Aspect;                // "dining"
+  role: AspectRole;              // "guest"
   delta: number;                 // Change to apply (positive or negative)
   reason?: string;               // Optional justification
-  scored_by: AccountId;          // Account submitting the score
+  scored_by: AccountId;          // Account submitting this score
   timestamp: Timestamp;
 }
 ```
@@ -177,7 +223,7 @@ Existing read functions already return the full `VerifierData` struct, which wil
 
 ```rust
 // Existing function - no signature change
-pub fn get_verifier(env: &Env, verifier: Address) -> VerifierData {
+pub fn get_verifier(env: Env, verifier: Address) -> VerifierData {
     // Now returns aspect_scores if present
 }
 ```
@@ -185,114 +231,138 @@ pub fn get_verifier(env: &Env, verifier: Address) -> VerifierData {
 #### Write Operations (New)
 
 ```rust
-/// Update an aspect score for a verifier
+/// Update a role-based score for a verifier
+///
+/// Role-based reputation allows for context-specific scoring.
+/// Hierarchy: Domain → Aspect → Role
 ///
 /// # Arguments
-/// * `verifier` - The verifier whose aspect score is being updated
-/// * `domain` - The aspect domain (e.g., "dinner_guest")
-/// * `delta` - The change to apply (can be positive or negative)
-/// * `scorer` - The account submitting this score update
+/// * `verifier` - The verifier whose role score is being updated
+/// * `role_key` - Compound key "aspect:role" (e.g., "dining:guest", "ride_sharing:driver")
+/// * `delta` - The change to apply (positive or negative, e.g., +30, -50)
+/// * `scorer` - The account submitting this score update (must authenticate)
 ///
 /// # Behavior
-/// - If aspect doesn't exist, initializes to 500 then applies delta
+/// - If role doesn't exist, initializes to 500 (neutral) then applies delta
 /// - Caps final score at [0, 1000]
 /// - Requires auth from scorer
-pub fn update_aspect_score(
-    env: &Env,
+pub fn update_role_score(
+    env: Env,
     verifier: Address,
-    domain: Bytes,
+    role_key: Bytes,
     delta: i32,
     scorer: Address,
 ) {
     scorer.require_auth();
 
-    let mut verifier_data = get_verifier(env, verifier.clone());
+    // Prevent self-scoring
+    if scorer == verifier {
+        panic!("Cannot score yourself");
+    }
 
-    // Initialize to neutral if not present
+    // Get existing verifier data - map may not exist yet
+    let verifiers: Map<Address, VerifierData> =
+        env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+
+    if !verifiers.contains_key(verifier.clone()) {
+        panic!("Verifier not found");
+    }
+
+    let mut verifier_data = verifiers.get(verifier.clone()).unwrap();
+
+    // Get current score, defaulting to neutral (500) if not present
     let current_score = verifier_data.aspect_scores
-        .get(domain.clone())
+        .get(role_key.clone())
         .unwrap_or(500);
 
-    // Apply delta with bounds checking
+    // Apply delta with bounds checking [0, 1000]
     let new_score = (current_score as i32 + delta).clamp(0, 1000) as u32;
 
-    verifier_data.aspect_scores.set(domain, new_score);
-    env.storage().persistent().set(&verifier, &verifier_data);
+    // Update the role score
+    verifier_data.aspect_scores.set(role_key, new_score);
+
+    // Get mutable map and update
+    let mut verifiers: Map<Address, VerifierData> =
+        env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+    verifiers.set(verifier, verifier_data);
+    env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
 }
 ```
 
-### Client-Side Domain Management
+### Client-Side Aspect Management
 
-Since domain CRUD is client-side, these operations are performed through the frontend/app layer:
+Since aspect and role definitions are client-side, these operations are performed through the frontend/app layer:
 
-#### Create Domain
+#### Create Aspect
 
 ```typescript
-interface CreateDomainRequest {
-  domain: AspectDomain;
-  name: string;
-  description: string;
-  category: AspectCategory;
-  created_by: AccountId; // Must be trust leadership
+interface CreateAspectRequest {
+  aspect: Aspect;                // "ride_sharing"
+  name: string;                  // "Ride-sharing"
+  description: string;           // "Shared transportation services"
+  domain: AspectDomain;          // AspectDomain.Transportation
+  roles: AspectRole[];           // ["driver", "passenger"]
+  created_by: AccountId;         // Must be trust leadership
 }
 
-async function createAspectDomain(
-  request: CreateDomainRequest
-): Promise<AspectDomainMetadata> {
+async function createAspect(
+  request: CreateAspectRequest
+): Promise<AspectMetadata> {
   // 1. Verify creator has trust leadership role
-  // 2. Validate domain name uniqueness
-  // 3. Store domain metadata (client-side storage or IPFS)
-  // 4. Emit event for community awareness
+  // 2. Validate aspect name uniqueness within domain
+  // 3. Validate roles are provided
+  // 4. Store aspect metadata (client-side storage or IPFS)
+  // 5. Emit event for community awareness
 }
 ```
 
-#### Read Domains
+#### Read Aspects
 
 ```typescript
-async function listAspectDomains(
-  category?: AspectCategory
-): Promise<AspectDomainMetadata[]> {
+async function listAspects(
+  domain?: AspectDomain
+): Promise<AspectMetadata[]> {
   // Retrieve from client-side storage
 }
 ```
 
-#### Update Domain
+#### Update Aspect
 
 ```typescript
-async function updateAspectDomain(
-  domain: AspectDomain,
-  updates: Partial<Pick<AspectDomainMetadata, 'name' | 'description' | 'is_active'>>
-): Promise<AspectDomainMetadata> {
-  // Only domain creator or trust leadership can update
+async function updateAspect(
+  aspect: Aspect,
+  updates: Partial<Pick<AspectMetadata, 'name' | 'description' | 'roles' | 'is_active'>>
+): Promise<AspectMetadata> {
+  // Only aspect creator or trust leadership can update
 }
 ```
 
-#### Delete Domain
+#### Delete Aspect
 
 ```typescript
-async function deleteAspectDomain(
-  domain: AspectDomain
+async function deleteAspect(
+  aspect: Aspect
 ): Promise<void> {
   // Soft delete: mark is_active = false
-  // Historical scores preserved
+  // Historical role scores preserved
 }
 ```
 
 ---
 
-## Aspect Scoring Logic
+## Role Scoring Logic
 
 ### Score Initialization
 
-When an aspect is first set for an account:
+When a role is first set for an account:
 
 ```typescript
-function initializeAspectScore(
-  currentScores: Map<AspectDomain, AspectScore>,
-  domain: AspectDomain
-): AspectScore {
-  if (currentScores.has(domain)) {
-    return currentScores.get(domain)!;
+function initializeRoleScore(
+  currentScores: Record<RoleScoreKey, RoleScore>,
+  roleKey: RoleScoreKey
+): RoleScore {
+  if (currentScores[roleKey] !== undefined) {
+    return currentScores[roleKey];
   }
   return 500; // Neutral default
 }
@@ -301,10 +371,10 @@ function initializeAspectScore(
 ### Score Update with Bounds
 
 ```typescript
-function updateAspectScore(
-  current: AspectScore,
+function updateRoleScore(
+  current: RoleScore,
   delta: number
-): AspectScore {
+): RoleScore {
   const newScore = current + delta;
   return Math.max(0, Math.min(1000, newScore));
 }
@@ -313,26 +383,29 @@ function updateAspectScore(
 ### Example Score Progression
 
 ```
-Initial state:     aspect_scores = {}
+Initial state:     role_scores = {}
 
-After first update: aspect_scores = { "dinner_guest": 500 }
+After first update: role_scores = { "dining:guest": 500 }
                     delta = +30 (hosted great dinner)
-                    result: aspect_scores = { "dinner_guest": 530 }
+                    result: role_scores = { "dining:guest": 530 }
 
-Second update:     aspect_scores = { "dinner_guest": 530 }
-                    delta = -50 (guest arrived late, rude)
-                    result: aspect_scores = { "dinner_guest": 480 }
+Second update:     role_scores = { "dining:guest": 530 }
+                    delta = -50 (arrived late, rude)
+                    result: role_scores = { "dining:guest": 480 }
 
-New aspect added:  aspect_scores = { "dinner_guest": 480, "car_driver": 500 }
+New role added:    role_scores = {
+                      "dining:guest": 480,
+                      "ride_sharing:driver": 500
+                    }
 ```
 
 ---
 
 ## Governance and Authorization
 
-### Who Can Manage Domains?
+### Who Can Manage Aspects?
 
-| Role | Can Create Domain | Can Update Domain | Can Delete Domain |
+| Role | Can Create Aspect | Can Update Aspect | Can Delete Aspect |
 |------|-------------------|-------------------|-------------------|
 | **Trust Governor** | ✓ (within trust) | ✓ (within trust) | ✓ (within trust) |
 | **Protocol Admin** | ✓ (global) | ✓ (global) | ✓ (global) |
@@ -340,11 +413,11 @@ New aspect added:  aspect_scores = { "dinner_guest": 480, "car_driver": 500 }
 
 ### Who Can Submit Scores?
 
-| Role | Can Score Aspect |
-|------|------------------|
-| **Trust Governor** | ✓ (any aspect) |
-| **Verifier** | ✓ (verification-related aspects) |
-| **Oracle** | ✓ (grace period aspects) |
+| Role | Can Score Role |
+|------|----------------|
+| **Trust Governor** | ✓ (any role) |
+| **Verifier** | ✓ (verification-related roles) |
+| **Oracle** | ✓ (grace period roles) |
 | **Regular Member** | Case-by-case (community-defined) |
 
 ### Dispute Resolution
@@ -373,13 +446,13 @@ Client-side governance layer should implement:
 
 | Threat | Mitigation |
 |--------|------------|
-| **Unauthorized domain creation** | Verify trust leadership role before creating |
-| **Domain name collision** | Enforce uniqueness constraint |
-| **Inactive domain abuse** | Soft delete preserves history, prevents new scores |
+| **Unauthorized aspect creation** | Verify trust leadership role before creating |
+| **Aspect name collision** | Enforce uniqueness constraint (domain:aspect) |
+| **Inactive aspect abuse** | Soft delete preserves history, prevents new scores |
 
 ### Privacy Considerations
 
-- **Aspect scores are public** (on-chain data)
+- **Role scores are public** (on-chain data)
 - **Scorer identity is public** (required for auth)
 - Communities can opt to create "private" aspects with restricted access
 
@@ -389,27 +462,27 @@ Client-side governance layer should implement:
 
 ### Phase 1: Contract Extension (Week 1)
 
-- [ ] Extend `VerifierData` struct with `aspect_scores: Map<Bytes, u32>`
-- [ ] Implement `update_aspect_score()` function
-- [ ] Add bounds checking (0-1000)
-- [ ] Add neutral initialization (500)
-- [ ] Write unit tests
-- [ ] Update snapshot tests
+- [x] Extend `VerifierData` struct with `aspect_scores: Map<Bytes, u32>`
+- [x] Implement `update_role_score()` function
+- [x] Add bounds checking (0-1000)
+- [x] Add neutral initialization (500)
+- [x] Write unit tests
+- [x] Update snapshot tests
 
 ### Phase 2: Type Definitions (Week 1)
 
-- [ ] Extend `VerifierData` in `packages/shared/src/types.ts`
-- [ ] Add `AspectDomain`, `AspectScore` types
-- [ ] Add `AspectCategory` enum
-- [ ] Add `AspectDomainMetadata` interface
-- [ ] Add `AspectScoreUpdate` interface
+- [x] Extend `VerifierData` in `packages/shared/src/types.ts`
+- [x] Add `AspectDomain`, `Aspect`, `AspectRole` types
+- [x] Add `AspectMetadata` interface
+- [x] Add `RoleScoreUpdate` interface
+- [x] Add `RoleScoreKey` type
 
-### Phase 3: Client-Side Domain Management (Week 2)
+### Phase 3: Client-Side Aspect Management (Week 2)
 
-- [ ] Implement domain CRUD operations
+- [ ] Implement aspect CRUD operations
 - [ ] Add trust leadership authorization checks
-- [ ] Create domain management UI components
-- [ ] Add domain listing and search
+- [ ] Create aspect management UI components
+- [ ] Add aspect listing and search
 - [ ] Implement soft delete
 
 ### Phase 4: Scoring Interface (Week 2)
@@ -423,7 +496,7 @@ Client-side governance layer should implement:
 
 - [ ] End-to-end testing
 - [ ] Security audit
-- [ ] Performance testing (large aspect maps)
+- [ ] Performance testing (large role maps)
 - [ ] User acceptance testing
 - [ ] Documentation
 
@@ -437,17 +510,17 @@ Client-side governance layer should implement:
 |-------|------|------------------|
 | `reputation_score` | `u32` | 4 bytes |
 | `aspect_scores` | `Map<Bytes, u32>` | Base + entries |
-| Per aspect entry | key + value | ~32 + 4 bytes |
+| Per role entry | key + value | ~32 + 4 bytes |
 
-**Example**: An account with 10 aspects
+**Example**: An account with 10 roles
 - Base map overhead: ~100 bytes
-- 10 aspects × 36 bytes: ~360 bytes
+- 10 roles × 36 bytes: ~360 bytes
 - Total: ~460 bytes additional storage
 
 ### Network Fee Impact
 
 - Writing to `aspect_scores` map requires XDR serialization
-- Estimated cost per aspect update: ~5,000-10,000 operations
+- Estimated cost per role update: ~5,000-10,000 operations
 - At ~100 ops/XDR: 50-100 XDR per update
 - Acceptable for occasional scoring events
 
@@ -463,15 +536,15 @@ Client-side governance layer should implement:
 ├─────────────────────────────────────────────────────┤
 │  General: ████████░░ 820/1000                       │
 │                                                      │
-│  Aspect Scores:                                      │
+│  Role Scores:                                        │
 │  ┌─────────────────────┬──────────────┬───────────┐ │
-│  │ Domain              │ Score        │ Trend     │ │
+│  │ Aspect:Role         │ Score        │ Trend     │ │
 │  ├─────────────────────┼──────────────┼───────────┤ │
-│  │ Dinner Guest        │ ████████░ 850│ ↗ +20    │ │
-│  │ Dinner Host         │ ████░░░░░ 420│ ↘ -30    │ │
-│  │ Car Driver          │ █████████ 920│ → 0      │ │
-│  │ Car Passenger       │ ██████░░░ 610│ ↗ +5     │ │
-│  │ Work Verifier       │ ███████░░ 750│ ↗ +15    │ │
+│  │ Dining:Guest        │ ████████░ 850│ ↗ +20    │ │
+│  │ Dining:Host         │ ████░░░░░ 400│ ↘ -30    │ │
+│  │ Ride-sharing:Driver │ █████████ 920│ → 0      │ │
+│  │ Ride-sharing:Pass.  │ ██████░░░ 610│ ↗ +5     │ │
+│  │ Work:Employee       │ ███████░░ 750│ ↗ +15    │ │
 │  └─────────────────────┴──────────────┴───────────┘ │
 │                                                      │
 │  [View History] [Submit Score] [Dispute]            │
@@ -482,10 +555,11 @@ Client-side governance layer should implement:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  Submit Aspect Score for Bob                         │
+│  Submit Role Score for Bob                            │
 ├─────────────────────────────────────────────────────┤
 │                                                      │
-│  Domain: [Dinner Guest ▼]                            │
+│  Aspect: [Dining ▼]                                  │
+│  Role:   [Guest ▼]                                   │
 │                                                      │
 │  Score Change:                                       │
 │    ○ +100 (Excellent)                                │
@@ -518,14 +592,14 @@ Client-side governance layer should implement:
 
 - Existing `VerifierData` records have no `aspect_scores` field
 - Contract migration: Read existing data, write back with empty `aspect_scores` map
-- Frontend: Handle missing `aspect_scores` gracefully (display as empty)
+- Frontend: Handle missing `role_scores` gracefully (display as empty)
 
 ### Migration Steps
 
 1. Deploy new contract with extended `VerifierData`
 2. Run migration script to add empty `aspect_scores` to existing verifiers
 3. Update frontend to use new types
-4. Enable domain creation and scoring features
+4. Enable aspect creation and scoring features
 
 ---
 
@@ -535,17 +609,17 @@ Client-side governance layer should implement:
 
 | Feature | Description | Complexity |
 |---------|-------------|------------|
-| **Aspect expiration** | Scores decay over time if not updated | Medium |
-| **Cross-aspect bonuses** | High score in one aspect boosts related aspects | High |
-| **Reputation badges** | Earn badges for aspect achievements | Low |
-| **Aspect transfer** | Export/import reputation between contexts | Medium |
-| **Privacy tiers** | Private aspects with restricted visibility | High |
+| **Role expiration** | Scores decay over time if not updated | Medium |
+| **Cross-role bonuses** | High score in one role boosts related roles | High |
+| **Reputation badges** | Earn badges for role achievements | Low |
+| **Role transfer** | Export/import reputation between contexts | Medium |
+| **Privacy tiers** | Private roles with restricted visibility | High |
 
 ### Research Questions
 
-1. What is the optimal number of aspects for usability?
-2. Should there be a maximum number of aspects per account?
-3. How do aspect scores correlate with general reputation over time?
+1. What is the optimal number of roles per account for usability?
+2. Should there be a maximum number of roles per account?
+3. How do role scores correlate with general reputation over time?
 4. What prevents gaming through multiple aspect creation?
 
 ---
@@ -563,13 +637,15 @@ Initial:
 
 After 5 successful guest visits:
   reputation_score: 700 (unchanged)
-  aspect_scores: { "dinner_guest": 850 }
+  aspect_scores: {
+    "dining:guest": 850
+  }
 
 After 3 cancelled hosting attempts:
   reputation_score: 700 (unchanged)
   aspect_scores: {
-    "dinner_guest": 850,
-    "dinner_host": 400
+    "dining:guest": 850,
+    "dining:host": 400
   }
 
 Community decision: Still invite Alice to dinners, but don't ask her to host.
@@ -577,7 +653,7 @@ Community decision: Still invite Alice to dinners, but don't ask her to host.
 
 ### Scenario 2: The Careful Driver
 
-Bob is an exceptionally careful driver but gets car sick as a passenger.
+Bob is an exceptionally careful driver but gets carsick as a passenger.
 
 ```
 Initial:
@@ -586,13 +662,15 @@ Initial:
 
 After providing rides for 6 months:
   reputation_score: 650
-  aspect_scores: { "car_driver": 920 }
+  aspect_scores: {
+    "ride_sharing:driver": 920
+  }
 
 After several uncomfortable passenger experiences:
   reputation_score: 650
   aspect_scores: {
-    "car_driver": 920,
-    "car_passenger": 520  // Slightly below neutral
+    "ride_sharing:driver": 920,
+    "ride_sharing:passenger": 520  // Slightly below neutral
   }
 
 Community decision: Bob is the go-to driver, but he drives himself.
@@ -609,13 +687,15 @@ Initial:
 
 As employee at community farm:
   reputation_score: 800
-  aspect_scores: { "work_employee": 950 }
+  aspect_scores: {
+    "employment:employee": 950
+  }
 
 After starting her own business:
   reputation_score: 800
   aspect_scores: {
-    "work_employee": 950,
-    "work_employer": 450
+    "employment:employee": 950,
+    "employment:employer": 450
   }
 
 Community decision: Carol is great to hire, but not ready to employ others.
@@ -623,14 +703,29 @@ Community decision: Carol is great to hire, but not ready to employ others.
 
 ---
 
+## Type Naming Summary
+
+| Old Name | New Name | Description |
+|----------|----------|-------------|
+| `AspectCategory` | `AspectDomain` | High-level domain (e.g., Transportation) |
+| `AspectDomain` (type) | `Aspect` | Specific activity within domain (e.g., Ride-sharing) |
+| (new) | `AspectRole` | Role within an aspect (e.g., Driver, Passenger) |
+| `AspectScore` | `RoleScore` | Score value for a specific role |
+| `AspectDomainMetadata` | `AspectMetadata` | Metadata about an aspect |
+| `AspectScoreUpdate` | `RoleScoreUpdate` | Update request for a role score |
+| (new) | `RoleScoreKey` | Compound key type: `"${Aspect}:${AspectRole}"` |
+
+---
+
 ## References
 
-- Original Reputation Gap Analysis: `/docs/2026-01-02_reputation-system-gap-analysis.md`
+- Original Design: `/docs/2026-01-14_domain-aspect-reputation-design.md` (superseded)
 - Shared Types: `/packages/shared/src/types.ts`
 - Contract Source: `/packages/contracts/src/lib.rs`
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2026-01-14
+**Document Version:** 2.0
+**Last Updated:** 2026-01-15
 **Status:** Draft - Pending Community Review
+**Changes from v1.0:** Complete refactoring to 3-level hierarchy (Domain → Aspect → Role)

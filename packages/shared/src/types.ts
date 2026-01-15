@@ -103,74 +103,101 @@ export interface TrustData {
   created_at: Timestamp,
 }
 
+// ============================================================================
+// ROLE-BASED REPUTATION TYPES
+// ============================================================================
+
 /**
- * Category of aspect domain for reputation scoring
+ * High-level domain for aspect grouping
+ *
+ * Domains represent broad categories of human interaction and activity.
+ * Each domain contains multiple aspects (activities), which in turn
+ * contain multiple roles (positions within that activity).
+ *
+ * Example hierarchy:
+ *   Domain: Transportation
+ *     └── Aspect: Ride-sharing
+ *         ├── Role: Driver
+ *         └── Role: Passenger
  */
-export enum AspectCategory {
-  Hospitality = "hospitality",       // dinner_guest, dinner_host
-  Transportation = "transportation", // driver, passenger
-  Employment = "employment",         // employee, employer
-  Verification = "verification",     // verifier, oracle
-  Community = "community",           // voter, proposer, governor
+export enum AspectDomain {
+  Hospitality = "hospitality",       // dining, hosting, events
+  Transportation = "transportation", // ride-sharing, car rental, delivery
+  Employment = "employment",         // work, management, freelance
+  Verification = "verification",     // work verification, oracle services
+  Community = "community",           // voting, governance, proposals
 }
 
 /**
- * Domain-aspect identifier for reputation scoring
+ * Specific role within an aspect
  *
- * Examples: "dinner_guest", "dinner_host", "car_driver", "car_passenger",
- *           "work_employee", "work_employer", "verifier", "oracle"
+ * Roles represent positions or personas within a specific aspect/activity.
+ * Examples: "driver", "passenger", "guest", "host", "employee", "employer"
+ *
+ * An individual can have different reputation scores for different roles,
+ * reflecting real-world nuance where someone may excel in one role but
+ * struggle in another.
  */
-export type AspectDomain = string;
+export type AspectRole = string;
 
 /**
- * Aspect-specific reputation score (0-1000)
- * 500 = neutral (default)
+ * Aspect identifier within a domain
+ *
+ * An aspect represents a specific activity or context within a domain.
+ * Examples: "ride_sharing", "dining", "freelance_work", "event_hosting"
+ *
+ * Combined with a role, creates a complete reputation key: "dining:guest"
+ */
+export type Aspect = string;
+
+/**
+ * Role-based reputation score (0-1000)
+ * 500 = neutral (default for new roles)
  * 0 = lowest reputation
  * 1000 = highest reputation
  */
-export type AspectScore = number;
+export type RoleScore = number;
 
 /**
- * Verifier data for work verification
+ * Aspect metadata (client-side managed)
+ *
+ * Defines an aspect (activity) within a domain, including which roles
+ * are available for scoring. This metadata is stored client-side, while
+ * the actual scores are stored on-chain.
  */
-export interface VerifierData {
-  trust_id: AccountId | null;
-  stake: Amount;
-  reputation_score: number;        // 0-1000 (general trust, independent)
-  verified_claims: number;
-  rejected_claims: number;
-  fraud_reports: number;
-  /**
-   * Optional aspect-specific scores (domain → score)
-   * Stored as Record for JSON serialization, maps to Map<Bytes, u32> in contract
-   */
-  aspect_scores?: Record<AspectDomain, AspectScore>;
-}
-
-/**
- * Domain-aspect metadata (client-side managed)
- */
-export interface AspectDomainMetadata {
-  domain: AspectDomain;
-  name: string;                  // Human-readable name
-  description: string;
-  category: AspectCategory;
-  created_by: AccountId;         // Trust leadership that created it
+export interface AspectMetadata {
+  aspect: Aspect;                 // "ride_sharing"
+  name: string;                  // "Ride-sharing"
+  description: string;           // "Shared transportation services"
+  domain: AspectDomain;          // AspectDomain.Transportation
+  roles: AspectRole[];           // ["driver", "passenger"]
+  created_by: AccountId;         // Trust leadership that created this aspect
   created_at: Timestamp;
   is_active: boolean;
 }
 
 /**
- * Aspect score update request
+ * Role score update request
+ *
+ * Represents a single reputation update action for a specific role
+ * within an aspect. The delta can be positive or negative.
  */
-export interface AspectScoreUpdate {
+export interface RoleScoreUpdate {
   subject: AccountId;            // Account being scored
-  domain: AspectDomain;
+  aspect: Aspect;                // "dining"
+  role: AspectRole;              // "guest"
   delta: number;                 // Change to apply (positive or negative)
-  reason?: string;               // Optional justification
-  scored_by: AccountId;          // Account submitting the score
+  reason?: string;               // Optional justification for the score
+  scored_by: AccountId;          // Account submitting this score
   timestamp: Timestamp;
 }
+
+/**
+ * Compound key type for role-based scoring
+ * Format: "aspect:role" → score
+ * Example: "dining:guest" → 850
+ */
+export type RoleScoreKey = `${Aspect}:${AspectRole}`;
 
 /**
  * Work claim for time-based token issuance
@@ -204,13 +231,40 @@ export interface GracePeriod {
 }
 
 /**
+ * Verifier data for work verification
+ */
+export interface VerifierData {
+  trust_id: AccountId | null;
+  stake: Amount;
+  reputation_score: number;        // 0-1000 (general trust, independent of roles)
+  verified_claims: number;
+  rejected_claims: number;
+  fraud_reports: number;
+  /**
+   * Optional role-based scores (aspect:role → score)
+   * Stored as Record for JSON serialization, maps to Map<Bytes, u32> in contract
+   *
+   * Examples:
+   *   "dining:guest" → 850
+   *   "dining:host" → 400
+   *   "ride_sharing:driver" → 920
+   *   "ride_sharing:passenger" → 610
+   */
+  role_scores?: Record<RoleScoreKey, RoleScore>;
+}
+
+/**
  * Oracle for grace period verification
  */
 export interface OracleData {
   oracle_address: AccountId;
   stake: Amount;
-  reputation_score: number;
-  grace_periods_granted: number,
+  reputation_score: number;        // 0-1000 (general trust, independent of roles)
+  grace_periods_granted: number;
+  /**
+   * Optional role-based scores (aspect:role → score)
+   */
+  role_scores?: Record<RoleScoreKey, RoleScore>;
 }
 
 /**
