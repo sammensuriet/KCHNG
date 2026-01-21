@@ -70,7 +70,7 @@
         <h2>Balance</h2>
         <div class="balance-amount">{formatBalance(accountData.balance)} KCHNG</div>
         <div class="balance-subtext">
-          1 KCHNG = 30 minutes community work = 1 community meal
+          1000 KCHNG = 30 minutes work = 1 meal &nbsp;•&nbsp; 500 hours = 1000 meals
         </div>
       </div>
 

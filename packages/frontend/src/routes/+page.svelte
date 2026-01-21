@@ -6,7 +6,7 @@
   <h1>KCHNG</h1>
   <p class="tagline">A Community Currency with Demurrage</p>
   <p class="description">
-    Built on Stellar - where 1 KCHNG = 1 local community meal
+    Built on Stellar - where 1000 KCHNG = 30 minutes work = 1 community meal
   </p>
 </div>
 

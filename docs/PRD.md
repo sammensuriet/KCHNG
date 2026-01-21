@@ -1,6 +1,6 @@
 # KCHNG Product Requirements Document
-**Version**: 1.0
-**Last Updated**: 2026-01-08
+**Version**: 1.1
+**Last Updated**: 2026-01-21
 **Status**: Active Development
 
 ---
@@ -9,7 +9,9 @@
 
 KCHNG is a Stellar blockchain community currency implementing the **Wörgl demurrage model** with a time-based economic standard. The system enables communities to create and manage local currencies backed by verified work, with built-in circulation incentives through demurrage.
 
-**Core Economic Equation**: `30 minutes verified work = 1 KCHNG = 1 community meal`
+**Core Economic Equation**: `30 minutes verified work = 1000 KCHNG = 1 community meal`
+
+**Economic Correlation**: `500 work hours = 3 months work = 1000 meals`
 
 ---
 
@@ -110,9 +112,10 @@ Persistent Storage:
 
 **Technical Specs:**
 - Min work: 15 minutes
-- Verifier stake: 100,000 KCHNG
+- Verifier stake: 100,000 KCHNG (= 100 meals = 50 hours work)
 - Approval threshold: `(total_verifiers / 2) + 1`
-- Minting formula: `(minutes / 30) * multiplier / 100`
+- Minting formula: `(minutes / 30) * 1000 * multiplier / 100`
+- Economic model: 30 min = 1000 KCHNG = 1 meal (ensures demurrage precision)
 
 ---
 
@@ -348,17 +351,22 @@ tests/regression/
 
 ```rust
 // Economic Constants
-MINUTES_PER_KCHNG: 30          // Time standard
+MINUTES_PER_KCHNG: 30          // Time standard (30 min = 1000 KCHNG = 1 meal)
+KCHNG_PER_MEAL: 1000           // 1000 KCHNG = 1 community meal
 MIN_WORK_MINUTES: 15           // Minimum claim
 DEFAULT_ANNUAL_RATE_BPS: 1200  // 12%
+
+// Economic Correlation
+500_WORK_HOURS = 1000_MEALS    // 3 months full-time work
+VERIFIER_STAKE = 100_MEALS     // 100,000 KCHNG = 50 hours work
 
 // Protocol Bounds
 MIN_ANNUAL_RATE_BPS: 500       // 5% minimum
 MAX_ANNUAL_RATE_BPS: 1500      // 15% maximum
 
 // Stake Requirements
-VERIFIER_STAKE: 100,000 KCHNG
-ORACLE_STAKE: 500,000 KCHNG
+VERIFIER_STAKE: 100,000 KCHNG  // 100 meals = 50 hours work
+ORACLE_STAKE: 500,000 KCHNG   // 500 meals = 250 hours work
 
 // Governance
 MIN_VERIFIERS: 2
