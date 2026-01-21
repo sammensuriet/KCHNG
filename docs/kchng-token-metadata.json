@@ -1,0 +1,406 @@
+{
+  "token_standard": "KCHNG-DEMURRAGE-1.0",
+  "token_name": "KCHNG",
+  "token_description": "Community currency with native on-chain demurrage for kachi.ng",
+  "website": "https://kachi.ng",
+  "documentation": "https://github.com/pokho/KCHNG",
+  
+  "data_model": {
+    "token_type": "demurrage_community_currency",
+    "underlying_asset": "time_standard",
+    "asset_definition": "1 KCHNG = 30 minutes verified care/agriculture work = 1 community meal",
+    
+    "supply_model": {
+      "initial_supply": 1000000,
+      "max_supply": "unlimited",
+      "minting_mechanism": "work_verification",
+      "burn_mechanism": "demurrage"
+    },
+    
+    "decimal_places": 0,
+    "integer_type": "U256",
+    "note": "U256 supports future decimal precision; current deployment uses whole units"
+  },
+  
+  "lifecycle_participants": {
+    "roles": [
+      {
+        "role_id": "admin",
+        "description": "Contract administrator with mint and governance privileges",
+        "permissions": ["mint", "governance_proposal", "trust_registration"]
+      },
+      {
+        "role_id": "governor",
+        "description": "Trust/community organization governor",
+        "permissions": ["trust_management", "rate_proposals", "member_acceptance"]
+      },
+      {
+        "role_id": "verifier",
+        "description": "Work claim verifier with reputation-based scoring",
+        "permissions": ["verify_work_claims"],
+        "requirements": {
+          "minimum_stake": 100000,
+          "trust_membership": "required"
+        }
+      },
+      {
+        "role_id": "worker",
+        "description": "Individual who performs verified work and earns tokens",
+        "permissions": ["submit_work_claims", "transfer_tokens"],
+        "requirements": {
+          "trust_membership": "required"
+        }
+      },
+      {
+        "role_id": "oracle",
+        "description": "Grace period activator for hardship cases",
+        "permissions": ["activate_grace_period"],
+        "requirements": {
+          "minimum_stake": 500000
+        }
+      },
+      {
+        "role_id": "holder",
+        "description": "Token holder subject to demurrage",
+        "permissions": ["transfer_tokens", "join_trust"],
+        "obligations": ["demurrage_applies"]
+      }
+    ],
+    
+    "trusts": {
+      "description": "Community organizations that set local demurrage parameters",
+      "parameters": {
+        "annual_rate_bps": {
+          "min": 500,
+          "max": 1500,
+          "default": 1200,
+          "description": "Annual demurrage rate in basis points (5-15%)"
+        },
+        "demurrage_period_days": {
+          "min": 7,
+          "max": 365,
+          "default": 30,
+          "description": "Days between demurrage applications"
+        }
+      }
+    },
+    
+    "reputation_system": {
+      "hierarchy": "Domain → Aspect → Role",
+      "example": "Hospitality → Dining → Guest",
+      "scoring": {
+        "range": [0, 1000],
+        "default": 500,
+        "compound_key_format": "aspect:role"
+      },
+      "note": "Context-specific reputation allows high trust as guest but low as host"
+    }
+  },
+  
+  "common_digital_functions": {
+    "standard_functions": {
+      "balance": {
+        "function_signature": "balance(account: Address) -> U256",
+        "behavior": "RETURNS_CALCULATED_VALUE",
+        "important": "Balance includes demurrage calculation based on inactivity period",
+        "warning": "Not a stored balance - changes with time without transactions"
+      },
+      "transfer": {
+        "function_signature": "transfer(from: Address, to: Address, amount: U256)",
+        "behavior": "APPLIES_DEMURRAGE_BEFORE_TRANSFER",
+        "auth": "requires_auth(from)"
+      },
+      "total_supply": {
+        "function_signature": "total_supply() -> U256",
+        "behavior": "RETURNS_STORED_VALUE",
+        "note": "Total supply increases with work mints, decreases with demurrage burns"
+      }
+    },
+    
+    "kchng_specific_functions": {
+      "get_account": {
+        "function_signature": "get_account(account: Address) -> AccountData",
+        "returns": {
+          "balance": "U256",
+          "last_activity": "u64 timestamp",
+          "grace_period_end": "u64 timestamp (0 if none)",
+          "trust_id": "Option<Address>",
+          "contribution_hours": "u64",
+          "grace_periods_used": "u32",
+          "last_grace_year": "u32"
+        },
+        "note": "Use this to get raw stored balance before demurrage calculation"
+      },
+      
+      "calculate_balance_with_demurrage": {
+        "description": "Internal function called by balance() and transfer()",
+        "logic": "See demurrage_calculation section",
+        "note": "Not directly callable; calculated on reads and transfers"
+      },
+      
+      "register_trust": {
+        "function_signature": "register_trust(governor: Address, name: String, annual_rate_bps: u32, demurrage_period_days: u64)",
+        "purpose": "Create community organization with custom demurrage parameters"
+      },
+      
+      "join_trust": {
+        "function_signature": "join_trust(member: Address, trust_id: Address)",
+        "purpose": "Account joins trust to receive trust-specific demurrage rate"
+      },
+      
+      "submit_work_claim": {
+        "function_signature": "submit_work_claim(worker: Address, work_type: WorkType, minutes_worked: u64, evidence_hash: Bytes, gps_lat: Option<i64>, gps_lon: Option<i64>) -> u64",
+        "returns": "claim_id",
+        "minting": "Tokens minted upon verifier approval"
+      },
+      
+      "activate_grace_period": {
+        "function_signature": "activate_grace_period(oracle: Address, account: Address, grace_type: GraceType, duration_days: u64)",
+        "effect": "Pauses demurrage for specified duration"
+      }
+    }
+  },
+  
+  "demurrage_calculation": {
+    "summary": "Native on-chain demurrage applied to inactive accounts",
+    "purpose": "Encourage circulation - holding tokens loses value over time",
+    
+    "parameters": {
+      "default_annual_rate_bps": 1200,
+      "default_annual_rate_percent": 12,
+      "default_period_days": 30,
+      "default_period_rate_bps": 986,
+      "default_period_rate_percent": 0.986
+    },
+    
+    "trigger_conditions": {
+      "applies_when": "account.last_activity < current_timestamp - demurrage_period_days",
+      "paused_when": "account.grace_period_end > current_timestamp",
+      "applies_to": "all token holders regardless of trust membership"
+    },
+    
+    "calculation_algorithm": {
+      "step_1_check_grace": "if account.grace_period_end > current_timestamp: return account.balance",
+      "step_2_calculate_inactive_time": "inactive_seconds = current_timestamp - account.last_activity",
+      "step_3_calculate_periods": "periods = inactive_seconds / (demurrage_period_days * 86400)",
+      "step_4_get_rate": "rate_bps = (annual_rate_bps * 10000 * period_days / 365 / 10000)",
+      "step_5_apply_burn": {
+        "for_each_period": {
+          "burn_amount = balance * rate_bps / 10000",
+          "balance = max(0, balance - burn_amount)"
+        }
+      },
+      "note": "Uses integer division - no rounding, truncates toward zero"
+    },
+    
+    "example_calculation": {
+      "scenario": "Account with 10,000 KCHNG, inactive for 60 days, 12% annual rate",
+      "step_1": "periods = 60 / 30 = 2 complete periods",
+      "step_2": "rate_bps = (1200 * 10000 * 30 / 365 / 10000) = 986 bps = 0.986%",
+      "step_3": "Period 1: burn = 10000 * 986 / 10000 = 98.6 → 98 (truncated), balance = 9902",
+      "step_4": "Period 2: burn = 9902 * 986 / 10000 = 97.6 → 97 (truncated), balance = 9805",
+      "final_balance": "9805 KCHNG",
+      "total_loss": "195 KCHNG (1.95%)"
+    },
+    
+    "grace_periods": {
+      "description": "Hardship exceptions that pause demurrage",
+      "types": [
+        {
+          "type": "Emergency",
+          "max_duration_days": 90,
+          "activation": "oracle-required"
+        },
+        {
+          "type": "Illness",
+          "max_duration_days": 60,
+          "activation": "oracle-required"
+        },
+        {
+          "type": "Community",
+          "max_duration_days": 180,
+          "activation": "community-voted",
+          "extensible": true
+        }
+      ],
+      "anti_abuse": {
+        "max_per_year": 3,
+        "min_contribution_hours": 30
+      }
+    },
+    
+    "trust_specific_rates": {
+      "description": "Trusts can set custom demurrage within protocol bounds",
+      "min_rate_bps": 500,
+      "max_rate_bps": 1500,
+      "min_period_days": 7,
+      "max_period_days": 365
+    }
+  },
+  
+  "work_verification": {
+    "summary": "Time-based token issuance through verified work claims",
+    "exchange_rate": "30 minutes work = 1 KCHNG",
+    "minimum_work": "15 minutes per claim",
+    
+    "work_types": [
+      {
+        "type": "BasicCare",
+        "multiplier": 1.0,
+        "description": "Basic care or agriculture work"
+      },
+      {
+        "type": "SkilledCare",
+        "multiplier": 1.3,
+        "description": "Skilled care or heavy labor"
+      },
+      {
+        "type": "Training",
+        "multiplier": 1.5,
+        "description": "Teaching or training"
+      },
+      {
+        "type": "EmergencyCare",
+        "multiplier": 2.0,
+        "description": "Emergency response"
+      }
+    ],
+    
+    "verification_process": {
+      "verifiers_required": {
+        "min": 2,
+        "max": 5
+      },
+      "selection": "random from same trust",
+      "approval_threshold": "simple majority",
+      "requirement": "verifier must be staked (100,000 KCHNG)"
+    },
+    
+    "evidence_requirements": {
+      "evidence_hash": "required (photo, GPS, notes hash)",
+      "gps_coordinates": "optional",
+      "verifier_assignment": "automatic"
+    }
+  },
+  
+  "governance": {
+    "type": "community_voting",
+    
+    "proposal_types": [
+      {
+        "type": "RateChange",
+        "description": "Change trust demurrage rate",
+        "authority": "trust_governor",
+        "bounds": "5-15% annually"
+      },
+      {
+        "type": "TrustParameters",
+        "description": "Adjust trust parameters",
+        "authority": "trust_governor"
+      },
+      {
+        "type": "ProtocolUpgrade",
+        "description": "Protocol-level upgrade",
+        "authority": "admin"
+      },
+      {
+        "type": "Emergency",
+        "description": "Emergency crisis measure",
+        "authority": "admin",
+        "special": "can exceed normal rate bounds"
+      }
+    ],
+    
+    "voting_timeline": {
+      "review_period_days": 7,
+      "vote_period_days": 3,
+      "implementation_notice_days": 30
+    },
+    
+    "quorum_and_approval": {
+      "quorum": "40% participation required",
+      "approval_threshold_standard": "60% support",
+      "approval_threshold_emergency": "80% support"
+    }
+  },
+  
+  "cross_trust_exchange": {
+    "description": "Transfer between trusts with rate-adjusted calculation",
+    "formula": "(1 - source_rate) / (1 - dest_rate)",
+    "example": "Trust A (12%) → Trust B (8%) = 0.957 conversion factor",
+    "effect": "Moves account membership to destination trust"
+  },
+  
+  "legal_and_governance": {
+    "status": "unmapped",
+    "note": "Regulatory framework mapping not yet completed",
+    "jurisdiction": "TBD",
+    "recommendation": "Legal review required before mainnet deployment"
+  },
+  
+  "integration_considerations": {
+    "critical_behaviors": [
+      "balance() returns TIME-DEPENDENT value, not stored balance",
+      "Demurrage is calculated on every balance() call and transfer()",
+      "Inactive accounts lose tokens even without transactions",
+      "Grace periods pause demurrage but don't reset last_activity",
+      "Trust membership affects demurrage rate applied"
+    ],
+    
+    "integration_recommendations": [
+      "Cache balance calculations to avoid redundant RPC calls",
+      "Display demurrage countdown UI based on last_activity",
+      "Warn users before grace period expires",
+      "For wrappers: use get_account() for raw data, calculate demurrage off-chain",
+      "Monitor trust membership changes affecting demurrage rates"
+    ],
+    
+    "wrapper_implementation": {
+      "option_1_read_only": "Use get_account() to fetch last_activity, calculate demurrage client-side",
+      "option_2_standard_interface": "Create wrapper contract with stored balance, sync periodically",
+      "option_3_bridge_adapter": "Bridge handles KCHNG quirks at integration layer"
+    },
+    
+    "testing_considerations": [
+      "Test demurrage calculation matches on-chain results",
+      "Verify grace period behavior",
+      "Test trust rate changes affect existing accounts",
+      "Validate cross-trust exchange calculations",
+      "Time capsule test: verify 1% loss after 30 days inactive"
+    ]
+  },
+  
+  "contract_deployment": {
+    "testnet": {
+      "contract_id": "CBMICVZ3FOVBLUBGOHU33FLCEO4ZSODIT7RS4GH27LECR6KHPNJP4CNB",
+      "network": "Stellar Testnet",
+      "explorer": "https://stellar.expert/explorer/testnet/contract/CBMICVZ3FOVBLUBGOHU33FLCEO4ZSODIT7RS4GH27LECR6KHPNJP4CNB",
+      "deployed": "2026-01-02",
+      "features": [
+        "Fixed demurrage calculation (integer division bug resolved)",
+        "Reputation system with role-based scoring",
+        "All 7 phases implemented"
+      ]
+    },
+    
+    "mainnet": {
+      "status": "not_deployed",
+      "prerequisites": [
+        "Security audit",
+        "Legal review",
+        "Final supply decision"
+      ]
+    }
+  },
+  
+  "references": {
+    "soroban_sdk_version": "22.0.8",
+    "contract_source": "packages/contracts/src/lib.rs",
+    "design_document": "docs/time-standard-token-design.md",
+    "deployment_report": "docs/2026-01-02_fixed-contract-deployment.md"
+  },
+  
+  "metadata_version": "1.0",
+  "last_updated": "2026-01-21",
+  "maintainer": "KCHNG Project"
+}
