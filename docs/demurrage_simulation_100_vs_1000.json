@@ -1,0 +1,308 @@
+{
+  "parameters": {
+    "annual_rate_bps": 1200,
+    "annual_rate_percent": 12.0,
+    "period_days": 30,
+    "period_rate_bps": 986,
+    "period_rate_percent": 0.986
+  },
+  "economic_model": {
+    "minutes_per_kchng": 30,
+    "hours_per_kchng": 0.5,
+    "meals_per_kchng": 1
+  },
+  "simulations": {
+    "100_kchng": {
+      "initial_balance": 100,
+      "initial_hours": 50.0,
+      "initial_meals": 100,
+      "time_series": [
+        {
+          "time_label": "1 month",
+          "days": 30,
+          "periods": 1,
+          "final_balance": 91,
+          "loss": 9,
+          "percent_remaining": 91.0,
+          "percent_lost": 9.0,
+          "hours_lost": 4.5,
+          "meals_lost": 9
+        },
+        {
+          "time_label": "2 months",
+          "days": 60,
+          "periods": 2,
+          "final_balance": 83,
+          "loss": 17,
+          "percent_remaining": 83.0,
+          "percent_lost": 17.0,
+          "hours_lost": 8.5,
+          "meals_lost": 17
+        },
+        {
+          "time_label": "3 months",
+          "days": 90,
+          "periods": 3,
+          "final_balance": 75,
+          "loss": 25,
+          "percent_remaining": 75.0,
+          "percent_lost": 25.0,
+          "hours_lost": 12.5,
+          "meals_lost": 25
+        },
+        {
+          "time_label": "6 months",
+          "days": 180,
+          "periods": 6,
+          "final_balance": 56,
+          "loss": 44,
+          "percent_remaining": 56.00000000000001,
+          "percent_lost": 44.0,
+          "hours_lost": 22.0,
+          "meals_lost": 44
+        },
+        {
+          "time_label": "12 months",
+          "days": 360,
+          "periods": 12,
+          "final_balance": 32,
+          "loss": 68,
+          "percent_remaining": 32.0,
+          "percent_lost": 68.0,
+          "hours_lost": 34.0,
+          "meals_lost": 68
+        },
+        {
+          "time_label": "24 months",
+          "days": 720,
+          "periods": 24,
+          "final_balance": 13,
+          "loss": 87,
+          "percent_remaining": 13.0,
+          "percent_lost": 87.0,
+          "hours_lost": 43.5,
+          "meals_lost": 87
+        }
+      ]
+    },
+    "500_kchng": {
+      "initial_balance": 500,
+      "initial_hours": 250.0,
+      "initial_meals": 500,
+      "time_series": [
+        {
+          "time_label": "1 month",
+          "days": 30,
+          "periods": 1,
+          "final_balance": 451,
+          "loss": 49,
+          "percent_remaining": 90.2,
+          "percent_lost": 9.8,
+          "hours_lost": 24.5,
+          "meals_lost": 49
+        },
+        {
+          "time_label": "2 months",
+          "days": 60,
+          "periods": 2,
+          "final_balance": 407,
+          "loss": 93,
+          "percent_remaining": 81.39999999999999,
+          "percent_lost": 18.6,
+          "hours_lost": 46.5,
+          "meals_lost": 93
+        },
+        {
+          "time_label": "3 months",
+          "days": 90,
+          "periods": 3,
+          "final_balance": 367,
+          "loss": 133,
+          "percent_remaining": 73.4,
+          "percent_lost": 26.6,
+          "hours_lost": 66.5,
+          "meals_lost": 133
+        },
+        {
+          "time_label": "6 months",
+          "days": 180,
+          "periods": 6,
+          "final_balance": 270,
+          "loss": 230,
+          "percent_remaining": 54.0,
+          "percent_lost": 46.0,
+          "hours_lost": 115.0,
+          "meals_lost": 230
+        },
+        {
+          "time_label": "12 months",
+          "days": 360,
+          "periods": 12,
+          "final_balance": 147,
+          "loss": 353,
+          "percent_remaining": 29.4,
+          "percent_lost": 70.6,
+          "hours_lost": 176.5,
+          "meals_lost": 353
+        },
+        {
+          "time_label": "24 months",
+          "days": 720,
+          "periods": 24,
+          "final_balance": 46,
+          "loss": 454,
+          "percent_remaining": 9.2,
+          "percent_lost": 90.8,
+          "hours_lost": 227.0,
+          "meals_lost": 454
+        }
+      ]
+    },
+    "1000_kchng": {
+      "initial_balance": 1000,
+      "initial_hours": 500.0,
+      "initial_meals": 1000,
+      "time_series": [
+        {
+          "time_label": "1 month",
+          "days": 30,
+          "periods": 1,
+          "final_balance": 902,
+          "loss": 98,
+          "percent_remaining": 90.2,
+          "percent_lost": 9.8,
+          "hours_lost": 49.0,
+          "meals_lost": 98
+        },
+        {
+          "time_label": "2 months",
+          "days": 60,
+          "periods": 2,
+          "final_balance": 814,
+          "loss": 186,
+          "percent_remaining": 81.39999999999999,
+          "percent_lost": 18.6,
+          "hours_lost": 93.0,
+          "meals_lost": 186
+        },
+        {
+          "time_label": "3 months",
+          "days": 90,
+          "periods": 3,
+          "final_balance": 734,
+          "loss": 266,
+          "percent_remaining": 73.4,
+          "percent_lost": 26.6,
+          "hours_lost": 133.0,
+          "meals_lost": 266
+        },
+        {
+          "time_label": "6 months",
+          "days": 180,
+          "periods": 6,
+          "final_balance": 539,
+          "loss": 461,
+          "percent_remaining": 53.900000000000006,
+          "percent_lost": 46.1,
+          "hours_lost": 230.5,
+          "meals_lost": 461
+        },
+        {
+          "time_label": "12 months",
+          "days": 360,
+          "periods": 12,
+          "final_balance": 291,
+          "loss": 709,
+          "percent_remaining": 29.099999999999998,
+          "percent_lost": 70.89999999999999,
+          "hours_lost": 354.5,
+          "meals_lost": 709
+        },
+        {
+          "time_label": "24 months",
+          "days": 720,
+          "periods": 24,
+          "final_balance": 87,
+          "loss": 913,
+          "percent_remaining": 8.7,
+          "percent_lost": 91.3,
+          "hours_lost": 456.5,
+          "meals_lost": 913
+        }
+      ]
+    },
+    "5000_kchng": {
+      "initial_balance": 5000,
+      "initial_hours": 2500.0,
+      "initial_meals": 5000,
+      "time_series": [
+        {
+          "time_label": "1 month",
+          "days": 30,
+          "periods": 1,
+          "final_balance": 4507,
+          "loss": 493,
+          "percent_remaining": 90.14,
+          "percent_lost": 9.86,
+          "hours_lost": 246.5,
+          "meals_lost": 493
+        },
+        {
+          "time_label": "2 months",
+          "days": 60,
+          "periods": 2,
+          "final_balance": 4063,
+          "loss": 937,
+          "percent_remaining": 81.26,
+          "percent_lost": 18.740000000000002,
+          "hours_lost": 468.5,
+          "meals_lost": 937
+        },
+        {
+          "time_label": "3 months",
+          "days": 90,
+          "periods": 3,
+          "final_balance": 3663,
+          "loss": 1337,
+          "percent_remaining": 73.26,
+          "percent_lost": 26.740000000000002,
+          "hours_lost": 668.5,
+          "meals_lost": 1337
+        },
+        {
+          "time_label": "6 months",
+          "days": 180,
+          "periods": 6,
+          "final_balance": 2684,
+          "loss": 2316,
+          "percent_remaining": 53.68000000000001,
+          "percent_lost": 46.32,
+          "hours_lost": 1158.0,
+          "meals_lost": 2316
+        },
+        {
+          "time_label": "12 months",
+          "days": 360,
+          "periods": 12,
+          "final_balance": 1443,
+          "loss": 3557,
+          "percent_remaining": 28.860000000000003,
+          "percent_lost": 71.14,
+          "hours_lost": 1778.5,
+          "meals_lost": 3557
+        },
+        {
+          "time_label": "24 months",
+          "days": 720,
+          "periods": 24,
+          "final_balance": 418,
+          "loss": 4582,
+          "percent_remaining": 8.36,
+          "percent_lost": 91.64,
+          "hours_lost": 2291.0,
+          "meals_lost": 4582
+        }
+      ]
+    }
+  }
+}
