@@ -1,0 +1,38 @@
+{
+  "test_name": "KCHNG Demurrage Time Capsule Test - 7-Day Period",
+  "contract_id": "CAZNVOPPOMRYC5SUN2O4U4T4B4YWTGBMCP7PN2R4XPZQYWAQ6NRNBX6Z",
+  "network": "testnet",
+  "setup_timestamp": 1770702479,
+  "setup_date": "2026-02-10T06:47:59+01:00",
+  "verify_after_date": "2026-02-17T06:47:59+01:00",
+  "min_verification_days": 7,
+  "demurrage_period_days": 7,
+  "test_description": "Verify demurrage applies correctly with 7-day period (2.3% per week)",
+  "accounts": [
+    {
+      "name": "time_capsule_account",
+      "identity": "timecapsule_7day_1770702479",
+      "public_key": "GBO4ATWDTSJXRS33VKAYURMFA6TBLGY6VIQYLNVKPU7TKQFJIIX2ZUQP",
+      "initial_balance": 10000,
+      "last_activity": 1770702484,
+      "description": "Time capsule test account with transferred tokens",
+      "note": "Should show ~2.3% loss (230 KCHNG) after 7 days if demurrage works"
+    }
+  ],
+  "expected_results": {
+    "if_demurrage_fixed": {
+      "description": "Demurrage applies correctly - 2.3% per week",
+      "expected_balance_after_7_days": 9770,
+      "expected_loss_after_7_days": 230,
+      "note": "230 KCHNG = 2.3% of 10,000 KCHNG"
+    },
+    "if_demurrage_broken": {
+      "description": "Integer division bug still present",
+      "expected_balance_after_7_days": 10000,
+      "expected_loss_after_7_days": 0,
+      "note": "This would mean the fix did not work"
+    }
+  },
+  "verification_command": "bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule_7day.sh",
+  "verification_status": "PENDING"
+}
