@@ -18,7 +18,7 @@ const SECONDS_PER_HOUR: u64 = 3_600;
 
 // Demurrage (Wörgl model: 1% monthly = ~12.7% annual)
 const DEFAULT_ANNUAL_RATE_BPS: u32 = 1200; // 12% in basis points (100 = 1%)
-const DEFAULT_PERIOD_DAYS: u64 = 7; // Weekly demurrage (testing - faster than 30 days)
+const DEFAULT_PERIOD_DAYS: u64 = 28; // 4-week demurrage period
 
 // Protocol constraints
 const MIN_ANNUAL_RATE_BPS: u32 = 500; // 5% minimum
@@ -84,7 +84,7 @@ impl WorkType {
 }
 
 /// Type of grace period
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 #[contracttype]
 pub enum GraceType {
     Emergency = 0,     // Emergency pause (14-90 days, oracle-activated)
