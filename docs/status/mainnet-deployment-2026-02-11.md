@@ -119,15 +119,27 @@ mainnet: {
 
 ---
 
+## Contract Parameters (Mainnet)
+
+| Parameter | Mainnet Value | Description |
+|-----------|---------------|-------------|
+| `DEFAULT_PERIOD_DAYS` | **28** | 4-week demurrage period (Wörgl model) |
+| `DEFAULT_ANNUAL_RATE_BPS` | 1200 | 12% annual demurrage rate |
+| Base burn per period | 2 KCHNG | Per account inactive for full period |
+
 ## Contract Features Deployed
 
 The KCHNG contract includes the following features:
-- ✅ Native demurrage (2 KCHNG per 7 days of inactivity)
+- ✅ Native demurrage (2 KCHNG per **28 days** of inactivity)
 - ✅ Trust registration for custom demurrage rates
 - ✅ Multi-trust support with cross-trust swaps
 - ✅ Grace periods for economic hardship
 - ✅ Governance voting system
 - ✅ Reputation scoring
+
+### Important: Mainnet vs Testnet Demurrage Period
+
+The mainnet contract uses the original **28-day** demurrage period, not the 7-day period used for faster testing on testnet. This aligns with the Wörgl model's 4-week cycle.
 
 ---
 
