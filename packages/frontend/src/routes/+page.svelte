@@ -1,13 +1,35 @@
 <script lang="ts">
   import { calculateBalanceWithDemurrage } from "@kchng/shared";
+  import { onMount } from "svelte";
+  import { NETWORKS } from "@kchng/shared";
+
+  let mainnetContractId = "";
+  let isLive = false;
+
+  onMount(() => {
+    mainnetContractId = NETWORKS.mainnet.contractId;
+    isLive = !!mainnetContractId;
+  });
 </script>
 
 <div class="hero">
+  <div class="live-badge">
+    {#if isLive}
+      <span class="live-indicator"></span>
+      <span class="live-text">LIVE ON STELLAR MAINNET</span>
+    {/if}
+  </div>
   <h1>KCHNG</h1>
   <p class="tagline">A Community Currency with Demurrage</p>
   <p class="description">
     Built on Stellar - where 1000 KCHNG = 30 minutes work = 1 community meal
   </p>
+  {#if isLive}
+    <p class="contract-id">
+      <small>Contract:</small><br>
+      <code>{mainnetContractId.slice(0, 20)}...{mainnetContractId.slice(-4)}</code>
+    </p>
+  {/if}
 </div>
 
 <div class="info">
@@ -20,12 +42,30 @@
 </div>
 
 <div class="info">
+  <h2>Labor-Backed Currency</h2>
+  <p>
+    KCHNG is a labor-backed currency where <strong>new tokens are minted when work is verified</strong>.
+    Unlike traditional currencies that can be printed at will, KCHNG enters circulation through:
+  </p>
+  <ul>
+    <li>Workers submit claims for hours worked</li>
+    <li>Community verifiers approve valid work</li>
+    <li>New KCHNG is minted directly to the worker's account</li>
+  </ul>
+  <p>
+    <small>Economic model: 30 minutes of work = 1000 KCHNG = 1 community meal</small>
+  </p>
+</div>
+
+<div class="info">
   <h2>Key Features</h2>
   <ul>
-    <li>Native on-chain demurrage via Soroban smart contracts</li>
-    <li>Transparent and trustless</li>
-    <li>Extensible for app-specific demurrage rules</li>
-    <li>Community-focused local currency</li>
+    <li><strong>Labor-backed</strong> - New tokens minted only through verified work</li>
+    <li><strong>Native on-chain demurrage</strong> - Via Soroban smart contracts</li>
+    <li><strong>Community verification</strong> - Peers validate work claims</li>
+    <li><strong>Grace periods</strong> - Economic hardship protection</li>
+    <li><strong>Transparent and trustless</strong> - All on Stellar blockchain</li>
+    <li><strong>Multi-trust support</strong> - Different communities can set their own rules</li>
   </ul>
 </div>
 
@@ -62,6 +102,38 @@
     padding: 3rem 0;
   }
 
+  .live-badge {
+    margin-bottom: 1rem;
+  }
+
+  .live-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    margin-right: 0.5rem;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.2);
+    }
+  }
+
+  .live-text {
+    color: #10b981;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+  }
+
   .hero h1 {
     font-size: 4rem;
     font-weight: 800;
@@ -81,6 +153,29 @@
   .description {
     font-size: 1.1rem;
     color: #888;
+  }
+
+  .contract-id {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: #f0fdf4;
+    border: 1px solid #10b981;
+    border-radius: 8px;
+    display: inline-block;
+  }
+
+  .contract-id small {
+    color: #6b7280;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .contract-id code {
+    color: #10b981;
+    font-size: 0.875rem;
+    font-family: monospace;
+    background: transparent;
   }
 
   .info {

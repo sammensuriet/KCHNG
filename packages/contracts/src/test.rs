@@ -2055,6 +2055,164 @@ fn test_role_score_prevent_self_scoring() {
     client.update_role_score(&verifier, &role_key, &30, &verifier);
 }
 
+// ==========================================================================
+// LABOR-BACKED CURRENCY TESTS
+// ==========================================================================
+// These tests verify that new tokens are minted when work is approved,
+// confirming the labor-backed economic model works as intended.
+
+#[test]
+fn test_work_claim_mints_new_tokens() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let worker = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let verifier2 = Address::generate(&env);
+
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Get initial total supply
+    let initial_total_supply = client.total_supply();
+
+    // Setup: register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
+
+    // Worker joins trust (creates account)
+    client.join_trust(&worker, &governor);
+
+    // Verifiers join trust and register
+    client.join_trust(&verifier, &governor);
+    client.join_trust(&verifier2, &governor);
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+    client.register_verifier(&verifier2, &governor);
+
+    // Get initial worker balance (should be 0 since they just joined)
+    let initial_worker_balance = client.balance(&worker);
+
+    // Worker submits a work claim for 30 minutes
+    // According to the economic model: 30 minutes = 1000 KCHNG = 1 meal
+    let evidence_hash = Bytes::from_slice(&env, b"evidence123");
+    let claim_id = client.submit_work_claim(
+        &worker,
+        &WorkType::BasicCare,
+        &30u64,
+        &evidence_hash,
+        &None::<i64>,
+        &None::<i64>,
+    );
+
+    // Both verifiers approve the claim (simple majority)
+    client.approve_work_claim(&verifier, &claim_id);
+    client.approve_work_claim(&verifier2, &claim_id);
+
+    // Check final total supply - should have increased
+    let final_total_supply = client.total_supply();
+
+    // Check worker balance - should have 1000 KCHNG
+    let final_worker_balance = client.balance(&worker);
+
+    // Verify new tokens were minted (supply increased)
+    assert!(final_total_supply > initial_total_supply,
+        "Supply should increase after work approval");
+
+    // Verify the worker received the minted tokens
+    assert!(final_worker_balance > initial_worker_balance,
+        "Worker balance should increase after work approval");
+
+    // The key point: NEW TOKENS WERE MINTED, not transferred from existing supply
+    // This confirms the labor-backed currency model works
+}
+
+#[test]
+fn test_multiple_work_claims_increase_supply() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let worker = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let verifier2 = Address::generate(&env);
+
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup: register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
+
+    // Worker joins trust
+    client.join_trust(&worker, &governor);
+
+    // Verifiers join trust and register
+    client.join_trust(&verifier, &governor);
+    client.join_trust(&verifier2, &governor);
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+    client.register_verifier(&verifier2, &governor);
+
+    let supply_after_init = client.total_supply();
+
+    // First work claim: 30 minutes
+    let evidence_hash = Bytes::from_slice(&env, b"evidence1");
+    let claim1 = client.submit_work_claim(
+        &worker,
+        &WorkType::BasicCare,
+        &30u64,
+        &evidence_hash,
+        &None::<i64>,
+        &None::<i64>,
+    );
+    client.approve_work_claim(&verifier, &claim1);
+    client.approve_work_claim(&verifier2, &claim1);
+
+    let supply_after_claim1 = client.total_supply();
+
+    // Second work claim: 60 minutes
+    let evidence_hash2 = Bytes::from_slice(&env, b"evidence2");
+    let claim2 = client.submit_work_claim(
+        &worker,
+        &WorkType::BasicCare,
+        &60u64,
+        &evidence_hash2,
+        &None::<i64>,
+        &None::<i64>,
+    );
+    client.approve_work_claim(&verifier, &claim2);
+    client.approve_work_claim(&verifier2, &claim2);
+
+    let final_supply = client.total_supply();
+
+    // Verify supply increases with each work claim
+    assert!(supply_after_claim1 > supply_after_init,
+        "Supply should increase after first work claim");
+    assert!(final_supply > supply_after_claim1,
+        "Supply should increase after second work claim");
+
+    // Worker's final balance should be higher than what they had after first claim
+    let worker_balance = client.balance(&worker);
+    assert!(worker_balance > U256::from_u32(&env, 0),
+        "Worker should have earned tokens from both claims");
+}
+
 #[test]
 #[should_panic(expected = "Verifier not found")]
 fn test_role_score_verifier_not_found() {
