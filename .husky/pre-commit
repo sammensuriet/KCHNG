@@ -1,9 +1,4 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
 
-. "$(dirname -- "$0")/node_modules/run-node/run-node"
-npx husky exec
-
-if [ "$ Husky" = "" ]; then
-  pnpm run test:contracts
-fi
+# Run contract checks before committing
+cd packages/contracts && cargo clippy -- -W clippy::all --allow=clippy::bool_comparison

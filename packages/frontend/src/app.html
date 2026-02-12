@@ -4,20 +4,17 @@
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="KCHNG - A labor-backed community currency with demurrage on Stellar. 30 minutes work = 1000 KCHNG = 1 meal. Now live on mainnet." />
+    <meta name="keywords" content="KCHNG, community currency, demurrage, Stellar, Soroban, labor-backed, local currency" />
+    <meta property="og:title" content="KCHNG - A Community Currency with Demurrage" />
+    <meta property="og:description" content="Labor-backed currency on Stellar where new tokens are minted through verified work. Now live on mainnet!" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kachi.ng" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>KCHNG - Labor-Backed Community Currency | Live on Stellar Mainnet</title>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">
     <div style="display: contents">%sveltekit.body%</div>
-    <script>
-      // Temporarily disable service worker to test wallet extension injection
-      // Service workers can interfere with extension content scripts
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-          }
-        });
-      }
-    </script>
   </body>
 </html>
