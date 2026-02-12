@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+. "$(dirname -- "$0")/node_modules/run-node/run-node"
+npx husky exec
+
+if [ "$ Husky" = "" ]; then
+  pnpm run test:contracts
+fi

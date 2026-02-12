@@ -12,6 +12,10 @@ use core::cmp::min;
 const MINUTES_PER_KCHNG: u64 = 30;
 const MIN_WORK_MINUTES: u64 = 15;
 
+// Transfer protections (anti-gaming: Part 1)
+const MIN_TRANSFER_AMOUNT: u64 = 10; // 10 KCHNG (~1/3 meal)
+const TRANSFER_COOLDOWN_SECONDS: u64 = 86_400; // 24 hours
+
 // Time
 const SECONDS_PER_DAY: u64 = 86_400;
 const SECONDS_PER_HOUR: u64 = 3_600;
@@ -24,6 +28,9 @@ const DEFAULT_PERIOD_DAYS: u64 = 7; // Weekly demurrage (testing - faster than 3
 const MIN_ANNUAL_RATE_BPS: u32 = 500; // 5% minimum
 const MAX_ANNUAL_RATE_BPS: u32 = 1500; // 15% maximum
 
+// Supply cap (anti-gaming: Part 6)
+const MAX_SUPPLY: u128 = 1_000_000_000_000_000_000_000; // 1 quintillion
+
 // Verification
 const MIN_VERIFIERS: u32 = 2;
 const MAX_VERIFIERS: u32 = 5;
@@ -31,7 +38,8 @@ const VERIFIER_STAKE: u64 = 100_000; // 100,000 KCHNG
 
 // Grace Periods
 const MAX_GRACE_PERIODS_PER_YEAR: u32 = 3;
-const MIN_CONTRIBUTION_HOURS: u64 = 30;
+const MIN_CONTRIBUTION_HOURS: u64 = 100; // Increased from 30 to 100 (anti-gaming: Part 5.2)
+const GRACE_COOLDOWN_DAYS: u64 = 90; // 90 days between grace periods (anti-gaming: Part 5.3)
 
 // Governance
 const PROPOSAL_STAKE: u64 = 100 * 10_000_000_000_000_000; // 100 KCHNG
@@ -57,6 +65,8 @@ const KEY_GRACE_PERIODS: u32 = 500;
 const KEY_PROPOSALS: u32 = 600;
 const KEY_ORACLES: u32 = 700;
 const KEY_VERIFIER_ASSIGNMENTS: u32 = 800;
+const KEY_GOVERNOR_TRUSTS: u32 = 201; // Governor-to-trust mapping (anti-gaming: Part 2)
+const KEY_LAST_GRACE_TIMES: u32 = 501; // Last grace period activation times (anti-gaming: Part 5.3)
 
 // ============================================================================
 // ENUMS
@@ -336,6 +346,20 @@ impl KchngToken {
     pub fn transfer(env: Env, from: Address, to: Address, amount: U256) {
         from.require_auth();
 
+        // Prevent self-transfers (anti-gaming: Part 1.1)
+        if from == to {
+            panic!("Cannot transfer to self");
+        }
+
+        // Enforce minimum transfer amount (anti-gaming: Part 1.2)
+        let amount_u128 = match amount.to_u128() {
+            Some(v) => v,
+            None => panic!("Amount conversion failed"),
+        };
+        if amount_u128 < MIN_TRANSFER_AMOUNT as u128 {
+            panic!("Transfer amount below minimum (10 KCHNG)");
+        }
+
         let accounts: Map<Address, AccountData> =
             env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
 
@@ -343,6 +367,16 @@ impl KchngToken {
             Some(data) => data,
             None => panic!("Insufficient balance"),
         };
+
+        // Enforce transfer cooldown (anti-gaming: Part 1.3)
+        let current_time = env.ledger().timestamp();
+        let time_since_last_activity = current_time.saturating_sub(from_data.last_activity);
+        if time_since_last_activity < TRANSFER_COOLDOWN_SECONDS {
+            panic!(
+                "Transfer cooldown active. Wait {} seconds.",
+                TRANSFER_COOLDOWN_SECONDS - time_since_last_activity
+            );
+        }
 
         let balance_after_demurrage =
             Self::calculate_balance_with_demurrage(&env, from.clone(), &from_data);
@@ -410,9 +444,19 @@ impl KchngToken {
 
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
 
-        // Update total supply
+        // Update total supply with cap check (anti-gaming: Part 6)
         let mut total_supply: U256 = env.storage().instance().get(&KEY_TOTAL_SUPPLY).unwrap();
-        total_supply = total_supply.add(&amount);
+        let new_total = total_supply.add(&amount);
+
+        let new_total_u128 = match new_total.to_u128() {
+            Some(v) => v,
+            None => panic!("Supply conversion failed"),
+        };
+        if new_total_u128 > MAX_SUPPLY {
+            panic!("Maximum supply reached");
+        }
+
+        total_supply = new_total;
         env.storage().instance().set(&KEY_TOTAL_SUPPLY, &total_supply);
     }
 
@@ -473,6 +517,17 @@ impl KchngToken {
         // Use governor address as the trust ID for simplicity
         let trust_id = governor.clone();
 
+        // Check if governor already has a trust (anti-gaming: Part 2.1)
+        let governor_trusts: Map<Address, Address> = env
+            .storage()
+            .persistent()
+            .get(&KEY_GOVERNOR_TRUSTS)
+            .unwrap_or(Map::new(&env));
+
+        if governor_trusts.contains_key(governor.clone()) {
+            panic!("Governor can only register one trust");
+        }
+
         // Check if trust already exists
         let trusts: Map<Address, TrustData> = env
             .storage()
@@ -501,8 +556,17 @@ impl KchngToken {
             .persistent()
             .get(&KEY_TRUSTS)
             .unwrap_or(Map::new(&env));
-        trusts.set(trust_id, trust);
+        trusts.set(trust_id.clone(), trust);
         env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+
+        // Record governor-to-trust mapping (anti-gaming: Part 2.1)
+        let mut governor_trusts: Map<Address, Address> = env
+            .storage()
+            .persistent()
+            .get(&KEY_GOVERNOR_TRUSTS)
+            .unwrap_or(Map::new(&env));
+        governor_trusts.set(governor.clone(), trust_id);
+        env.storage().persistent().set(&KEY_GOVERNOR_TRUSTS, &governor_trusts);
 
         // Update governor's account to be part of this trust
         let mut accounts: Map<Address, AccountData> =
@@ -573,6 +637,40 @@ impl KchngToken {
         trusts.set(trust_id, updated_trust);
 
         // Save changes
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+        env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+    }
+
+    /// Leave current trust (anti-gaming: Part 2.2 - allows escaping bad governors)
+    pub fn leave_trust(env: Env, member: Address) {
+        member.require_auth();
+
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let account_data = match accounts.get(member.clone()) {
+            Some(data) => data,
+            None => panic!("Account not found"),
+        };
+
+        if account_data.trust_id.is_none() {
+            panic!("Not a member of any trust");
+        }
+
+        let trust_id = account_data.trust_id.clone().unwrap();
+
+        // Update trust member count
+        let mut trusts: Map<Address, TrustData> =
+            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+        let mut trust = trusts.get(trust_id.clone()).unwrap();
+        trust.member_count -= 1;
+        trusts.set(trust_id.clone(), trust);
+
+        // Remove trust membership from account
+        let mut updated_member = account_data;
+        updated_member.trust_id = None;
+        accounts.set(member.clone(), updated_member);
+
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
         env.storage().persistent().set(&KEY_TRUSTS, &trusts);
     }
@@ -667,9 +765,20 @@ impl KchngToken {
 
         let last_activity: u64 = data.last_activity;
 
+        // Timestamp validation (anti-gaming: Part 8) - prevent future timestamps
+        if last_activity > current_timestamp {
+            // Clock skew or malicious timestamp - return balance without demurrage
+            return data.balance.clone();
+        }
+
         if current_timestamp <= last_activity {
             return data.balance.clone();
         }
+
+        // Cap demurrage calculation at 1 year to prevent overflow (anti-gaming: Part 8)
+        const MAX_DEMURRAGE_DAYS: u64 = 365;
+        let inactive_seconds = current_timestamp.saturating_sub(last_activity).min(MAX_DEMURRAGE_DAYS * SECONDS_PER_DAY);
+        let _inactive_days = inactive_seconds / SECONDS_PER_DAY; // Prefix with underscore to avoid unused warning
 
         // Get trust-specific demurrage parameters
         let (annual_rate_bps, period_days) = match &data.trust_id {
@@ -692,8 +801,8 @@ impl KchngToken {
             }
         };
 
-        let inactive_seconds = current_timestamp - last_activity;
-        let inactive_days = inactive_seconds / SECONDS_PER_DAY;
+        // Use capped inactive_seconds for period calculation
+        let inactive_days = _inactive_days;
 
         // Calculate how many complete demurrage periods have passed
         if inactive_days < period_days {
@@ -1199,8 +1308,8 @@ impl KchngToken {
             None => panic!("Account not found"),
         };
 
-        // Minimum stake for oracles
-        let oracle_stake = U256::from_u128(&env, 500_000); // 500,000 KCHNG
+        // Minimum stake for oracles (anti-gaming: Part 5.1 - increased to 5M)
+        let oracle_stake = U256::from_u128(&env, 5_000_000); // 5,000,000 KCHNG (increased from 500K)
 
         // Simple balance check (without demurrage for oracle registration)
         if oracle_account.balance < oracle_stake {
@@ -1249,6 +1358,19 @@ impl KchngToken {
             Some(data) => data,
             None => panic!("Account not found"),
         };
+
+        // Check grace period cooldown (anti-gaming: Part 5.3)
+        let current_time = env.ledger().timestamp();
+        let last_grace_times: Map<Address, u64> = env.storage().persistent()
+            .get(&KEY_LAST_GRACE_TIMES)
+            .unwrap_or(Map::new(&env));
+
+        if let Some(last_time) = last_grace_times.get(account.clone()) {
+            let days_since_grace = (current_time - last_time) / SECONDS_PER_DAY;
+            if days_since_grace < GRACE_COOLDOWN_DAYS {
+                panic!("Must wait 90 days between grace periods");
+            }
+        }
 
         // Check anti-abuse: max 3 grace periods per year, requires 30+ contribution hours
         let current_year = env.ledger().timestamp() / (365 * SECONDS_PER_DAY);
@@ -1306,6 +1428,13 @@ impl KchngToken {
 
         accounts.set(account.clone(), updated_account);
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+
+        // Store last grace time for cooldown (anti-gaming: Part 5.3)
+        let mut last_grace_times: Map<Address, u64> = env.storage().persistent()
+            .get(&KEY_LAST_GRACE_TIMES)
+            .unwrap_or(Map::new(&env));
+        last_grace_times.set(account.clone(), current_time);
+        env.storage().persistent().set(&KEY_LAST_GRACE_TIMES, &last_grace_times);
 
         // Update oracle stats
         let mut oracles: Map<Address, OracleData> =
@@ -1701,12 +1830,17 @@ impl KchngToken {
                             _ => 60,
                         };
 
-                        let approval_percentage = (proposal.votes_for * 100) / total_votes;
-
-                        if approval_percentage >= approval_threshold {
-                            proposal.status = ProposalStatus::Approved;
+                        // Fix division by zero: check if total_votes is zero
+                        if total_votes == 0 {
+                            proposal.status = ProposalStatus::Expired;
                         } else {
-                            proposal.status = ProposalStatus::Rejected;
+                            let approval_percentage = (proposal.votes_for * 100) / total_votes;
+
+                            if approval_percentage >= approval_threshold {
+                                proposal.status = ProposalStatus::Approved;
+                            } else {
+                                proposal.status = ProposalStatus::Rejected;
+                            }
                         }
                     }
 

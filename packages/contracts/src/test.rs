@@ -1066,3 +1066,468 @@ fn test_role_score_verifier_not_found() {
     let role_key = Bytes::from_slice(&env, b"dining:guest");
     client.update_role_score(&verifier, &role_key, &30, &scorer);
 }
+
+// ============================================================================
+// ANTI-GAMING PROTECTION TESTS
+// ============================================================================
+
+#[test]
+#[should_panic(expected = "Cannot transfer to self")]
+fn test_cannot_transfer_to_self() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Try to transfer to self - should panic
+    client.transfer(&admin, &admin, &U256::from_u32(&env, 100));
+}
+
+#[test]
+#[should_panic(expected = "Transfer amount below minimum")]
+fn test_transfer_below_minimum() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Try to transfer 5 KCHNG (below minimum of 10) - should panic
+    client.transfer(&admin, &user, &U256::from_u32(&env, 5));
+}
+
+#[test]
+fn test_transfer_minimum_amount() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Transfer exactly minimum amount (10 KCHNG) - should succeed
+    client.transfer(&admin, &user, &U256::from_u32(&env, 10));
+    assert_eq!(client.balance(&user), U256::from_u32(&env, 10));
+}
+
+#[test]
+fn test_transfer_cooldown() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // First transfer - should succeed
+    client.transfer(&admin, &user, &U256::from_u32(&env, 100));
+    assert_eq!(client.balance(&user), U256::from_u32(&env, 100));
+
+    // Second transfer immediately - should fail due to 24h cooldown
+    let result = std::panic::catch_unwind_unwind(|| {
+        client.transfer(&admin, &user, &U256::from_u32(&env, 10));
+    });
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_transfer_cooldown_after_24_hours() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // First transfer
+    client.transfer(&admin, &user, &U256::from_u32(&env, 100));
+
+    // Jump 24 hours forward
+    use soroban_sdk::testutils::LedgerInfo;
+    let current_info = env.ledger().get();
+    env.ledger().set(LedgerInfo {
+        sequence_number: current_info.sequence_number + 1,
+        timestamp: current_info.timestamp + (24 * 60 * 60),
+        protocol_version: current_info.protocol_version,
+        base_reserve: current_info.base_reserve,
+        min_persistent_entry_ttl: current_info.min_persistent_entry_ttl,
+        min_temp_entry_ttl: current_info.min_temp_entry_ttl,
+        max_entry_ttl: current_info.max_entry_ttl,
+        network_id: current_info.network_id,
+    });
+
+    // Second transfer after 24h - should succeed
+    client.transfer(&admin, &user, &U256::from_u32(&env, 10));
+    assert_eq!(client.balance(&user), U256::from_u32(&env, 110));
+}
+
+#[test]
+#[should_panic(expected = "Governor can only register one trust")]
+fn test_governor_cannot_create_multiple_trusts() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let governor = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&governor, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Register first trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "First Trust"),
+        &1200u32,
+        &30u64,
+    );
+
+    // Try to register second trust - should panic
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Second Trust"),
+        &1200u32,
+        &30u64,
+    );
+}
+
+#[test]
+fn test_leave_trust() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let member = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
+
+    // Member joins trust
+    client.join_trust(&member, &governor);
+
+    // Verify membership
+    let account = client.get_account(&member);
+    assert_eq!(account.trust_id, Some(governor.clone()));
+
+    // Verify trust member count is 2 (governor + member)
+    let trust_info = client.get_trust_info(&governor);
+    assert_eq!(trust_info.member_count, 2);
+
+    // Leave trust
+    client.leave_trust(&member);
+
+    // Verify trust_id is cleared
+    let account_after = client.get_account(&member);
+    assert_eq!(account_after.trust_id, None);
+
+    // Verify trust member count is 1 (only governor)
+    let trust_info_after = client.get_trust_info(&governor);
+    assert_eq!(trust_info_after.member_count, 1);
+}
+
+#[test]
+#[should_panic(expected = "Not a member of any trust")]
+fn test_leave_trust_not_in_trust() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Try to leave trust when not in one - should panic
+    client.leave_trust(&user);
+}
+
+#[test]
+#[should_panic(expected = "Maximum supply reached")]
+fn test_mint_capped_at_max_supply() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    // Initial supply at max cap
+    let initial_supply = U256::from_u128(&env, 1_000_000_000_000_000_000_u128);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Try to mint more tokens - should panic due to max supply cap
+    client.mint(&admin, &user, &U256::from_u32(&env, 1_000_000));
+}
+
+#[test]
+fn test_mint_below_max_supply() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    // Initial supply below max cap
+    let initial_supply = U256::from_u128(&env, 1_000_000);
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Should be able to mint tokens (still below max cap)
+    client.mint(&admin, &user, &U256::from_u32(&env, 1_000_000));
+    assert_eq!(client.balance(&user), U256::from_u32(&env, 1_000_000));
+}
+
+#[test]
+#[should_panic(expected = "Insufficient balance to register as oracle")]
+fn test_oracle_stake_increased_to_5m() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let oracle = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Give oracle only 1M KCHNG (below new 5M requirement)
+    client.transfer(&admin, &oracle, &U256::from_u32(&env, 1_000_000));
+
+    // Try to register oracle - should fail due to insufficient stake
+    client.register_oracle(&oracle);
+}
+
+#[test]
+fn test_oracle_registration_with_sufficient_stake() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let oracle = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Give oracle 5M KCHNG (meets new requirement)
+    client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_000_000));
+
+    // Should succeed with sufficient stake
+    client.register_oracle(&oracle);
+
+    // Verify oracle is registered
+    let oracle_data = client.get_oracle(&oracle);
+    assert_eq!(oracle_data.oracle_address, oracle);
+}
+
+#[test]
+#[should_panic(expected = "Must have at least 100 contribution hours")]
+fn test_grace_period_contribution_increased_to_100() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let oracle = Address::generate(&env);
+    let worker = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let verifier2 = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup
+    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_000_000));
+    client.register_oracle(&oracle);
+    client.join_trust(&worker, &governor);
+    client.join_trust(&verifier, &governor);
+    client.join_trust(&verifier2, &governor);
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+    client.register_verifier(&verifier2, &governor);
+
+    // Worker earns 99 hours (below new 100 hour threshold)
+    for i in 0..99 {
+        let mut evidence_array = [0u8; 32];
+        evidence_array[0] = i as u8;
+        let evidence_hash = Bytes::from_array(&env, &evidence_array);
+        let claim_id = client.submit_work_claim(
+            &worker,
+            &WorkType::BasicCare,
+            &60u64,
+            &evidence_hash,
+            &None::<i64>,
+            &None::<i64>,
+        );
+        client.approve_work_claim(&verifier, &claim_id);
+        client.approve_work_claim(&verifier2, &claim_id);
+    }
+
+    // Try to activate grace period with only 99 hours - should fail
+    client.activate_grace_period(
+        &oracle,
+        &worker,
+        &GraceType::Emergency,
+        &14u64,
+    );
+}
+
+#[test]
+fn test_grace_period_cooldown() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let oracle = Address::generate(&env);
+    let worker = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let verifier2 = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup trust, oracle, verifiers
+    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_000_000));
+    client.register_oracle(&oracle);
+    client.join_trust(&worker, &governor);
+    client.join_trust(&verifier, &governor);
+    client.join_trust(&verifier2, &governor);
+    client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
+    client.register_verifier(&verifier, &governor);
+    client.register_verifier(&verifier2, &governor);
+
+    // Worker earns 100+ hours (qualifies for grace)
+    for i in 0..101 {
+        let mut evidence_array = [0u8; 32];
+        evidence_array[0] = i as u8;
+        let evidence_hash = Bytes::from_array(&env, &evidence_array);
+        let claim_id = client.submit_work_claim(
+            &worker,
+            &WorkType::BasicCare,
+            &60u64,
+            &evidence_hash,
+            &None::<i64>,
+            &None::<i64>,
+        );
+        client.approve_work_claim(&verifier, &claim_id);
+        client.approve_work_claim(&verifier2, &claim_id);
+    }
+
+    // First grace period - should succeed
+    client.activate_grace_period(
+        &oracle,
+        &worker,
+        &GraceType::Emergency,
+        &14u64,
+    );
+
+    // Jump 30 days forward (less than 90 day cooldown)
+    use soroban_sdk::testutils::LedgerInfo;
+    let current_info = env.ledger().get();
+    env.ledger().set(LedgerInfo {
+        sequence_number: current_info.sequence_number + 1,
+        timestamp: current_info.timestamp + (30 * 24 * 60 * 60),
+        protocol_version: current_info.protocol_version,
+        base_reserve: current_info.base_reserve,
+        min_persistent_entry_ttl: current_info.min_persistent_entry_ttl,
+        min_temp_entry_ttl: current_info.min_temp_entry_ttl,
+        max_entry_ttl: current_info.max_entry_ttl,
+        network_id: current_info.network_id,
+    });
+
+    // Second grace period - should fail due to cooldown
+    let result = std::panic::catch_unwind_unwind(|| {
+        client.activate_grace_period(
+            &oracle,
+            &worker,
+            &GraceType::Illness,
+            &30u64,
+        );
+    });
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_governance_no_division_by_zero() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 1_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
+
+    // Create proposal
+    let proposal_id = client.create_proposal(
+        &governor,
+        &ProposalType::RateChange,
+        &String::from_str(&env, "Test"),
+        &String::from_str(&env, "Test"),
+        &Some(governor.clone()),
+        &Some(1100u32),
+    );
+
+    // Jump to voting period
+    use soroban_sdk::testutils::LedgerInfo;
+    let current_info = env.ledger().get();
+    env.ledger().set(LedgerInfo {
+        sequence_number: current_info.sequence_number + 1,
+        timestamp: current_info.timestamp + (8 * 24 * 60 * 60),
+        protocol_version: current_info.protocol_version,
+        base_reserve: current_info.base_reserve,
+        min_persistent_entry_ttl: current_info.min_persistent_entry_ttl,
+        min_temp_entry_ttl: current_info.min_temp_entry_ttl,
+        max_entry_ttl: current_info.max_entry_ttl,
+        network_id: current_info.network_id,
+    });
+
+    // Move to voting period
+    client.process_proposal(&proposal_id);
+
+    // Jump past voting period without any votes
+    env.ledger().set(LedgerInfo {
+        sequence_number: current_info.sequence_number + 2,
+        timestamp: current_info.timestamp + (12 * 24 * 60 * 60),
+        protocol_version: current_info.protocol_version,
+        base_reserve: current_info.base_reserve,
+        min_persistent_entry_ttl: current_info.min_persistent_entry_ttl,
+        min_temp_entry_ttl: current_info.min_temp_entry_ttl,
+        max_entry_ttl: current_info.max_entry_ttl,
+        network_id: current_info.network_id,
+    });
+
+    // Process proposal with no votes - should not panic due to division by zero fix
+    // Instead, proposal should be marked as Expired
+    client.process_proposal(&proposal_id);
+    let proposal = client.get_proposal(&proposal_id);
+    assert_eq!(proposal.status, ProposalStatus::Expired);
+}

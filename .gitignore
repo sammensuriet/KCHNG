@@ -42,3 +42,4 @@ pnpm-debug.log*
 # Testing
 coverage/
 .nyc_output/
+.cargo/

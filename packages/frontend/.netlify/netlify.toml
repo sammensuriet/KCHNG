@@ -1,0 +1,67 @@
+headersOrigin = "config"
+redirectsOrigin = "config"
+plugins = []
+
+[functions]
+
+[functions."*"]
+
+[build]
+publish = "/home/pokho/dev/KCHNG/packages/frontend/build"
+publishOrigin = "config"
+commandOrigin = "config"
+base = "/home/pokho/dev/KCHNG/packages/frontend"
+command = "pnpm build"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
+
+[[headers]]
+for = "/*"
+
+[headers.values]
+X-Frame-Options = "SAMEORIGIN"
+X-Content-Type-Options = "nosniff"
+X-XSS-Protection = "1; mode=block"
+Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+for = "/_app/immutable/*"
+
+[headers.values]
+Cache-Control = "public, immutable, max-age=31536000"
+
+[[headers]]
+for = "/*.js"
+
+[headers.values]
+Content-Type = "application/javascript; charset=utf-8"
+
+[[headers]]
+for = "/*.css"
+
+[headers.values]
+Content-Type = "text/css; charset=utf-8"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
