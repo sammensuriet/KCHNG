@@ -9,11 +9,11 @@ use core::cmp::min;
 // ============================================================================
 
 // Time Standard
-const MINUTES_PER_KCHNG: u64 = 30;
+const KCHNG_PER_30MINUTES: u64 = 1000; // 1000 KCHNG per 30 minutes of work (base rate)
 const MIN_WORK_MINUTES: u64 = 15;
 
 // Transfer protections (anti-gaming: Part 1)
-const MIN_TRANSFER_AMOUNT: u64 = 10; // 10 KCHNG (~1/3 meal)
+const MIN_TRANSFER_AMOUNT: u64 = 100; // 100 KCHNG (~1/10 of 1 meal @ 30min/1000KCHNG)
 const TRANSFER_COOLDOWN_SECONDS: u64 = 86_400; // 24 hours
 
 // Time
@@ -775,9 +775,8 @@ impl KchngToken {
             return data.balance.clone();
         }
 
-        // Cap demurrage calculation at 1 year to prevent overflow (anti-gaming: Part 8)
-        const MAX_DEMURRAGE_DAYS: u64 = 365;
-        let inactive_seconds = current_timestamp.saturating_sub(last_activity).min(MAX_DEMURRAGE_DAYS * SECONDS_PER_DAY);
+        // Calculate full inactive period without cap - allows balance to reach zero over long-term inactivity
+        let inactive_seconds = current_timestamp.saturating_sub(last_activity);
         let _inactive_days = inactive_seconds / SECONDS_PER_DAY; // Prefix with underscore to avoid unused warning
 
         // Get trust-specific demurrage parameters
@@ -1066,7 +1065,7 @@ impl KchngToken {
 
         // Calculate multiplier and tokens to mint
         let multiplier = work_type.multiplier();
-        let base_kchng = minutes_worked / MINUTES_PER_KCHNG; // 30 min = 1 KCHNG
+        let base_kchng = minutes_worked * KCHNG_PER_30MINUTES / MIN_WORK_MINUTES; // 1000 KCHNG per 30 minutes
         let _kchng_to_mint = (base_kchng * multiplier as u64) / 100;
 
         // Create work claim
@@ -1162,7 +1161,7 @@ impl KchngToken {
 
         if claim.approvals_received >= required {
             // Mint tokens to worker
-            let base_kchng = claim.minutes_worked / MINUTES_PER_KCHNG;
+            let base_kchng = claim.minutes_worked * KCHNG_PER_30MINUTES / MIN_WORK_MINUTES; // 1000 KCHNG per 30 minutes
             let kchng_to_mint = (base_kchng * claim.multiplier as u64) / 100;
             let amount = U256::from_u128(&env, kchng_to_mint as u128);
 

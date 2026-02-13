@@ -141,6 +141,15 @@ The KCHNG contract includes the following features:
 
 The mainnet contract uses the original **28-day** demurrage period, not the 7-day period used for faster testing on testnet. This aligns with the Wörgl model's 4-week cycle.
 
+### Admin Account Demurrage Note
+
+The admin account holding the initial 100 quintillion KCHNG supply is **not exempt** from demurrage. The contract has no cap on demurrage—balances will decay toward zero over long-term inactivity. If left completely idle:
+- ~0.92% decay per 28-day period (~12% annual)
+- ~894 trillion KCHNG lost per year to demurrage
+- After ~8 years idle: balance reaches ~0% (fully burned to supply)
+
+To prevent this loss, admin simply needs to perform **one transaction every 28 days** (any contract interaction resets the `last_activity` timestamp). This is by design—demurrage currencies incentivize circulation and discourage hoarding.
+
 ---
 
 ## Cost Summary
