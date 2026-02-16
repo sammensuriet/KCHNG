@@ -1065,7 +1065,7 @@ impl KchngToken {
 
         // Calculate multiplier and tokens to mint
         let multiplier = work_type.multiplier();
-        let base_kchng = minutes_worked * KCHNG_PER_30MINUTES / MIN_WORK_MINUTES; // 1000 KCHNG per 30 minutes
+        let base_kchng = minutes_worked * KCHNG_PER_30MINUTES / 30; // 1000 KCHNG per 30 minutes
         let _kchng_to_mint = (base_kchng * multiplier as u64) / 100;
 
         // Create work claim
@@ -1161,7 +1161,7 @@ impl KchngToken {
 
         if claim.approvals_received >= required {
             // Mint tokens to worker
-            let base_kchng = claim.minutes_worked * KCHNG_PER_30MINUTES / MIN_WORK_MINUTES; // 1000 KCHNG per 30 minutes
+            let base_kchng = claim.minutes_worked * KCHNG_PER_30MINUTES / 30; // 1000 KCHNG per 30 minutes
             let kchng_to_mint = (base_kchng * claim.multiplier as u64) / 100;
             let amount = U256::from_u128(&env, kchng_to_mint as u128);
 
