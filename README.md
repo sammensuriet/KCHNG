@@ -6,9 +6,19 @@ A Stellar blockchain token for kachi.ng - a community currency with native on-ch
 
 KCHNG is a community currency built on Stellar with Soroban smart contracts, implementing the **Wörgl demurrage model** to incentivize circulation.
 
-**Core Economic Equation**: `30 minutes verified work = 1 KCHNG = 1 community meal`
+**Core Economic Equation**: `30 minutes verified work = 1000 KCHNG = 1 community meal`
 
 Time (verified work) is the fundamental unit - not speculation. The demurrage system ensures tokens circulate by decaying inactive balances.
+
+### Merchant Ecosystem
+
+KCHNG is designed for community-focused meal providers:
+- Community cafés in cooperative spaces
+- Worker cooperatives
+- Social enterprises prioritizing community impact
+- Restaurants in eco-villages or intentional communities
+
+**External subsidies** bridge the gap between KCHNG and real-world costs (rent, utilities), allowing merchants to accept KCHNG at face value. See the [Merchant Onboarding Guide](docs/MERCHANT_ONBOARDING.md) for details.
 
 ### Key Features
 
@@ -116,10 +126,15 @@ pnpm dev
 | **Public Methods** | 39 |
 | **Unit Tests** | 15/15 passing |
 
-### Mainnet ❌ Not Deployed
+### Mainnet ✅ Deployed
+
+| Property | Value |
+|----------|-------|
+| **Contract ID** | `CDMKVYIU6KAATZXLLFT6KTJCKXCWP3HPYNMA3HMEUUWYVCM5DJVZ5AQS` |
+| **Explorer** | [stellar.expert](https://stellar.expert/explorer/public/contract/CDMKVYIU6KAATZXLLFT6KTJCKXCWP3HPYNMA3HMEUUWYVCM5DJVZ5AQS) |
+| **Deployed** | 2026-02-11 |
 
 Pending items:
-- Security audit
 - Frontend completion
 - Testing of advanced features (grace periods, governance, swaps)
 
@@ -171,6 +186,7 @@ Pending items:
 | Document | Description |
 |----------|-------------|
 | [PRD](docs/PRD.md) | Product Requirements Document |
+| [Merchant Onboarding](docs/MERCHANT_ONBOARDING.md) | Guide for cafés and meal providers |
 | [Third-Party Integration Guide](docs/THIRD_PARTY_INTEGRATION.md) | Build apps on KCHNG |
 | [DEPLOYMENT_REPORT](docs/DEPLOYMENT_REPORT.md) | Testnet deployment details |
 | [time-standard-token-design](docs/time-standard-token-design.md) | Economic model deep-dive |
