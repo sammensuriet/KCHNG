@@ -1,6 +1,7 @@
 #![no_std]
 use soroban_sdk::{
     contract, contractimpl, contracttype, Address, Env, Map, U256, Vec, String, Bytes,
+    symbol_short,
 };
 use core::cmp::min;
 
@@ -18,7 +19,6 @@ const TRANSFER_COOLDOWN_SECONDS: u64 = 86_400; // 24 hours
 
 // Time
 const SECONDS_PER_DAY: u64 = 86_400;
-const SECONDS_PER_HOUR: u64 = 3_600;
 
 // Demurrage (Wörgl model: 1% monthly = ~12.7% annual)
 const DEFAULT_ANNUAL_RATE_BPS: u32 = 1200; // 12% in basis points (100 = 1%)
@@ -33,7 +33,6 @@ const MAX_SUPPLY: u128 = 1_000_000_000_000_000_000_000; // 1 quintillion
 
 // Verification
 const MIN_VERIFIERS: u32 = 2;
-const MAX_VERIFIERS: u32 = 5;
 const VERIFIER_STAKE: u64 = 100_000; // 100,000 KCHNG
 
 // Grace Periods
@@ -238,6 +237,7 @@ pub struct Proposal {
     pub trust_id: Option<Address>,     // None for protocol-level
     pub new_rate_bps: Option<u32>,     // For rate change proposals
     pub target_address: Option<Address>, // For removal/probation proposals
+    pub stake: u64,                    // Staked amount (returned after resolution)
     pub created_at: u64,
     pub review_end: u64,
     pub vote_end: u64,
@@ -256,13 +256,6 @@ pub struct OracleData {
     pub stake: U256,
     pub reputation_score: u32,
     pub grace_periods_granted: u32,
-}
-
-/// Legacy app demurrage entry (for backward compatibility)
-#[contracttype]
-pub struct AppDemurrageEntry {
-    pub app_id: Address,
-    pub additional_rate: u64,
 }
 
 /// Reputation event for tracking history
@@ -484,6 +477,12 @@ impl KchngToken {
         accounts.set(to.clone(), updated_to);
 
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+
+        // Emit transfer event for PWA integration
+        env.events().publish(
+            (symbol_short!("transfer"), from.clone()),
+            (to.clone(), amount.clone()),
+        );
     }
 
     /// Mint new tokens (admin only)
@@ -534,26 +533,6 @@ impl KchngToken {
     /// Get the total supply
     pub fn total_supply(env: Env) -> U256 {
         env.storage().instance().get(&KEY_TOTAL_SUPPLY).unwrap()
-    }
-
-    /// Register an app for additional demurrage logic
-    pub fn register_app(env: Env, admin: Address, app_id: Address, additional_rate: u64) {
-        let stored_admin: Address = env.storage().instance().get(&KEY_ADMIN).unwrap();
-        admin.require_auth();
-        if admin != stored_admin {
-            panic!("Not authorized");
-        }
-
-        let mut apps: Map<Address, AppDemurrageEntry> =
-            env.storage().persistent().get(&U256::from_u32(&env, 4)).unwrap();
-
-        let entry = AppDemurrageEntry {
-            app_id: app_id.clone(),
-            additional_rate,
-        };
-        apps.set(app_id, entry);
-
-        env.storage().persistent().set(&U256::from_u32(&env, 4), &apps);
     }
 
     // ============================================================================
@@ -674,7 +653,13 @@ impl KchngToken {
 
         // Initialize governor reputation (starts at 500 = neutral)
         // This creates the reputation entry if it doesn't exist
-        let _ = Self::get_reputation_data(env, governor, RoleType::Governor);
+        let _ = Self::get_reputation_data(env.clone(), governor.clone(), RoleType::Governor);
+
+        // Emit trust registered event for PWA integration
+        env.events().publish(
+            (symbol_short!("trust_new"), governor.clone()),
+            (name, annual_rate_bps, demurrage_period_days),
+        );
     }
 
     /// Join an existing trust
@@ -747,6 +732,12 @@ impl KchngToken {
             5,
             REP_EVENT_MEMBER_JOIN,
         );
+
+        // Emit member joined event for PWA integration
+        env.events().publish(
+            (symbol_short!("member_jn"), member.clone()),
+            trust_id.clone(),
+        );
     }
 
     /// Leave current trust (anti-gaming: Part 2.2 - allows escaping bad governors)
@@ -804,6 +795,12 @@ impl KchngToken {
                 REP_EVENT_MEMBER_LEAVE,
             );
         }
+
+        // Emit member left event for PWA integration
+        env.events().publish(
+            (symbol_short!("member_lv"), member.clone()),
+            trust_id.clone(),
+        );
     }
 
     /// Get information about a specific trust
@@ -1102,9 +1099,15 @@ impl KchngToken {
         // Get verifier reputation
         let reputation = Self::get_reputation(env.clone(), verifier.clone(), RoleType::Verifier);
 
-        // Calculate stake to return
-        let stake_to_return = if reputation < REP_RESTRICTED {
-            // Slash 10% for low reputation
+        // Calculate stake to return based on reputation
+        let stake_to_return = if reputation < REMOVAL_THRESHOLD {
+            // Severe penalty: Slash 20% for auto-removal threshold (< 100)
+            let slash_bps: u32 = VERIFIER_SLASH_BPS * 2; // 20%
+            let slash_amount = verifier_data.stake.mul(&U256::from_u32(&env, slash_bps))
+                .div(&U256::from_u32(&env, 10000));
+            verifier_data.stake.sub(&slash_amount)
+        } else if reputation < REP_RESTRICTED {
+            // Slash 10% for probation threshold (< 200)
             let slash_amount = verifier_data.stake.mul(&U256::from_u32(&env, VERIFIER_SLASH_BPS))
                 .div(&U256::from_u32(&env, 10000));
             verifier_data.stake.sub(&slash_amount)
@@ -1137,7 +1140,8 @@ impl KchngToken {
     }
 
     /// Unregister as an oracle and return stake
-    /// If reputation is below 200, 25% of stake is slashed
+    /// If reputation is below 100 (removal threshold), 50% of stake is slashed
+    /// If reputation is below 200 (restricted), 25% of stake is slashed
     pub fn unregister_oracle(env: Env, oracle: Address) {
         oracle.require_auth();
 
@@ -1152,9 +1156,15 @@ impl KchngToken {
         // Get oracle reputation
         let reputation = Self::get_reputation(env.clone(), oracle.clone(), RoleType::Oracle);
 
-        // Calculate stake to return
-        let stake_to_return = if reputation < REP_RESTRICTED {
-            // Slash 25% for low reputation
+        // Calculate stake to return based on reputation
+        let stake_to_return = if reputation < REMOVAL_THRESHOLD {
+            // Severe penalty: Slash 50% for auto-removal threshold (< 100)
+            let slash_bps: u32 = ORACLE_SLASH_BPS * 2; // 50%
+            let slash_amount = oracle_data.stake.mul(&U256::from_u32(&env, slash_bps))
+                .div(&U256::from_u32(&env, 10000));
+            oracle_data.stake.sub(&slash_amount)
+        } else if reputation < REP_RESTRICTED {
+            // Slash 25% for probation threshold (< 200)
             let slash_amount = oracle_data.stake.mul(&U256::from_u32(&env, ORACLE_SLASH_BPS))
                 .div(&U256::from_u32(&env, 10000));
             oracle_data.stake.sub(&slash_amount)
@@ -1320,7 +1330,7 @@ impl KchngToken {
         let claim = WorkClaim {
             claim_id,
             worker: worker.clone(),
-            work_type,
+            work_type: work_type.clone(),
             minutes_worked,
             evidence_hash,
             gps_lat,
@@ -1348,6 +1358,12 @@ impl KchngToken {
         // Increment claim ID counter
         claim_id_u256 = U256::from_u128(&env, (claim_id + 1) as u128);
         env.storage().instance().set(&KEY_NEXT_CLAIM_ID, &claim_id_u256);
+
+        // Emit work claim submitted event for PWA integration
+        env.events().publish(
+            (symbol_short!("claim_sub"), worker.clone()),
+            (claim_id, work_type.clone() as u32, minutes_worked),
+        );
 
         claim_id
     }
@@ -1454,8 +1470,15 @@ impl KchngToken {
 
             // Mark claim as approved
             claim.status = ClaimStatus::Approved;
+            let worker_addr = claim.worker.clone();
             claims.set(claim_id, claim);
             env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
+
+            // Emit work claim approved event for PWA integration
+            env.events().publish(
+                (symbol_short!("claim_app"), worker_addr),
+                (claim_id, amount.clone()),
+            );
 
             // Now check for verifiers who rejected - they get a bad judgment penalty
             // This implements the TF2T "bad judgment" tracking
@@ -1551,8 +1574,15 @@ impl KchngToken {
 
             // Mark claim as rejected
             claim.status = ClaimStatus::Rejected;
+            let worker_addr = claim.worker.clone();
             claims.set(claim_id, claim);
             env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
+
+            // Emit work claim rejected event for PWA integration
+            env.events().publish(
+                (symbol_short!("claim_rej"), worker_addr),
+                claim_id,
+            );
         }
     }
 
@@ -1723,6 +1753,7 @@ impl KchngToken {
 
         let current_time = env.ledger().timestamp();
         let end_time = current_time + (duration_days * SECONDS_PER_DAY);
+        let grace_type_code = grace_type.clone() as u32;
 
         // Create grace period
         let grace_period = GracePeriod {
@@ -1777,6 +1808,12 @@ impl KchngToken {
             &RoleType::Oracle,
             5,
             REP_EVENT_GRACE_GRANTED,
+        );
+
+        // Emit grace period activated event for PWA integration
+        env.events().publish(
+            (symbol_short!("grace_on"), account.clone()),
+            (grace_type_code, duration_days, end_time),
         );
     }
 
@@ -1977,6 +2014,25 @@ impl KchngToken {
     ) -> u64 {
         proposer.require_auth();
 
+        // Require proposal stake (spam prevention)
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let mut proposer_account = match accounts.get(proposer.clone()) {
+            Some(data) => data,
+            None => panic!("Proposer account not found"),
+        };
+
+        let stake_amount = U256::from_u128(&env, PROPOSAL_STAKE as u128);
+        if proposer_account.balance < stake_amount {
+            panic!("Insufficient balance for proposal stake (100 KCHNG required)");
+        }
+
+        // Deduct stake from proposer's balance
+        proposer_account.balance = proposer_account.balance.sub(&stake_amount);
+        accounts.set(proposer.clone(), proposer_account);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+
         // Validate proposer authority
         match proposal_type.clone() {
             ProposalType::RateChange | ProposalType::TrustParameters => {
@@ -2094,6 +2150,7 @@ impl KchngToken {
         let mut proposals: Map<u64, Proposal> =
             env.storage().persistent().get(&KEY_PROPOSALS).unwrap_or(Map::new(&env));
         let proposal_id: u64 = proposals.len().into();
+        let proposal_type_code = proposal_type.clone() as u32;
 
         // Create proposal
         let proposal = Proposal {
@@ -2105,6 +2162,7 @@ impl KchngToken {
             trust_id,
             new_rate_bps,
             target_address,
+            stake: PROPOSAL_STAKE,
             created_at: current_timestamp,
             review_end,
             vote_end,
@@ -2117,6 +2175,12 @@ impl KchngToken {
 
         proposals.set(proposal_id, proposal);
         env.storage().persistent().set(&KEY_PROPOSALS, &proposals);
+
+        // Emit proposal created event for PWA integration
+        env.events().publish(
+            (symbol_short!("prop_new"), proposer.clone()),
+            (proposal_id, proposal_type_code),
+        );
 
         proposal_id
     }
@@ -2177,11 +2241,26 @@ impl KchngToken {
             proposal.votes_against += 1;
         }
 
-        // Add to voters list
-        proposal.voters.push_back(voter);
+        // Add to voters list (clone so we can use voter for reputation update)
+        proposal.voters.push_back(voter.clone());
 
         proposals.set(proposal_id, proposal);
         env.storage().persistent().set(&KEY_PROPOSALS, &proposals);
+
+        // Emit vote cast event for PWA integration
+        env.events().publish(
+            (symbol_short!("vote"), voter.clone()),
+            (proposal_id, support),
+        );
+
+        // Update member reputation for voting participation (+2)
+        Self::update_reputation(
+            &env,
+            &voter,
+            &RoleType::Member,
+            2,
+            REP_EVENT_VOTE_PARTICIPATE,
+        );
     }
 
     /// Process a proposal and update its status
@@ -2234,6 +2313,16 @@ impl KchngToken {
 
                     if !quorum_met {
                         proposal.status = ProposalStatus::Expired;
+                        // Penalty for proposer when quorum not met (-3)
+                        Self::update_reputation(
+                            &env,
+                            &proposal.proposer,
+                            &RoleType::Governor,
+                            -3,
+                            REP_EVENT_PROPOSAL_FAIL,
+                        );
+                        // Return stake to proposer
+                        Self::return_proposal_stake(&env, &proposal.proposer, proposal.stake);
                     } else {
                         // Check approval (60% support required, or 80% for emergency, 60% for removals)
                         let approval_threshold = match proposal.proposal_type {
@@ -2253,9 +2342,19 @@ impl KchngToken {
 
                             if approval_percentage >= approval_threshold {
                                 proposal.status = ProposalStatus::Approved;
+                                // Reward for proposer when proposal passes (+5)
+                                Self::update_reputation(
+                                    &env,
+                                    &proposal.proposer,
+                                    &RoleType::Governor,
+                                    5,
+                                    REP_EVENT_PROPOSAL_PASS,
+                                );
                             } else {
                                 proposal.status = ProposalStatus::Rejected;
                             }
+                            // Return stake to proposer (for both approved and rejected)
+                            Self::return_proposal_stake(&env, &proposal.proposer, proposal.stake);
                         }
                     }
 
@@ -2567,6 +2666,17 @@ impl KchngToken {
         // Store updated reputation
         Self::save_reputation_data(env, address, &data);
 
+        // Emit reputation changed event for PWA integration
+        env.events().publish(
+            (symbol_short!("rep_chg"), address.clone()),
+            (role.clone() as u32, change, new_score),
+        );
+
+        // Check and enforce removal threshold if score dropped
+        if new_score < REMOVAL_THRESHOLD {
+            Self::enforce_removal_threshold(env, address, role);
+        }
+
         new_score
     }
 
@@ -2599,6 +2709,59 @@ impl KchngToken {
             }
 
             Self::save_reputation_data(env, address, &data);
+        }
+    }
+
+    /// Check and enforce removal threshold (< 100 reputation)
+    /// Returns true if the role was auto-removed
+    fn enforce_removal_threshold(
+        env: &Env,
+        address: &Address,
+        role: &RoleType,
+    ) -> bool {
+        let data = Self::get_reputation_data_internal(env, address, role);
+
+        if data.score >= REMOVAL_THRESHOLD {
+            return false;
+        }
+
+        match role {
+            RoleType::Governor => {
+                // Auto-disable trust when governor reputation < 100
+                let governor_trusts: Map<Address, Address> =
+                    env.storage().persistent().get(&KEY_GOVERNOR_TRUSTS)
+                        .unwrap_or(Map::new(env));
+
+                if let Some(trust_id) = governor_trusts.get(address.clone()) {
+                    let mut trusts: Map<Address, TrustData> =
+                        env.storage().persistent().get(&KEY_TRUSTS).unwrap_or(Map::new(env));
+
+                    if let Some(mut trust) = trusts.get(trust_id.clone()) {
+                        trust.is_active = false;
+                        trusts.set(trust_id, trust);
+                        env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+                    }
+                }
+                true
+            }
+            RoleType::Verifier => {
+                // Auto-unregister verifier with double slash (handled in unregister_verifier)
+                // Just mark for removal - actual removal requires calling unregister_verifier
+                false // Don't auto-remove, require explicit unregister for stake handling
+            }
+            RoleType::Oracle => {
+                // Auto-unregister oracle with double slash (handled in unregister_oracle)
+                false // Don't auto-remove, require explicit unregister for stake handling
+            }
+            RoleType::Worker => {
+                // Worker with < 100 reputation cannot submit claims
+                // This is enforced in submit_work_claim via is_on_probation check
+                true
+            }
+            RoleType::Member => {
+                // Members can't be removed, just have low reputation
+                false
+            }
         }
     }
 
@@ -2664,6 +2827,19 @@ impl KchngToken {
         reputations.set(address.clone(), role_map);
 
         env.storage().persistent().set(&KEY_REPUTATIONS, &reputations);
+    }
+
+    /// Return proposal stake to proposer
+    fn return_proposal_stake(env: &Env, proposer: &Address, stake: u64) {
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        if let Some(mut account) = accounts.get(proposer.clone()) {
+            account.balance = account.balance.add(&U256::from_u128(env, stake as u128));
+            account.last_activity = env.ledger().timestamp();
+            accounts.set(proposer.clone(), account);
+            env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+        }
     }
 
     /// Get reputation score for a role (public)
