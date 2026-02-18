@@ -132,7 +132,7 @@ fn test_register_trust() {
         &governor,
         &String::from_str(&env, "Urban Elder Care"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Verify trust was created
@@ -140,7 +140,7 @@ fn test_register_trust() {
     assert_eq!(trust_info.name, String::from_str(&env, "Urban Elder Care"));
     assert_eq!(trust_info.governor, governor);
     assert_eq!(trust_info.annual_rate_bps, 1200);
-    assert_eq!(trust_info.demurrage_period_days, 30);
+    assert_eq!(trust_info.demurrage_period_days, 28);
     assert!(trust_info.is_active);
 }
 

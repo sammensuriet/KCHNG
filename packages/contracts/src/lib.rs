@@ -544,7 +544,7 @@ impl KchngToken {
     /// - governor: Address that will govern this trust
     /// - name: Human-readable name for the trust
     /// - annual_rate_bps: Annual demurrage rate in basis points (500-1500 = 5-15%)
-    /// - demurrage_period_days: How often to apply demurrage (default: 30 days)
+    /// - demurrage_period_days: How often to apply demurrage (default: 28 days)
     pub fn register_trust(
         env: Env,
         governor: Address,

@@ -575,7 +575,7 @@ export class KchngClient {
       name: "",
       governor: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
       annual_rate_bps: 1200,
-      demurrage_period_days: 30,
+      demurrage_period_days: 28,
       member_count: 0,
       is_active: false,
       created_at: 0,
