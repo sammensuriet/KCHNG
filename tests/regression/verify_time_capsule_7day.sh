@@ -70,8 +70,11 @@ echo "  Days elapsed: $ELAPSED_DAYS"
 echo ""
 
 # Calculate expected values
-EXPECTED_BURN=230
-EXPECTED_BALANCE=9770
+# For 7-day period at 12% annual:
+# period_rate_bps = 1200 * 10000 * 7 / 365 / 10000 = 23 bps = 0.23%
+# Burn per 10000 KCHNG = 10000 * 23 / 10000 = 23 KCHNG
+EXPECTED_BURN=23
+EXPECTED_BALANCE=9977
 
 echo "╔══════════════════════════════════════════════════════════════════════╗"
 echo "║                          RESULTS                                    ║"
@@ -83,7 +86,7 @@ LOSS=$((INITIAL_BALANCE - CURRENT_BALANCE))
 
 echo "Expected (if working):"
 echo "  Balance after $ELAPSED_DAYS days: ~$EXPECTED_BALANCE KCHNG"
-echo "  KCHNG burned: ~$EXPECTED_BURN (2.3%)"
+echo "  KCHNG burned: ~$EXPECTED_BURN (0.23% per week = ~12% annual)"
 echo ""
 
 echo "Actual Results:"
@@ -107,13 +110,13 @@ else
         echo "Balance unchanged after $ELAPSED_DAYS days."
         echo ""
         echo "CRITICAL: The fix did not work - investigate further!"
-    elif [ $CURRENT_BALANCE -ge $((EXPECTED_BALANCE - 50)) ] && [ $CURRENT_BALANCE -le $((EXPECTED_BALANCE + 50)) ]; then
+    elif [ $CURRENT_BALANCE -ge $((EXPECTED_BALANCE - 5)) ] && [ $CURRENT_BALANCE -le $((EXPECTED_BALANCE + 5)) ]; then
         echo "✅ RESULT: DEMURRAGE APPLIED CORRECTLY (FIX WORKS!)"
         echo ""
         echo "Balance decreased from $INITIAL_BALANCE to $CURRENT_BALANCE"
         echo "KCHNG burned: $LOSS"
         echo ""
-        echo "The integer division bug fix is WORKING on-chain!"
+        echo "Rate verification: 0.23% per 7-day period = ~12% annual"
         echo ""
         echo "Demurrage is functioning as designed."
     else
