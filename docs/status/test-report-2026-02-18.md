@@ -96,12 +96,28 @@ Actual burn = 23 KCHNG ✅
 ## 3. Transfer Verification Tests
 
 **Date**: 2026-02-18
-**Account**: `GBO4ATWDTSJXRS33VKAYURMFA6TBLGY6VIQYLNVKPU7TKQFJIIX2ZUQP`
+**Test Account (TC7DAY)**: `GBO4ATWDTSJXRS33VKAYURMFA6TBLGY6VIQYLNVKPU7TKQFJIIX2ZUQP`
+
+### Flow
+
+```
+Feb 10: ADMIN → 10,000 KCHNG → TC7DAY (initial funding)
+           ↓
+Feb 10-18: TC7DAY inactive (8 days)
+           ↓
+Demurrage: 23 KCHNG burned (0.23% per 7-day period)
+           ↓
+Feb 18: TC7DAY balance = 9,977 KCHNG
+           ↓
+Transfer Tests: TC7DAY → ADMIN
+```
+
+### Transfer Attempts (TC7DAY → ADMIN)
 
 | Attempt | Amount | Result | Reason |
 |---------|--------|--------|--------|
-| Test 1 | 10,000 KCHNG | ❌ Rejected | Exceeds balance (demurrage applied) |
-| Test 2 | 9,978 KCHNG | ❌ Rejected | 1 KCHNG over actual balance |
+| Test 1 | 10,000 KCHNG | ❌ Rejected | Exceeds balance (10,000 > 9,977) |
+| Test 2 | 9,978 KCHNG | ❌ Rejected | 1 KCHNG over actual balance (9,978 > 9,977) |
 | Test 3 | 9,977 KCHNG | ✅ Success | Exact balance after demurrage |
 
 **Result**: ✅ **TRANSFER PROTECTIONS WORKING**
@@ -110,6 +126,7 @@ This confirms:
 1. Balance query returns correct post-demurrage value
 2. Transfer enforces balance limits strictly
 3. Demurrage is applied before transfer validation
+4. Final transfer of 9,977 KCHNG moved remaining balance to ADMIN
 
 ---
 

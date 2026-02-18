@@ -67,18 +67,22 @@
 ### Time Capsule Test #2 (7-day period)
 - **Setup**: 2026-02-10 06:48:04
 - **Contract**: `CAZNVOPPOMRYC5SUN2O4U4T4B4YWTGBMCP7PN2R4XPZQYWAQ6NRNBX6Z`
-- **Initial Balance**: 10,000 KCHNG
+- **Initial Transfer**: ADMIN → 10,000 KCHNG → TC7DAY
 - **Verification**: 2026-02-18 09:38:05
-- **Final Balance**: 9,977 KCHNG
-- **Demurrage Applied**: 23 KCHNG (0.23%)
+- **Demurrage Applied**: 23 KCHNG burned (0.23% after 8 days)
+- **Pre-Transfer Balance**: 9,977 KCHNG
+- **Final Transfer**: TC7DAY → 9,977 KCHNG → ADMIN (after verification tests)
 - **Status**: ✅ Verified - Demurrage working correctly
 
 ### Transfer Verification Test (2026-02-18)
-| Attempt | Amount | Result |
-|---------|--------|--------|
-| Test 1 | 10,000 KCHNG | ❌ Rejected (exceeds balance) |
-| Test 2 | 9,978 KCHNG | ❌ Rejected (1 over balance) |
-| Test 3 | 9,977 KCHNG | ✅ Success (exact balance) |
+
+**Flow**: TC7DAY attempted transfers back to ADMIN to verify actual spendable balance.
+
+| Attempt | Amount | Result | Reason |
+|---------|--------|--------|--------|
+| Test 1 | 10,000 KCHNG | ❌ Rejected | Exceeds balance (10,000 > 9,977) |
+| Test 2 | 9,978 KCHNG | ❌ Rejected | 1 over balance (9,978 > 9,977) |
+| Test 3 | 9,977 KCHNG | ✅ Success | Exact balance match |
 
 ---
 
