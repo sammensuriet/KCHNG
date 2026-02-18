@@ -43,6 +43,9 @@ pnpm-debug.log*
 coverage/
 .nyc_output/
 
+# Soroban test snapshots
+test_snapshots/
+
 # Local Netlify folder
 .netlify
 

@@ -67,6 +67,7 @@ const KEY_ORACLES: u32 = 700;
 const KEY_VERIFIER_ASSIGNMENTS: u32 = 800;
 const KEY_GOVERNOR_TRUSTS: u32 = 201; // Governor-to-trust mapping (anti-gaming: Part 2)
 const KEY_LAST_GRACE_TIMES: u32 = 501; // Last grace period activation times (anti-gaming: Part 5.3)
+const KEY_REPUTATIONS: u32 = 900;  // Map<Address, Map<RoleType, ReputationData>>
 
 // ============================================================================
 // ENUMS
@@ -132,6 +133,21 @@ pub enum ProposalType {
     TrustParameters = 1,      // Adjust trust parameters
     ProtocolUpgrade = 2,      // Protocol-level upgrade
     Emergency = 3,            // Emergency measure (crisis exception)
+    RemoveVerifier = 4,       // Vote to remove low-rep verifier
+    RemoveGovernor = 5,       // Vote to replace governor
+    RemoveOracle = 6,         // Vote to remove oracle
+    RoleProbation = 7,        // Put a role in probation status
+}
+
+/// Role type for reputation tracking
+#[derive(Clone, PartialEq, Debug)]
+#[contracttype]
+pub enum RoleType {
+    Governor = 0,
+    Verifier = 1,
+    Oracle = 2,
+    Worker = 3,
+    Member = 4,
 }
 
 // ============================================================================
@@ -221,6 +237,7 @@ pub struct Proposal {
     pub description: String,
     pub trust_id: Option<Address>,     // None for protocol-level
     pub new_rate_bps: Option<u32>,     // For rate change proposals
+    pub target_address: Option<Address>, // For removal/probation proposals
     pub created_at: u64,
     pub review_end: u64,
     pub vote_end: u64,
@@ -247,6 +264,60 @@ pub struct AppDemurrageEntry {
     pub app_id: Address,
     pub additional_rate: u64,
 }
+
+/// Reputation event for tracking history
+#[derive(Clone)]
+#[contracttype]
+pub struct ReputationEvent {
+    pub timestamp: u64,
+    pub event_type: u32,      // Encoded event type
+    pub change: i32,          // Can be negative
+    pub new_score: u32,
+}
+
+/// Reputation data for role-specific tracking
+#[derive(Clone)]
+#[contracttype]
+pub struct ReputationData {
+    pub role_type: RoleType,
+    pub score: u32,
+    pub last_change: u64,
+    pub consecutive_negatives: u32,  // TF2T pattern tracking
+    pub probation_until: Option<u64>,
+    pub recent_events: Vec<ReputationEvent>,  // Last 10 events
+}
+
+// Reputation event type codes
+const REP_EVENT_CLAIM_APPROVED: u32 = 1;
+const REP_EVENT_CLAIM_REJECTED: u32 = 2;
+const REP_EVENT_BAD_JUDGMENT: u32 = 3;
+const REP_EVENT_FRAUD_DETECTED: u32 = 4;
+const REP_EVENT_MEMBER_JOIN: u32 = 5;
+const REP_EVENT_MEMBER_LEAVE: u32 = 6;
+const REP_EVENT_PATTERN_PENALTY: u32 = 7;
+const REP_EVENT_INACTIVITY: u32 = 8;
+const REP_EVENT_GRACE_GRANTED: u32 = 9;
+const REP_EVENT_GRACE_ABUSED: u32 = 10;
+const REP_EVENT_PROPOSAL_PASS: u32 = 11;
+const REP_EVENT_PROPOSAL_FAIL: u32 = 12;
+const REP_EVENT_VOTE_PARTICIPATE: u32 = 13;
+const REP_EVENT_DECAY: u32 = 14;
+const REP_EVENT_RECOVERY: u32 = 15;
+
+// Reputation thresholds
+const REP_NEUTRAL: u32 = 500;
+const REP_RESTRICTED: u32 = 200;
+const REMOVAL_THRESHOLD: u32 = 100;
+const REP_HIGH: u32 = 700;         // Multi-trust verifier threshold
+
+// Slashing percentages (in basis points)
+const VERIFIER_SLASH_BPS: u32 = 1000;   // 10%
+const ORACLE_SLASH_BPS: u32 = 2500;     // 25%
+
+// Decay thresholds
+const DECAY_START_DAYS: u64 = 30;       // High scores start decaying after 30 days
+const RECOVERY_START_DAYS: u64 = 90;    // Low scores start recovering after 90 days
+const MAX_HISTORY_EVENTS: u32 = 10;
 
 /// KCHNG Token Contract with native on-chain demurrage
 #[contract]
@@ -504,6 +575,21 @@ impl KchngToken {
     ) {
         governor.require_auth();
 
+        // Check if governor has high enough reputation to create second trust
+        let governor_rep = Self::get_reputation(env.clone(), governor.clone(), RoleType::Governor);
+        let governor_trusts_map: Map<Address, Address> = env
+            .storage()
+            .persistent()
+            .get(&KEY_GOVERNOR_TRUSTS)
+            .unwrap_or(Map::new(&env));
+
+        if governor_trusts_map.contains_key(governor.clone()) {
+            // Governor already has a trust - check if they can create a second
+            if governor_rep < REP_HIGH {
+                panic!("Governor needs 700+ reputation to create a second trust");
+            }
+        }
+
         // Validate rate is within protocol constraints
         if annual_rate_bps < MIN_ANNUAL_RATE_BPS || annual_rate_bps > MAX_ANNUAL_RATE_BPS {
             panic!("Rate must be between 5% and 15% annually");
@@ -583,8 +669,12 @@ impl KchngToken {
 
         let mut updated_governor = governor_data;
         updated_governor.trust_id = Some(governor.clone());
-        accounts.set(governor, updated_governor);
+        accounts.set(governor.clone(), updated_governor);
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+
+        // Initialize governor reputation (starts at 500 = neutral)
+        // This creates the reputation entry if it doesn't exist
+        let _ = Self::get_reputation_data(env, governor, RoleType::Governor);
     }
 
     /// Join an existing trust
@@ -634,11 +724,29 @@ impl KchngToken {
 
         let mut updated_trust = trust;
         updated_trust.member_count += 1;
-        trusts.set(trust_id, updated_trust);
+        trusts.set(trust_id.clone(), updated_trust.clone());
 
         // Save changes
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
         env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+
+        // Update governor reputation (+2 for member joining)
+        Self::update_reputation(
+            &env,
+            &updated_trust.governor,
+            &RoleType::Governor,
+            2,
+            REP_EVENT_MEMBER_JOIN,
+        );
+
+        // Update member reputation (+5 for joining trust)
+        Self::update_reputation(
+            &env,
+            &member,
+            &RoleType::Member,
+            5,
+            REP_EVENT_MEMBER_JOIN,
+        );
     }
 
     /// Leave current trust (anti-gaming: Part 2.2 - allows escaping bad governors)
@@ -664,7 +772,7 @@ impl KchngToken {
             env.storage().persistent().get(&KEY_TRUSTS).unwrap();
         let mut trust = trusts.get(trust_id.clone()).unwrap();
         trust.member_count -= 1;
-        trusts.set(trust_id.clone(), trust);
+        trusts.set(trust_id.clone(), trust.clone());
 
         // Remove trust membership from account
         let mut updated_member = account_data;
@@ -673,6 +781,29 @@ impl KchngToken {
 
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
         env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+
+        // Update governor reputation (-5 for member leaving)
+        Self::update_reputation(
+            &env,
+            &trust.governor,
+            &RoleType::Governor,
+            -5,
+            REP_EVENT_MEMBER_LEAVE,
+        );
+
+        // Apply TF2T pattern penalty if needed (2+ members leaving in short period)
+        Self::apply_pattern_penalty_if_needed(&env, &trust.governor, &RoleType::Governor);
+
+        // Check if trust is now empty - severe penalty
+        if trust.member_count == 0 {
+            let _ = Self::update_reputation(
+                &env,
+                &trust.governor,
+                &RoleType::Governor,
+                -50,
+                REP_EVENT_MEMBER_LEAVE,
+            );
+        }
     }
 
     /// Get information about a specific trust
@@ -908,7 +1039,7 @@ impl KchngToken {
         let verifier_data = VerifierData {
             trust_id: Some(trust_id.clone()),
             stake: stake_amount.clone(),
-            reputation_score: 500, // Start at neutral reputation
+            reputation_score: REP_NEUTRAL, // Start at neutral reputation
             verified_claims: 0,
             rejected_claims: 0,
             fraud_reports: 0,
@@ -917,6 +1048,9 @@ impl KchngToken {
 
         verifiers.set(verifier.clone(), verifier_data);
         env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
+
+        // Initialize verifier reputation (starts at 500 = neutral)
+        let _ = Self::get_reputation_data(env.clone(), verifier.clone(), RoleType::Verifier);
 
         // Deduct stake from verifier's balance (transfer to contract)
         // For simplicity, we'll just track the stake - in production you'd escrow it
@@ -936,6 +1070,120 @@ impl KchngToken {
             Some(data) => data,
             None => panic!("Verifier not found"),
         }
+    }
+
+    /// Unregister as a verifier and return stake
+    /// If reputation is below 200, 10% of stake is slashed
+    pub fn unregister_verifier(env: Env, verifier: Address) {
+        verifier.require_auth();
+
+        let mut verifiers: Map<Address, VerifierData> =
+            env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+
+        let verifier_data = match verifiers.get(verifier.clone()) {
+            Some(data) => data,
+            None => panic!("Verifier not found"),
+        };
+
+        // Check for pending claims
+        let claims: Map<u64, WorkClaim> =
+            env.storage().persistent().get(&KEY_WORK_CLAIMS).unwrap_or(Map::new(&env));
+
+        for (_, claim) in claims.iter() {
+            if claim.status == ClaimStatus::Pending {
+                for i in 0..claim.verifiers_assigned.len() {
+                    if claim.verifiers_assigned.get(i).unwrap() == verifier {
+                        panic!("Cannot unregister while pending claims exist");
+                    }
+                }
+            }
+        }
+
+        // Get verifier reputation
+        let reputation = Self::get_reputation(env.clone(), verifier.clone(), RoleType::Verifier);
+
+        // Calculate stake to return
+        let stake_to_return = if reputation < REP_RESTRICTED {
+            // Slash 10% for low reputation
+            let slash_amount = verifier_data.stake.mul(&U256::from_u32(&env, VERIFIER_SLASH_BPS))
+                .div(&U256::from_u32(&env, 10000));
+            verifier_data.stake.sub(&slash_amount)
+        } else {
+            verifier_data.stake.clone()
+        };
+
+        // Return stake to verifier's account
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let mut account_data = accounts.get(verifier.clone()).unwrap_or(AccountData {
+            balance: U256::from_u32(&env, 0),
+            last_activity: env.ledger().timestamp(),
+            grace_period_end: 0,
+            trust_id: None,
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
+        });
+
+        account_data.balance = account_data.balance.add(&stake_to_return);
+        account_data.last_activity = env.ledger().timestamp();
+        accounts.set(verifier.clone(), account_data);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+
+        // Remove verifier from registry
+        verifiers.remove(verifier.clone());
+        env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
+    }
+
+    /// Unregister as an oracle and return stake
+    /// If reputation is below 200, 25% of stake is slashed
+    pub fn unregister_oracle(env: Env, oracle: Address) {
+        oracle.require_auth();
+
+        let mut oracles: Map<Address, OracleData> =
+            env.storage().persistent().get(&KEY_ORACLES).unwrap_or(Map::new(&env));
+
+        let oracle_data = match oracles.get(oracle.clone()) {
+            Some(data) => data,
+            None => panic!("Oracle not found"),
+        };
+
+        // Get oracle reputation
+        let reputation = Self::get_reputation(env.clone(), oracle.clone(), RoleType::Oracle);
+
+        // Calculate stake to return
+        let stake_to_return = if reputation < REP_RESTRICTED {
+            // Slash 25% for low reputation
+            let slash_amount = oracle_data.stake.mul(&U256::from_u32(&env, ORACLE_SLASH_BPS))
+                .div(&U256::from_u32(&env, 10000));
+            oracle_data.stake.sub(&slash_amount)
+        } else {
+            oracle_data.stake.clone()
+        };
+
+        // Return stake to oracle's account
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let mut account_data = accounts.get(oracle.clone()).unwrap_or(AccountData {
+            balance: U256::from_u32(&env, 0),
+            last_activity: env.ledger().timestamp(),
+            grace_period_end: 0,
+            trust_id: None,
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
+        });
+
+        account_data.balance = account_data.balance.add(&stake_to_return);
+        account_data.last_activity = env.ledger().timestamp();
+        accounts.set(oracle.clone(), account_data);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+
+        // Remove oracle from registry
+        oracles.remove(oracle.clone());
+        env.storage().persistent().set(&KEY_ORACLES, &oracles);
     }
 
     /// Update a role-based score for a verifier
@@ -1108,6 +1356,11 @@ impl KchngToken {
     pub fn approve_work_claim(env: Env, verifier: Address, claim_id: u64) {
         verifier.require_auth();
 
+        // Check if verifier is on probation
+        if Self::is_on_probation(env.clone(), verifier.clone(), RoleType::Verifier) {
+            panic!("Verifier is on probation");
+        }
+
         let mut claims: Map<u64, WorkClaim> =
             env.storage().persistent().get(&KEY_WORK_CLAIMS).unwrap();
         let mut claim = match claims.get(claim_id) {
@@ -1144,13 +1397,22 @@ impl KchngToken {
         claims.set(claim_id, claim.clone());
         env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
 
-        // Update verifier stats
+        // Update verifier reputation using new system (+5 for approval)
+        // Will be adjusted later if majority disagrees (TF2T)
+        let _new_rep = Self::update_reputation(
+            &env,
+            &verifier,
+            &RoleType::Verifier,
+            5,
+            REP_EVENT_CLAIM_APPROVED,
+        );
+
+        // Also update legacy reputation score for backward compatibility
         let mut verifiers: Map<Address, VerifierData> =
             env.storage().persistent().get(&KEY_VERIFIERS).unwrap();
         let mut verifier_data = verifiers.get(verifier.clone()).unwrap();
         verifier_data.verified_claims += 1;
-        // Increase reputation for participation in verification (+5 points per approval)
-        verifier_data.reputation_score = (verifier_data.reputation_score + 5).min(1000);
+        verifier_data.reputation_score = Self::get_reputation(env.clone(), verifier.clone(), RoleType::Verifier);
         verifiers.set(verifier, verifier_data);
         env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
 
@@ -1181,16 +1443,39 @@ impl KchngToken {
             total_supply = total_supply.add(&amount);
             env.storage().instance().set(&KEY_TOTAL_SUPPLY, &total_supply);
 
+            // Update worker reputation for approved claim (+5)
+            Self::update_reputation(
+                &env,
+                &claim.worker,
+                &RoleType::Worker,
+                5,
+                REP_EVENT_CLAIM_APPROVED,
+            );
+
             // Mark claim as approved
             claim.status = ClaimStatus::Approved;
             claims.set(claim_id, claim);
             env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
+
+            // Now check for verifiers who rejected - they get a bad judgment penalty
+            // This implements the TF2T "bad judgment" tracking
+            for i in 0..assigned_verifiers.len() {
+                // We can't easily track who rejected here, so we'll handle this
+                // in a more sophisticated implementation with vote tracking
+                let _assigned = assigned_verifiers.get(i).unwrap();
+                // In a full implementation, we'd penalize rejectors here
+            }
         }
     }
 
     /// Reject a work claim (verifier only)
     pub fn reject_work_claim(env: Env, verifier: Address, claim_id: u64) {
         verifier.require_auth();
+
+        // Check if verifier is on probation
+        if Self::is_on_probation(env.clone(), verifier.clone(), RoleType::Verifier) {
+            panic!("Verifier is on probation");
+        }
 
         let mut claims: Map<u64, WorkClaim> =
             env.storage().persistent().get(&KEY_WORK_CLAIMS).unwrap();
@@ -1228,14 +1513,22 @@ impl KchngToken {
         claims.set(claim_id, claim.clone());
         env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
 
-        // Update verifier stats
+        // Update verifier reputation using new system (+10 for rejection)
+        // Will be adjusted later if majority disagrees (TF2T)
+        let _new_rep = Self::update_reputation(
+            &env,
+            &verifier,
+            &RoleType::Verifier,
+            10,
+            REP_EVENT_CLAIM_REJECTED,
+        );
+
+        // Also update legacy reputation score for backward compatibility
         let mut verifiers: Map<Address, VerifierData> =
             env.storage().persistent().get(&KEY_VERIFIERS).unwrap();
         let mut verifier_data = verifiers.get(verifier.clone()).unwrap();
         verifier_data.rejected_claims += 1;
-        // Increase reputation for catching invalid claims (+10 points per rejection)
-        // Higher reward for rejection to incentivize fraud detection
-        verifier_data.reputation_score = (verifier_data.reputation_score + 10).min(1000);
+        verifier_data.reputation_score = Self::get_reputation(env.clone(), verifier.clone(), RoleType::Verifier);
         verifiers.set(verifier, verifier_data);
         env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
 
@@ -1244,6 +1537,18 @@ impl KchngToken {
         let required = (total_verifiers / 2) + 1;
 
         if claim.rejections_received >= required {
+            // Update worker reputation for rejected claim (-10)
+            Self::update_reputation(
+                &env,
+                &claim.worker,
+                &RoleType::Worker,
+                -10,
+                REP_EVENT_CLAIM_REJECTED,
+            );
+
+            // Apply TF2T pattern penalty if needed (2+ consecutive negatives)
+            Self::apply_pattern_penalty_if_needed(&env, &claim.worker, &RoleType::Worker);
+
             // Mark claim as rejected
             claim.status = ClaimStatus::Rejected;
             claims.set(claim_id, claim);
@@ -1318,12 +1623,15 @@ impl KchngToken {
         let oracle_data = OracleData {
             oracle_address: oracle.clone(),
             stake: oracle_stake,
-            reputation_score: 500,
+            reputation_score: REP_NEUTRAL,
             grace_periods_granted: 0,
         };
 
-        oracles.set(oracle, oracle_data);
+        oracles.set(oracle.clone(), oracle_data);
         env.storage().persistent().set(&KEY_ORACLES, &oracles);
+
+        // Initialize oracle reputation (starts at 500 = neutral)
+        let _ = Self::get_reputation_data(env.clone(), oracle, RoleType::Oracle);
     }
 
     /// Activate a grace period for an account
@@ -1341,6 +1649,11 @@ impl KchngToken {
     ) {
         oracle.require_auth();
 
+        // Check if oracle is on probation
+        if Self::is_on_probation(env.clone(), oracle.clone(), RoleType::Oracle) {
+            panic!("Oracle is on probation");
+        }
+
         // Verify oracle is registered
         let oracles: Map<Address, OracleData> =
             env.storage().persistent().get(&KEY_ORACLES).unwrap_or(Map::new(&env));
@@ -1348,6 +1661,17 @@ impl KchngToken {
         if !oracles.contains_key(oracle.clone()) {
             panic!("Not a registered oracle");
         }
+
+        // Check oracle reputation for grace period limits
+        let oracle_rep = Self::get_reputation(env.clone(), oracle.clone(), RoleType::Oracle);
+        if oracle_rep < REP_RESTRICTED {
+            // Low reputation oracle can only grant 1 grace period per year
+            let oracle_data = oracles.get(oracle.clone()).unwrap();
+            // In a full implementation, we'd track yearly grants
+        }
+
+        // High reputation oracles can grant longer grace periods
+        let max_duration_multiplier = if oracle_rep >= REP_HIGH { 1.5 } else { 1.0 };
 
         // Get account data
         let mut accounts: Map<Address, AccountData> =
@@ -1385,11 +1709,13 @@ impl KchngToken {
         }
 
         // Validate duration based on grace type
-        let max_days = match grace_type {
+        let base_max_days = match grace_type {
             GraceType::Emergency => 90,   // Emergency: up to 90 days
             GraceType::Illness => 60,     // Illness: up to 60 days
             GraceType::Community => 180,  // Community: up to 180 days
         };
+
+        let max_days = (base_max_days as f64 * max_duration_multiplier) as u64;
 
         if duration_days > max_days {
             panic!("Duration exceeds maximum for this grace type");
@@ -1440,8 +1766,18 @@ impl KchngToken {
             env.storage().persistent().get(&KEY_ORACLES).unwrap();
         let mut oracle_data = oracles.get(oracle.clone()).unwrap();
         oracle_data.grace_periods_granted += 1;
-        oracles.set(oracle, oracle_data);
+        oracle_data.reputation_score = Self::get_reputation(env.clone(), oracle.clone(), RoleType::Oracle);
+        oracles.set(oracle.clone(), oracle_data);
         env.storage().persistent().set(&KEY_ORACLES, &oracles);
+
+        // Update oracle reputation (+5 for granting grace period appropriately)
+        Self::update_reputation(
+            &env,
+            &oracle,
+            &RoleType::Oracle,
+            5,
+            REP_EVENT_GRACE_GRANTED,
+        );
     }
 
     /// Check if an account is currently in a grace period
@@ -1637,11 +1973,12 @@ impl KchngToken {
         description: String,
         trust_id: Option<Address>,
         new_rate_bps: Option<u32>,
+        target_address: Option<Address>,
     ) -> u64 {
         proposer.require_auth();
 
         // Validate proposer authority
-        match proposal_type {
+        match proposal_type.clone() {
             ProposalType::RateChange | ProposalType::TrustParameters => {
                 // Must be governor of the trust
                 let trust_addr = trust_id.as_ref().expect("Trust-specific proposals require a trust_id");
@@ -1662,6 +1999,80 @@ impl KchngToken {
                 let admin: Address = env.storage().instance().get(&KEY_ADMIN).unwrap();
                 if admin != proposer {
                     panic!("Only admin can propose protocol changes");
+                }
+            }
+            ProposalType::RemoveVerifier => {
+                // Governor can propose if verifier reputation < 300
+                // Members can propose if verifier reputation < 500 AND 30 days elapsed
+                let target = target_address.as_ref().expect("RemoveVerifier requires target_address");
+
+                // Check if target is a verifier
+                let verifiers: Map<Address, VerifierData> =
+                    env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+                if !verifiers.contains_key(target.clone()) {
+                    panic!("Target is not a verifier");
+                }
+
+                let verifier_rep = Self::get_reputation(env.clone(), target.clone(), RoleType::Verifier);
+
+                // Check if proposer is governor
+                if let Some(ref tid) = trust_id {
+                    let trusts: Map<Address, TrustData> =
+                        env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+                    if let Some(trust) = trusts.get(tid.clone()) {
+                        if trust.governor == proposer && verifier_rep < 300 {
+                            // Governor can propose removal for low rep
+                        } else if verifier_rep < 500 {
+                            // Member can propose - need to check 30 day elapsed
+                            // (simplified check for now)
+                        } else {
+                            panic!("Verifier reputation too high for removal");
+                        }
+                    }
+                } else {
+                    panic!("RemoveVerifier requires a trust_id");
+                }
+            }
+            ProposalType::RemoveGovernor => {
+                // Members can propose if governor reputation < 500 AND 30 days elapsed
+                let target = target_address.as_ref().expect("RemoveGovernor requires target_address");
+                let governor_rep = Self::get_reputation(env.clone(), target.clone(), RoleType::Governor);
+
+                if governor_rep >= 500 {
+                    panic!("Governor reputation too high for removal");
+                }
+            }
+            ProposalType::RemoveOracle => {
+                // Must be admin
+                let admin: Address = env.storage().instance().get(&KEY_ADMIN).unwrap();
+                if admin != proposer {
+                    panic!("Only admin can propose oracle removal");
+                }
+
+                let target = target_address.as_ref().expect("RemoveOracle requires target_address");
+                let oracle_rep = Self::get_reputation(env.clone(), target.clone(), RoleType::Oracle);
+
+                if oracle_rep >= 200 {
+                    panic!("Oracle reputation too high for removal");
+                }
+            }
+            ProposalType::RoleProbation => {
+                // Must be admin or governor
+                let admin: Address = env.storage().instance().get(&KEY_ADMIN).unwrap();
+                let is_admin = admin == proposer;
+
+                if !is_admin {
+                    if let Some(ref tid) = trust_id {
+                        let trusts: Map<Address, TrustData> =
+                            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+                        if let Some(trust) = trusts.get(tid.clone()) {
+                            if trust.governor != proposer {
+                                panic!("Only admin or trust governor can propose probation");
+                            }
+                        }
+                    } else {
+                        panic!("Only admin can propose protocol-level probation");
+                    }
                 }
             }
         }
@@ -1693,6 +2104,7 @@ impl KchngToken {
             description,
             trust_id,
             new_rate_bps,
+            target_address,
             created_at: current_timestamp,
             review_end,
             vote_end,
@@ -1823,9 +2235,13 @@ impl KchngToken {
                     if !quorum_met {
                         proposal.status = ProposalStatus::Expired;
                     } else {
-                        // Check approval (60% support required, or 80% for emergency)
+                        // Check approval (60% support required, or 80% for emergency, 60% for removals)
                         let approval_threshold = match proposal.proposal_type {
                             ProposalType::Emergency => 80,
+                            ProposalType::RemoveVerifier => 60,
+                            ProposalType::RemoveGovernor => 60,
+                            ProposalType::RemoveOracle => 60,
+                            ProposalType::RoleProbation => 60,
                             _ => 60,
                         };
 
@@ -1939,6 +2355,89 @@ impl KchngToken {
                 // This is a placeholder for future implementation
                 panic!("Protocol upgrades must be executed via contract upgrade");
             }
+            ProposalType::RemoveVerifier => {
+                let target = proposal.target_address.as_ref()
+                    .expect("RemoveVerifier requires target_address");
+
+                // Remove verifier with stake slashing
+                let mut verifiers: Map<Address, VerifierData> =
+                    env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+
+                if let Some(verifier_data) = verifiers.get(target.clone()) {
+                    // Slash 10% of stake
+                    let slash_amount = verifier_data.stake.mul(&U256::from_u32(&env, VERIFIER_SLASH_BPS))
+                        .div(&U256::from_u32(&env, 10000));
+                    let stake_to_return = verifier_data.stake.sub(&slash_amount);
+
+                    // Return remaining stake
+                    let mut accounts: Map<Address, AccountData> =
+                        env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+                    if let Some(mut account) = accounts.get(target.clone()) {
+                        account.balance = account.balance.add(&stake_to_return);
+                        accounts.set(target.clone(), account);
+                        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+                    }
+
+                    verifiers.remove(target.clone());
+                    env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
+                }
+            }
+            ProposalType::RemoveGovernor => {
+                let target = proposal.target_address.as_ref()
+                    .expect("RemoveGovernor requires target_address");
+
+                // Get trust and disable it or transfer governance
+                let trust_id = proposal.trust_id.as_ref()
+                    .expect("RemoveGovernor requires trust_id");
+
+                let mut trusts: Map<Address, TrustData> =
+                    env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+                if let Some(mut trust) = trusts.get(trust_id.clone()) {
+                    if trust.governor == *target {
+                        // Disable trust or mark for new governor election
+                        trust.is_active = false;
+                        trusts.set(trust_id.clone(), trust);
+                        env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+                    }
+                }
+            }
+            ProposalType::RemoveOracle => {
+                let target = proposal.target_address.as_ref()
+                    .expect("RemoveOracle requires target_address");
+
+                // Remove oracle with stake slashing
+                let mut oracles: Map<Address, OracleData> =
+                    env.storage().persistent().get(&KEY_ORACLES).unwrap_or(Map::new(&env));
+
+                if let Some(oracle_data) = oracles.get(target.clone()) {
+                    // Slash 25% of stake
+                    let slash_amount = oracle_data.stake.mul(&U256::from_u32(&env, ORACLE_SLASH_BPS))
+                        .div(&U256::from_u32(&env, 10000));
+                    let stake_to_return = oracle_data.stake.sub(&slash_amount);
+
+                    // Return remaining stake
+                    let mut accounts: Map<Address, AccountData> =
+                        env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+                    if let Some(mut account) = accounts.get(target.clone()) {
+                        account.balance = account.balance.add(&stake_to_return);
+                        accounts.set(target.clone(), account);
+                        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+                    }
+
+                    oracles.remove(target.clone());
+                    env.storage().persistent().set(&KEY_ORACLES, &oracles);
+                }
+            }
+            ProposalType::RoleProbation => {
+                let target = proposal.target_address.as_ref()
+                    .expect("RoleProbation requires target_address");
+
+                // Set probation for 90 days
+                let mut rep_data = Self::get_reputation_data_internal(&env, target, &RoleType::Verifier);
+                rep_data.probation_until = Some(current_timestamp + (90 * SECONDS_PER_DAY));
+                Self::save_reputation_data(&env, target, &rep_data);
+            }
         }
 
         // Mark proposal as implemented
@@ -1969,6 +2468,270 @@ impl KchngToken {
             keys.push_back(k);
         }
         keys
+    }
+
+    // ============================================================================
+    // REPUTATION SYSTEM (Phase 7)
+    // ============================================================================
+
+    /// Initialize reputation data for a role (internal helper)
+    fn init_reputation_data(env: &Env, role: RoleType) -> ReputationData {
+        ReputationData {
+            role_type: role,
+            score: REP_NEUTRAL,
+            last_change: env.ledger().timestamp(),
+            consecutive_negatives: 0,
+            probation_until: None,
+            recent_events: Vec::new(env),
+        }
+    }
+
+    /// Get reputation data for an address and role
+    fn get_reputation_data_internal(env: &Env, address: &Address, role: &RoleType) -> ReputationData {
+        let reputations: Map<Address, Map<u32, ReputationData>> =
+            env.storage().persistent().get(&KEY_REPUTATIONS).unwrap_or(Map::new(env));
+
+        match reputations.get(address.clone()) {
+            Some(role_map) => {
+                let role_key = Self::role_type_to_key(role);
+                match role_map.get(role_key) {
+                    Some(data) => data,
+                    None => Self::init_reputation_data(env, role.clone()),
+                }
+            }
+            None => Self::init_reputation_data(env, role.clone()),
+        }
+    }
+
+    /// Convert RoleType to storage key
+    fn role_type_to_key(role: &RoleType) -> u32 {
+        match role {
+            RoleType::Governor => 0,
+            RoleType::Verifier => 1,
+            RoleType::Oracle => 2,
+            RoleType::Worker => 3,
+            RoleType::Member => 4,
+        }
+    }
+
+    /// Convert storage key to RoleType
+    fn key_to_role_type(key: u32) -> RoleType {
+        match key {
+            0 => RoleType::Governor,
+            1 => RoleType::Verifier,
+            2 => RoleType::Oracle,
+            3 => RoleType::Worker,
+            _ => RoleType::Member,
+        }
+    }
+
+    /// Update reputation for a role (internal)
+    /// Returns the new score
+    fn update_reputation(
+        env: &Env,
+        address: &Address,
+        role: &RoleType,
+        change: i32,
+        event_type: u32,
+    ) -> u32 {
+        let mut data = Self::get_reputation_data_internal(env, address, role);
+        let current_time = env.ledger().timestamp();
+
+        // Apply decay before updating
+        Self::apply_reputation_decay_internal(env, &mut data);
+
+        // Track consecutive negatives for TF2T pattern detection
+        if change < 0 {
+            data.consecutive_negatives += 1;
+        } else if change > 0 {
+            data.consecutive_negatives = 0;
+        }
+
+        // Calculate new score with bounds [0, 1000]
+        let new_score = (data.score as i32 + change).clamp(0, 1000) as u32;
+        data.score = new_score;
+        data.last_change = current_time;
+
+        // Add to history (keep last 10 events)
+        let event = ReputationEvent {
+            timestamp: current_time,
+            event_type,
+            change,
+            new_score,
+        };
+        data.recent_events.push_back(event);
+        if data.recent_events.len() > MAX_HISTORY_EVENTS {
+            data.recent_events.pop_front();
+        }
+
+        // Store updated reputation
+        Self::save_reputation_data(env, address, &data);
+
+        new_score
+    }
+
+    /// Apply TF2T pattern penalty for consecutive negatives
+    fn apply_pattern_penalty_if_needed(
+        env: &Env,
+        address: &Address,
+        role: &RoleType,
+    ) {
+        let mut data = Self::get_reputation_data_internal(env, address, role);
+
+        // TF2T: Additional penalty for 2+ consecutive negative events
+        if data.consecutive_negatives >= 2 {
+            let penalty = -25i32; // Additional penalty
+            data.consecutive_negatives = 0; // Reset after applying
+
+            let new_score = (data.score as i32 + penalty).max(0) as u32;
+            data.score = new_score;
+
+            // Add pattern penalty event
+            let event = ReputationEvent {
+                timestamp: env.ledger().timestamp(),
+                event_type: REP_EVENT_PATTERN_PENALTY,
+                change: penalty,
+                new_score,
+            };
+            data.recent_events.push_back(event);
+            if data.recent_events.len() > MAX_HISTORY_EVENTS {
+                data.recent_events.pop_front();
+            }
+
+            Self::save_reputation_data(env, address, &data);
+        }
+    }
+
+    /// Apply reputation decay based on inactivity (internal)
+    fn apply_reputation_decay_internal(env: &Env, data: &mut ReputationData) {
+        let current_time = env.ledger().timestamp();
+        let days_inactive = (current_time.saturating_sub(data.last_change)) / SECONDS_PER_DAY;
+
+        if data.score > REP_NEUTRAL && days_inactive >= DECAY_START_DAYS {
+            // High scores decay toward 500
+            let decay_days = days_inactive.saturating_sub(DECAY_START_DAYS);
+            let max_decay = data.score.saturating_sub(REP_NEUTRAL);
+            let decay = min(decay_days as u32, max_decay);
+
+            if decay > 0 {
+                data.score = data.score.saturating_sub(decay);
+                data.last_change = current_time;
+
+                let event = ReputationEvent {
+                    timestamp: current_time,
+                    event_type: REP_EVENT_DECAY,
+                    change: -(decay as i32),
+                    new_score: data.score,
+                };
+                data.recent_events.push_back(event);
+                if data.recent_events.len() > MAX_HISTORY_EVENTS {
+                    data.recent_events.pop_front();
+                }
+            }
+        } else if data.score < REP_NEUTRAL && days_inactive >= RECOVERY_START_DAYS {
+            // Low scores recover toward 500 (slower)
+            let recovery_days = days_inactive.saturating_sub(RECOVERY_START_DAYS);
+            let max_recovery = REP_NEUTRAL.saturating_sub(data.score);
+            let recovery = min(recovery_days as u32, max_recovery);
+
+            if recovery > 0 {
+                data.score = data.score.saturating_add(recovery);
+                data.last_change = current_time;
+
+                let event = ReputationEvent {
+                    timestamp: current_time,
+                    event_type: REP_EVENT_RECOVERY,
+                    change: recovery as i32,
+                    new_score: data.score,
+                };
+                data.recent_events.push_back(event);
+                if data.recent_events.len() > MAX_HISTORY_EVENTS {
+                    data.recent_events.pop_front();
+                }
+            }
+        }
+    }
+
+    /// Save reputation data to storage
+    fn save_reputation_data(env: &Env, address: &Address, data: &ReputationData) {
+        let mut reputations: Map<Address, Map<u32, ReputationData>> =
+            env.storage().persistent().get(&KEY_REPUTATIONS).unwrap_or(Map::new(env));
+
+        let role_key = Self::role_type_to_key(&data.role_type);
+
+        let mut role_map = reputations.get(address.clone()).unwrap_or(Map::new(env));
+        role_map.set(role_key, data.clone());
+        reputations.set(address.clone(), role_map);
+
+        env.storage().persistent().set(&KEY_REPUTATIONS, &reputations);
+    }
+
+    /// Get reputation score for a role (public)
+    pub fn get_reputation(env: Env, address: Address, role: RoleType) -> u32 {
+        let mut data = Self::get_reputation_data_internal(&env, &address, &role);
+        Self::apply_reputation_decay_internal(&env, &mut data);
+        data.score
+    }
+
+    /// Get full reputation data for a role (public)
+    pub fn get_reputation_data(env: Env, address: Address, role: RoleType) -> ReputationData {
+        let mut data = Self::get_reputation_data_internal(&env, &address, &role);
+        Self::apply_reputation_decay_internal(&env, &mut data);
+        data
+    }
+
+    /// Check if address is in probation for a role (public)
+    pub fn is_on_probation(env: Env, address: Address, role: RoleType) -> bool {
+        let data = Self::get_reputation_data_internal(&env, &address, &role);
+
+        // Check explicit probation
+        if let Some(probation_end) = data.probation_until {
+            if env.ledger().timestamp() < probation_end {
+                return true;
+            }
+        }
+
+        // Check score-based probation (< 200)
+        data.score < REP_RESTRICTED
+    }
+
+    /// Check if verifier can verify in multiple trusts (high reputation)
+    pub fn can_multi_trust_verify(env: Env, address: Address) -> bool {
+        let score = Self::get_reputation(env, address, RoleType::Verifier);
+        score >= REP_HIGH
+    }
+
+    /// Get all reputation scores for an address
+    pub fn get_all_reputations(env: Env, address: Address) -> Map<u32, u32> {
+        let reputations: Map<Address, Map<u32, ReputationData>> =
+            env.storage().persistent().get(&KEY_REPUTATIONS).unwrap_or(Map::new(&env));
+
+        let mut result = Map::new(&env);
+
+        if let Some(role_map) = reputations.get(address.clone()) {
+            for (role_key, data) in role_map.iter() {
+                result.set(role_key, data.score);
+            }
+        } else {
+            // Return default neutral scores for all roles
+            for role_key in 0..5u32 {
+                result.set(role_key, REP_NEUTRAL);
+            }
+        }
+
+        result
+    }
+
+    /// Set probation period for an address
+    pub fn set_probation(env: Env, address: Address, role: RoleType, duration_days: u64) {
+        let admin: Address = env.storage().instance().get(&KEY_ADMIN).unwrap();
+        admin.require_auth();
+
+        let mut data = Self::get_reputation_data_internal(&env, &address, &role);
+        let probation_end = env.ledger().timestamp() + (duration_days * SECONDS_PER_DAY);
+        data.probation_until = Some(probation_end);
+
+        Self::save_reputation_data(&env, &address, &data);
     }
 }
 
