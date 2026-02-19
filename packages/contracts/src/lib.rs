@@ -1,7 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, Address, Env, Map, U256, Vec, String, Bytes,
-    symbol_short,
+    contract, contractevent, contractimpl, contracttype, Address, Env, Map, U256, Vec, String, Bytes,
 };
 use core::cmp::min;
 
@@ -280,22 +279,24 @@ pub struct ReputationData {
     pub recent_events: Vec<ReputationEvent>,  // Last 10 events
 }
 
-// Reputation event type codes
-const REP_EVENT_CLAIM_APPROVED: u32 = 1;
-const REP_EVENT_CLAIM_REJECTED: u32 = 2;
-const REP_EVENT_BAD_JUDGMENT: u32 = 3;
-const REP_EVENT_FRAUD_DETECTED: u32 = 4;
-const REP_EVENT_MEMBER_JOIN: u32 = 5;
-const REP_EVENT_MEMBER_LEAVE: u32 = 6;
-const REP_EVENT_PATTERN_PENALTY: u32 = 7;
-const REP_EVENT_INACTIVITY: u32 = 8;
-const REP_EVENT_GRACE_GRANTED: u32 = 9;
-const REP_EVENT_GRACE_ABUSED: u32 = 10;
-const REP_EVENT_PROPOSAL_PASS: u32 = 11;
-const REP_EVENT_PROPOSAL_FAIL: u32 = 12;
-const REP_EVENT_VOTE_PARTICIPATE: u32 = 13;
-const REP_EVENT_DECAY: u32 = 14;
-const REP_EVENT_RECOVERY: u32 = 15;
+// Reputation event type codes - track history in ReputationData.recent_events
+// Used for TF2T (Tit-for-2-Tats) pattern detection and audit trail
+// See docs/2026-01-02_game_theory_simulation_results.md for TF2T strategy analysis
+const REP_EVENT_CLAIM_APPROVED: u32 = 1;    // Verifier approves work claim (+5 rep)
+const REP_EVENT_CLAIM_REJECTED: u32 = 2;    // Verifier rejects work claim (+10 rep)
+const REP_EVENT_BAD_JUDGMENT: u32 = 3;      // [FUTURE] Verifier approved fraudulent claim
+const REP_EVENT_FRAUD_DETECTED: u32 = 4;    // [FUTURE] Pattern of fraudulent behavior detected
+const REP_EVENT_MEMBER_JOIN: u32 = 5;       // Member joins trust (+2 gov, +5 member)
+const REP_EVENT_MEMBER_LEAVE: u32 = 6;      // Member leaves trust (-5 gov, -50 if empty)
+const REP_EVENT_PATTERN_PENALTY: u32 = 7;   // TF2T: 2+ consecutive negatives (-25 bonus)
+const REP_EVENT_INACTIVITY: u32 = 8;        // [FUTURE] Long period of no activity
+const REP_EVENT_GRACE_GRANTED: u32 = 9;     // Oracle grants grace period (+5 oracle)
+const REP_EVENT_GRACE_ABUSED: u32 = 10;     // [FUTURE] Grace period conditions violated
+const REP_EVENT_PROPOSAL_PASS: u32 = 11;    // Governance proposal passes (+5 proposer)
+const REP_EVENT_PROPOSAL_FAIL: u32 = 12;    // Governance proposal fails quorum (-3 proposer)
+const REP_EVENT_VOTE_PARTICIPATE: u32 = 13; // Member votes on proposal (+2)
+const REP_EVENT_DECAY: u32 = 14;            // High reputation decays toward 500 (30+ days)
+const REP_EVENT_RECOVERY: u32 = 15;         // Low reputation recovers toward 500 (90+ days)
 
 // Reputation thresholds
 const REP_NEUTRAL: u32 = 500;
@@ -311,6 +312,110 @@ const ORACLE_SLASH_BPS: u32 = 2500;     // 25%
 const DECAY_START_DAYS: u64 = 30;       // High scores start decaying after 30 days
 const RECOVERY_START_DAYS: u64 = 90;    // Low scores start recovering after 90 days
 const MAX_HISTORY_EVENTS: u32 = 10;
+
+// ============================================================================
+// CONTRACT EVENTS
+// ============================================================================
+
+/// Emitted when tokens are transferred between accounts
+#[contractevent]
+pub struct Transfer {
+    #[topic]
+    pub from: Address,
+    pub to: Address,
+    pub amount: U256,
+}
+
+/// Emitted when a new trust is registered
+#[contractevent]
+pub struct TrustNew {
+    #[topic]
+    pub governor: Address,
+    pub name: String,
+    pub annual_rate_bps: u32,
+    pub demurrage_period_days: u64,
+}
+
+/// Emitted when a member joins a trust
+#[contractevent]
+pub struct MemberJoin {
+    #[topic]
+    pub member: Address,
+    pub trust_id: Address,
+}
+
+/// Emitted when a member leaves a trust
+#[contractevent]
+pub struct MemberLeave {
+    #[topic]
+    pub member: Address,
+    pub trust_id: Address,
+}
+
+/// Emitted when a work claim is submitted
+#[contractevent]
+pub struct ClaimSubmitted {
+    #[topic]
+    pub worker: Address,
+    pub claim_id: u64,
+    pub work_type: u32,
+    pub minutes_worked: u64,
+}
+
+/// Emitted when a work claim is approved
+#[contractevent]
+pub struct ClaimApproved {
+    #[topic]
+    pub worker: Address,
+    pub claim_id: u64,
+    pub amount: U256,
+}
+
+/// Emitted when a work claim is rejected
+#[contractevent]
+pub struct ClaimRejected {
+    #[topic]
+    pub worker: Address,
+    pub claim_id: u64,
+}
+
+/// Emitted when a grace period is activated
+#[contractevent]
+pub struct GraceActivated {
+    #[topic]
+    pub account: Address,
+    pub grace_type: u32,
+    pub duration_days: u64,
+    pub end_time: u64,
+}
+
+/// Emitted when a governance proposal is created
+#[contractevent]
+pub struct ProposalCreated {
+    #[topic]
+    pub proposer: Address,
+    pub proposal_id: u64,
+    pub proposal_type: u32,
+}
+
+/// Emitted when a vote is cast on a proposal
+#[contractevent]
+pub struct VoteCast {
+    #[topic]
+    pub voter: Address,
+    pub proposal_id: u64,
+    pub support: bool,
+}
+
+/// Emitted when reputation changes for a role
+#[contractevent]
+pub struct ReputationChanged {
+    #[topic]
+    pub address: Address,
+    pub role: u32,
+    pub change: i32,
+    pub new_score: u32,
+}
 
 /// KCHNG Token Contract with native on-chain demurrage
 #[contract]
@@ -483,10 +588,11 @@ impl KchngToken {
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
 
         // Emit transfer event for PWA integration
-        env.events().publish(
-            (symbol_short!("transfer"), from.clone()),
-            (to.clone(), amount.clone()),
-        );
+        Transfer {
+            from: from.clone(),
+            to: to.clone(),
+            amount: amount.clone(),
+        }.publish(&env);
     }
 
     /// Mint new tokens (admin only)
@@ -660,10 +766,12 @@ impl KchngToken {
         let _ = Self::get_reputation_data(env.clone(), governor.clone(), RoleType::Governor);
 
         // Emit trust registered event for PWA integration
-        env.events().publish(
-            (symbol_short!("trust_new"), governor.clone()),
-            (name, annual_rate_bps, demurrage_period_days),
-        );
+        TrustNew {
+            governor: governor.clone(),
+            name,
+            annual_rate_bps,
+            demurrage_period_days,
+        }.publish(&env);
     }
 
     /// Join an existing trust
@@ -738,10 +846,10 @@ impl KchngToken {
         );
 
         // Emit member joined event for PWA integration
-        env.events().publish(
-            (symbol_short!("member_jn"), member.clone()),
-            trust_id.clone(),
-        );
+        MemberJoin {
+            member: member.clone(),
+            trust_id: trust_id.clone(),
+        }.publish(&env);
     }
 
     /// Leave current trust (anti-gaming: Part 2.2 - allows escaping bad governors)
@@ -801,10 +909,10 @@ impl KchngToken {
         }
 
         // Emit member left event for PWA integration
-        env.events().publish(
-            (symbol_short!("member_lv"), member.clone()),
-            trust_id.clone(),
-        );
+        MemberLeave {
+            member: member.clone(),
+            trust_id: trust_id.clone(),
+        }.publish(&env);
     }
 
     /// Get information about a specific trust
@@ -1364,10 +1472,12 @@ impl KchngToken {
         env.storage().instance().set(&KEY_NEXT_CLAIM_ID, &claim_id_u256);
 
         // Emit work claim submitted event for PWA integration
-        env.events().publish(
-            (symbol_short!("claim_sub"), worker.clone()),
-            (claim_id, work_type.clone() as u32, minutes_worked),
-        );
+        ClaimSubmitted {
+            worker: worker.clone(),
+            claim_id,
+            work_type: work_type.clone() as u32,
+            minutes_worked,
+        }.publish(&env);
 
         claim_id
     }
@@ -1479,10 +1589,11 @@ impl KchngToken {
             env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
 
             // Emit work claim approved event for PWA integration
-            env.events().publish(
-                (symbol_short!("claim_app"), worker_addr),
-                (claim_id, amount.clone()),
-            );
+            ClaimApproved {
+                worker: worker_addr,
+                claim_id,
+                amount: amount.clone(),
+            }.publish(&env);
 
             // Now check for verifiers who rejected - they get a bad judgment penalty
             // This implements the TF2T "bad judgment" tracking
@@ -1583,10 +1694,10 @@ impl KchngToken {
             env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
 
             // Emit work claim rejected event for PWA integration
-            env.events().publish(
-                (symbol_short!("claim_rej"), worker_addr),
+            ClaimRejected {
+                worker: worker_addr,
                 claim_id,
-            );
+            }.publish(&env);
         }
     }
 
@@ -1704,8 +1815,9 @@ impl KchngToken {
             // In a full implementation, we'd track yearly grants
         }
 
-        // High reputation oracles can grant longer grace periods
-        let max_duration_multiplier = if oracle_rep >= REP_HIGH { 1.5 } else { 1.0 };
+        // High reputation oracles can grant longer grace periods (1.5x multiplier)
+        // Use basis points: 15000 = 1.5x, 10000 = 1.0x
+        let max_duration_bps: u64 = if oracle_rep >= REP_HIGH { 15000 } else { 10000 };
 
         // Get account data
         let mut accounts: Map<Address, AccountData> =
@@ -1749,7 +1861,7 @@ impl KchngToken {
             GraceType::Community => 180,  // Community: up to 180 days
         };
 
-        let max_days = (base_max_days as f64 * max_duration_multiplier) as u64;
+        let max_days = (base_max_days * max_duration_bps) / 10000;
 
         if duration_days > max_days {
             panic!("Duration exceeds maximum for this grace type");
@@ -1815,10 +1927,12 @@ impl KchngToken {
         );
 
         // Emit grace period activated event for PWA integration
-        env.events().publish(
-            (symbol_short!("grace_on"), account.clone()),
-            (grace_type_code, duration_days, end_time),
-        );
+        GraceActivated {
+            account: account.clone(),
+            grace_type: grace_type_code,
+            duration_days,
+            end_time,
+        }.publish(&env);
     }
 
     /// Check if an account is currently in a grace period
@@ -2181,10 +2295,11 @@ impl KchngToken {
         env.storage().persistent().set(&KEY_PROPOSALS, &proposals);
 
         // Emit proposal created event for PWA integration
-        env.events().publish(
-            (symbol_short!("prop_new"), proposer.clone()),
-            (proposal_id, proposal_type_code),
-        );
+        ProposalCreated {
+            proposer: proposer.clone(),
+            proposal_id,
+            proposal_type: proposal_type_code,
+        }.publish(&env);
 
         proposal_id
     }
@@ -2252,10 +2367,11 @@ impl KchngToken {
         env.storage().persistent().set(&KEY_PROPOSALS, &proposals);
 
         // Emit vote cast event for PWA integration
-        env.events().publish(
-            (symbol_short!("vote"), voter.clone()),
-            (proposal_id, support),
-        );
+        VoteCast {
+            voter: voter.clone(),
+            proposal_id,
+            support,
+        }.publish(&env);
 
         // Update member reputation for voting participation (+2)
         Self::update_reputation(
@@ -2671,10 +2787,12 @@ impl KchngToken {
         Self::save_reputation_data(env, address, &data);
 
         // Emit reputation changed event for PWA integration
-        env.events().publish(
-            (symbol_short!("rep_chg"), address.clone()),
-            (role.clone() as u32, change, new_score),
-        );
+        ReputationChanged {
+            address: address.clone(),
+            role: role.clone() as u32,
+            change,
+            new_score,
+        }.publish(env);
 
         // Check and enforce removal threshold if score dropped
         if new_score < REMOVAL_THRESHOLD {
