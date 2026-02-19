@@ -32,6 +32,11 @@ fn advance_24_hours(env: &Env) {
     advance_time(env, 86_400);
 }
 
+/// Advance ledger by 90 days (GRACE_COOLDOWN_DAYS)
+fn advance_90_days(env: &Env) {
+    advance_time(env, 90 * 24 * 60 * 60);
+}
+
 // ==========================================================================
 // LEGACY TESTS (Basic Token Functionality)
 // ==========================================================================
@@ -186,7 +191,7 @@ fn test_join_trust() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Join trust
@@ -222,7 +227,7 @@ fn test_submit_work_claim() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     client.join_trust(&worker, &governor);
 
@@ -276,7 +281,7 @@ fn test_approve_work_claim() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     client.join_trust(&worker, &governor);
     client.join_trust(&verifier, &governor);
@@ -1068,7 +1073,7 @@ fn test_grace_period_pause_demurrage() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Setup oracle
@@ -1109,14 +1114,16 @@ fn test_grace_period_pause_demurrage() {
     }
 
     // Give worker balance to test demurrage
+    advance_24_hours(&env);
     client.transfer(&admin, &worker, &U256::from_u32(&env, 1000));
 
     // Verify initial balance and contribution hours
-    // Note: Worker earned 60 KCHNG from work claims (30 hours * 2 KCHNG/hour)
-    // So total balance is 1000 + 60 = 1060
+    // Note: Worker earned 200,000 KCHNG from work claims
+    // (100 claims * 60 min * 1000/30 = 2000 KCHNG per claim = 200,000 total)
+    // Plus 1000 transferred = 201,000 total
     let account = client.get_account(&worker);
-    assert_eq!(account.balance, U256::from_u32(&env, 1060));
-    assert!(account.contribution_hours >= 30, "Worker should have 30+ contribution hours");
+    assert_eq!(account.balance, U256::from_u32(&env, 201000));
+    assert!(account.contribution_hours >= 100, "Worker should have 100+ contribution hours");
 
     // Activate grace period
     client.activate_grace_period(
@@ -1139,7 +1146,7 @@ fn test_grace_period_pause_demurrage() {
 }
 
 #[test]
-#[should_panic(expected = "Must have at least 30 contribution hours")]
+#[should_panic(expected = "Must have at least 100 contribution hours")]
 fn test_grace_period_contribution_requirement() {
     let env = Env::default();
     env.mock_all_auths();
@@ -1157,7 +1164,7 @@ fn test_grace_period_contribution_requirement() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Setup oracle
@@ -1197,7 +1204,7 @@ fn test_grace_period_annual_limit() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Setup oracle
@@ -1237,15 +1244,17 @@ fn test_grace_period_annual_limit() {
         client.approve_work_claim(&verifier2, &claim_id);
     }
 
-    // Activate 3 grace periods (should succeed)
+    // Activate 3 grace periods (should succeed - with 90-day cooldown between)
     client.activate_grace_period(&oracle, &worker, &GraceType::Emergency, &14u64);
     let account = client.get_account(&worker);
     assert_eq!(account.grace_periods_used, 1);
 
+    advance_90_days(&env);
     client.activate_grace_period(&oracle, &worker, &GraceType::Illness, &30u64);
     let account = client.get_account(&worker);
     assert_eq!(account.grace_periods_used, 2);
 
+    advance_90_days(&env);
     client.activate_grace_period(&oracle, &worker, &GraceType::Community, &30u64);
     let account = client.get_account(&worker);
     assert_eq!(account.grace_periods_used, 3);
@@ -1274,7 +1283,7 @@ fn test_grace_period_annual_limit_exceeded() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Setup oracle
@@ -1314,12 +1323,15 @@ fn test_grace_period_annual_limit_exceeded() {
         client.approve_work_claim(&verifier2, &claim_id);
     }
 
-    // Activate 3 grace periods first
+    // Activate 3 grace periods first (with 90-day cooldown between)
     client.activate_grace_period(&oracle, &worker, &GraceType::Emergency, &14u64);
+    advance_90_days(&env);
     client.activate_grace_period(&oracle, &worker, &GraceType::Illness, &30u64);
+    advance_90_days(&env);
     client.activate_grace_period(&oracle, &worker, &GraceType::Community, &30u64);
 
-    // 4th grace period should fail
+    // 4th grace period should fail (MAX_GRACE_PERIODS_PER_YEAR = 3)
+    advance_90_days(&env);
     client.activate_grace_period(&oracle, &worker, &GraceType::Emergency, &14u64);
 }
 
@@ -1363,7 +1375,7 @@ fn test_grace_period_duration_limits() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Setup oracle
@@ -1408,10 +1420,16 @@ fn test_grace_period_duration_limits() {
     let grace_period = client.get_grace_period(&worker).unwrap();
     assert_eq!(grace_period.grace_type, GraceType::Emergency);
 
+    // Wait 90 days before activating another grace period
+    advance_90_days(&env);
+
     // Test Illness grace period (max 60 days)
     client.activate_grace_period(&oracle, &worker, &GraceType::Illness, &60u64);
     let grace_period = client.get_grace_period(&worker).unwrap();
     assert_eq!(grace_period.grace_type, GraceType::Illness);
+
+    // Wait 90 days before activating another grace period
+    advance_90_days(&env);
 
     // Test Community grace period (max 180 days)
     client.activate_grace_period(&oracle, &worker, &GraceType::Community, &180u64);
@@ -1442,7 +1460,7 @@ fn test_grace_period_duration_limit_exceeded() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Setup oracle
@@ -1506,7 +1524,7 @@ fn test_grace_period_is_in_grace() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Setup oracle
@@ -1912,7 +1930,7 @@ fn test_role_score_positive_delta() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     // Join trust (creates account if needed)
     client.join_trust(&verifier, &governor);
@@ -1951,7 +1969,7 @@ fn test_role_score_negative_delta() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     // Join trust (creates account if needed)
     client.join_trust(&verifier, &governor);
@@ -1990,7 +2008,7 @@ fn test_role_score_upper_bound() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     // Join trust (creates account if needed)
     client.join_trust(&verifier, &governor);
@@ -2026,7 +2044,7 @@ fn test_role_score_lower_bound() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     // Join trust (creates account if needed)
     client.join_trust(&verifier, &governor);
@@ -2062,7 +2080,7 @@ fn test_role_score_multiple_aspects() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     // Join trust (creates account if needed)
     client.join_trust(&verifier, &governor);
@@ -2106,7 +2124,7 @@ fn test_role_score_prevent_self_scoring() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     // Join trust (creates account if needed)
     client.join_trust(&verifier, &governor);
@@ -2220,7 +2238,7 @@ fn test_multiple_work_claims_increase_supply() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Worker joins trust
@@ -2461,7 +2479,7 @@ fn test_leave_trust() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Member joins trust
@@ -2863,7 +2881,7 @@ fn test_reputation_initialization() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Verify governor reputation is initialized at neutral (500)
@@ -2890,7 +2908,7 @@ fn test_verifier_reputation_on_approval() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     client.join_trust(&worker, &governor);
 
@@ -2946,7 +2964,7 @@ fn test_worker_reputation_on_claim_approved() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     client.join_trust(&worker, &governor);
 
@@ -3002,7 +3020,7 @@ fn test_worker_reputation_on_claim_rejected() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     client.join_trust(&worker, &governor);
 
@@ -3052,7 +3070,7 @@ fn test_governor_reputation_on_member_join() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Get initial governor reputation
@@ -3087,7 +3105,7 @@ fn test_governor_reputation_on_member_leave() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     client.join_trust(&member, &governor);
 
@@ -3119,7 +3137,7 @@ fn test_verifier_probation_check() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     let stake_amount = U256::from_u32(&env, 100_000);
@@ -3156,7 +3174,7 @@ fn test_unregister_verifier() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     let stake_amount = U256::from_u32(&env, 100_000);
@@ -3195,7 +3213,7 @@ fn test_multi_trust_verifier_check() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     let stake_amount = U256::from_u32(&env, 100_000);
@@ -3224,7 +3242,7 @@ fn test_reputation_decay() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Get reputation data

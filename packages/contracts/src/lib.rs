@@ -1739,7 +1739,7 @@ impl KchngToken {
         }
 
         if account_data.contribution_hours < MIN_CONTRIBUTION_HOURS {
-            panic!("Must have at least 30 contribution hours to qualify for grace period");
+            panic!("Must have at least {} contribution hours to qualify for grace period", MIN_CONTRIBUTION_HOURS);
         }
 
         // Validate duration based on grace type
