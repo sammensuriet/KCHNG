@@ -2713,13 +2713,15 @@ fn test_grace_period_cooldown_second_fails() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust, oracle, verifiers
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
     client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_000_000));
     client.register_oracle(&oracle);
     client.join_trust(&worker, &governor);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
     client.register_verifier(&verifier2, &governor);
