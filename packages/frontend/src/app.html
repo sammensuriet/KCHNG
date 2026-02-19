@@ -10,7 +10,12 @@
     <meta property="og:description" content="Labor-backed currency on Stellar where new tokens are minted through verified work. Now live on mainnet!" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://kachi.ng" />
+    <meta property="og:image" content="https://kachi.ng/og-image.png" />
+    <meta property="og:site_name" content="KCHNG" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="KCHNG - A Community Currency with Demurrage" />
+    <meta name="twitter:description" content="Labor-backed currency on Stellar where new tokens are minted through verified work. Now live on mainnet!" />
+    <meta name="twitter:image" content="https://kachi.ng/og-image.png" />
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="%sveltekit.assets%/manifest.json" />
     <meta name="theme-color" content="#22c55e" />
@@ -22,6 +27,34 @@
     <link rel="apple-touch-icon" sizes="192x192" href="%sveltekit.assets%/icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="%sveltekit.assets%/icons/icon-512.png" />
     <title>KCHNG - Labor-Backed Community Currency | Live on Stellar Mainnet</title>
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "KCHNG",
+      "url": "https://kachi.ng",
+      "logo": "https://kachi.ng/icons/icon-512.png",
+      "description": "A labor-backed community currency with native on-chain demurrage on Stellar.",
+      "sameAs": []
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "KCHNG",
+      "url": "https://kachi.ng",
+      "description": "Labor-backed community currency on Stellar where 30 minutes work = 1000 KCHNG = 1 local community meal.",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "All",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "KCHNG"
+      }
+    }
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

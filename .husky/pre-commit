@@ -1,4 +1,24 @@
 #!/usr/bin/env sh
+echo "🔍 Running pre-commit checks..."
 
-# Run contract checks before committing
+# Run contract clippy (soft fail)
+echo "📋 Running contract clippy..."
 cd packages/contracts && cargo clippy -- -W clippy::all --allow=clippy::bool_comparison
+cd ../..
+
+# Frontend build verification
+echo "🏗️  Verifying frontend build..."
+cd packages/frontend
+if ! pnpm build; then
+  echo "❌ Frontend build failed. Please fix errors before committing."
+  exit 1
+fi
+
+# Smoke test
+echo "💨 Running smoke test..."
+if ! pnpm test:smoke; then
+  echo "❌ Smoke test failed."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"

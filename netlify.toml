@@ -1,7 +1,20 @@
 [build]
   base    = "packages/frontend"
-  command  = "pnpm build"
+  command  = "pnpm build && pnpm test:smoke"
   publish = "build"
+
+[build.environment]
+  NODE_VERSION = "20.19"
+  NODE_ENV = "production"
+
+# Lighthouse - Performance, Accessibility, SEO monitoring
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+  [plugins.inputs.thresholds]
+    performance = 0.9
+    accessibility = 0.9
+    best-practices = 0.9
+    seo = 0.9
 
 [[redirects]]
   from = "/*"
@@ -12,6 +25,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
