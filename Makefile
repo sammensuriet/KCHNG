@@ -1,4 +1,4 @@
-.PHONY: help install build test lint clean dev contract-build contract-test
+.PHONY: help install build test lint clean dev contract-build contract-optimize contract-test
 
 help: ## Show this help message
 	@echo "KCHNG Development Commands"
@@ -8,7 +8,8 @@ help: ## Show this help message
 	@echo ""
 	@echo "Building:"
 	@echo "  make build        Build all packages"
-	@echo "  make contract-build  Build Soroban contract"
+	@echo "  make contract-build  Build Soroban contract (includes optimize)"
+	@echo "  make contract-optimize  Optimize WASM for deployment"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test         Run all tests"
@@ -27,8 +28,12 @@ install: ## Install dependencies
 build: ## Build all packages
 	pnpm build
 
-contract-build: ## Build Soroban contract
+contract-build: ## Build Soroban contract (includes optimize)
 	cd packages/contracts && cargo build --release --target wasm32-unknown-unknown
+	stellar contract optimize --wasm packages/contracts/target/wasm32-unknown-unknown/release/kchng_contract.wasm
+
+contract-optimize: ## Optimize WASM for deployment
+	stellar contract optimize --wasm packages/contracts/target/wasm32-unknown-unknown/release/kchng_contract.wasm
 
 contract-test: ## Run contract tests
 	cd packages/contracts && cargo test
