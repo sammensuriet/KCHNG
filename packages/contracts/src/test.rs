@@ -6,6 +6,31 @@ use soroban_sdk::testutils::Address as _;
 use soroban_sdk::testutils::Ledger as _;
 
 use crate::{KchngToken, KchngTokenClient, WorkType, ClaimStatus, ProposalType, ProposalStatus, GraceType, RoleType, ReputationData};
+use soroban_sdk::testutils::LedgerInfo;
+
+// ==========================================================================
+// TEST HELPERS
+// ==========================================================================
+
+/// Advance ledger time by specified seconds (temporary helper for tests)
+fn advance_time(env: &Env, seconds: u64) {
+    let current_info = env.ledger().get();
+    env.ledger().set(LedgerInfo {
+        sequence_number: current_info.sequence_number + 1,
+        timestamp: current_info.timestamp + seconds,
+        protocol_version: current_info.protocol_version,
+        base_reserve: current_info.base_reserve,
+        min_persistent_entry_ttl: current_info.min_persistent_entry_ttl,
+        min_temp_entry_ttl: current_info.min_temp_entry_ttl,
+        max_entry_ttl: current_info.max_entry_ttl,
+        network_id: current_info.network_id,
+    });
+}
+
+/// Advance ledger by 24 hours (TRANSFER_COOLDOWN_SECONDS)
+fn advance_24_hours(env: &Env) {
+    advance_time(env, 86_400);
+}
 
 // ==========================================================================
 // LEGACY TESTS (Basic Token Functionality)
@@ -206,6 +231,7 @@ fn test_submit_work_claim() {
     let verifier2 = Address::generate(&env);
     let stake_amount = U256::from_u32(&env, 100_000);
     client.transfer(&admin, &verifier, &stake_amount);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &stake_amount);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
@@ -261,6 +287,7 @@ fn test_approve_work_claim() {
     client.register_verifier(&verifier, &governor);
 
     let verifier2 = Address::generate(&env);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &stake_amount);
     client.join_trust(&verifier2, &governor);
     client.register_verifier(&verifier2, &governor);
@@ -759,7 +786,6 @@ fn test_proposal_full_lifecycle() {
 }
 
 #[test]
-#[should_panic(expected = "attempt to divide by zero")]
 fn test_proposal_expiration_no_votes() {
     let env = Env::default();
     env.mock_all_auths();
@@ -772,7 +798,10 @@ fn test_proposal_expiration_no_votes() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust with at least 2 members
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+
+    // Give governor tokens for proposal stake (100 KCHNG required)
+    client.transfer(&admin, &governor, &U256::from_u32(&env, 200));
     client.join_trust(&voter1, &governor);
 
     // Create proposal
@@ -822,9 +851,11 @@ fn test_proposal_expiration_no_votes() {
         network_id: current_info.network_id,
     });
 
-    // Process with no votes - should panic due to division by zero
-    // (This reveals a bug in the contract's quorum calculation)
+    // Process with no votes - should expire gracefully (not panic)
+    // Contract handles zero votes by expiring the proposal
     client.process_proposal(&proposal_id);
+    let proposal = client.get_proposal(&proposal_id);
+    assert_eq!(proposal.status, ProposalStatus::Expired);
 }
 
 #[test]
@@ -1035,7 +1066,9 @@ fn test_grace_period_pause_demurrage() {
 
     // Setup verifiers for work claims
     let verifier_stake = U256::from_u32(&env, 100_000);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier, &verifier_stake);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &verifier_stake);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
@@ -1162,7 +1195,9 @@ fn test_grace_period_annual_limit() {
 
     // Setup verifiers for work claims
     let verifier_stake = U256::from_u32(&env, 100_000);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier, &verifier_stake);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &verifier_stake);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
@@ -1237,7 +1272,9 @@ fn test_grace_period_annual_limit_exceeded() {
 
     // Setup verifiers for work claims
     let verifier_stake = U256::from_u32(&env, 100_000);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier, &verifier_stake);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &verifier_stake);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
@@ -1324,7 +1361,9 @@ fn test_grace_period_duration_limits() {
 
     // Setup verifiers for work claims
     let verifier_stake = U256::from_u32(&env, 100_000);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier, &verifier_stake);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &verifier_stake);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
@@ -1401,7 +1440,9 @@ fn test_grace_period_duration_limit_exceeded() {
 
     // Setup verifiers for work claims
     let verifier_stake = U256::from_u32(&env, 100_000);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier, &verifier_stake);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &verifier_stake);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
@@ -1463,7 +1504,9 @@ fn test_grace_period_is_in_grace() {
 
     // Setup verifiers for work claims
     let verifier_stake = U256::from_u32(&env, 100_000);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier, &verifier_stake);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &verifier_stake);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
@@ -2283,9 +2326,9 @@ fn test_transfer_minimum_amount() {
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
-    // Transfer exactly minimum amount (10 KCHNG) - should succeed
-    client.transfer(&admin, &user, &U256::from_u32(&env, 10));
-    assert_eq!(client.balance(&user), U256::from_u32(&env, 10));
+    // Transfer exactly minimum amount (100 KCHNG) - should succeed
+    client.transfer(&admin, &user, &U256::from_u32(&env, 100));
+    assert_eq!(client.balance(&user), U256::from_u32(&env, 100));
 }
 
 #[test]
@@ -2320,7 +2363,7 @@ fn test_transfer_cooldown_second_transfer_fails() {
     client.transfer(&admin, &user, &U256::from_u32(&env, 100));
 
     // Second transfer immediately - should fail due to 24h cooldown
-    client.transfer(&admin, &user, &U256::from_u32(&env, 10));
+    client.transfer(&admin, &user, &U256::from_u32(&env, 100));
 }
 
 #[test]
@@ -2352,8 +2395,8 @@ fn test_transfer_cooldown_after_24_hours() {
     });
 
     // Second transfer after 24h - should succeed
-    client.transfer(&admin, &user, &U256::from_u32(&env, 10));
-    assert_eq!(client.balance(&user), U256::from_u32(&env, 110));
+    client.transfer(&admin, &user, &U256::from_u32(&env, 100));
+    assert_eq!(client.balance(&user), U256::from_u32(&env, 200));
 }
 
 #[test]
@@ -2541,7 +2584,9 @@ fn test_grace_period_contribution_increased_to_100() {
     client.join_trust(&worker, &governor);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
     client.register_verifier(&verifier2, &governor);
@@ -2825,6 +2870,7 @@ fn test_verifier_reputation_on_approval() {
     // Register verifiers
     let stake_amount = U256::from_u32(&env, 100_000);
     client.transfer(&admin, &verifier, &stake_amount);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &stake_amount);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
@@ -2880,6 +2926,7 @@ fn test_worker_reputation_on_claim_approved() {
     // Register verifiers
     let stake_amount = U256::from_u32(&env, 100_000);
     client.transfer(&admin, &verifier, &stake_amount);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &stake_amount);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
@@ -2935,6 +2982,7 @@ fn test_worker_reputation_on_claim_rejected() {
     // Register verifiers
     let stake_amount = U256::from_u32(&env, 100_000);
     client.transfer(&admin, &verifier, &stake_amount);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &stake_amount);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
@@ -3210,6 +3258,7 @@ fn test_oracle_reputation_on_grace_period() {
     // Setup verifiers and worker with contribution hours
     let verifier_stake = U256::from_u32(&env, 100_000);
     client.transfer(&admin, &verifier, &verifier_stake);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &verifier_stake);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);

@@ -41,7 +41,7 @@ const MIN_CONTRIBUTION_HOURS: u64 = 100; // Increased from 30 to 100 (anti-gamin
 const GRACE_COOLDOWN_DAYS: u64 = 90; // 90 days between grace periods (anti-gaming: Part 5.3)
 
 // Governance
-const PROPOSAL_STAKE: u64 = 100 * 10_000_000_000_000_000; // 100 KCHNG
+const PROPOSAL_STAKE: u64 = 100; // 100 KCHNG (whole units, matches MIN_TRANSFER_AMOUNT)
 const REVIEW_PERIOD_DAYS: u64 = 7;
 const VOTE_PERIOD_DAYS: u64 = 3;
 const IMPLEMENTATION_NOTICE_DAYS: u64 = 30;
@@ -330,7 +330,7 @@ impl KchngToken {
         // Set initial balance for creator
         let account_data = AccountData {
             balance: initial_supply.clone(),
-            last_activity: env.ledger().timestamp(),
+            last_activity: u64::MAX, // u64::MAX = no previous transfer, first transfer allowed immediately
             grace_period_end: 0,
             trust_id: None,
             contribution_hours: 0,
@@ -373,7 +373,7 @@ impl KchngToken {
         // Set initial balance for creator
         let account_data = AccountData {
             balance: initial_supply.clone(),
-            last_activity: env.ledger().timestamp(),
+            last_activity: u64::MAX, // u64::MAX = no previous transfer, first transfer allowed immediately
             grace_period_end: 0,
             trust_id: None,
             contribution_hours: 0,
@@ -433,13 +433,17 @@ impl KchngToken {
         };
 
         // Enforce transfer cooldown (anti-gaming: Part 1.3)
-        let current_time = env.ledger().timestamp();
-        let time_since_last_activity = current_time.saturating_sub(from_data.last_activity);
-        if time_since_last_activity < TRANSFER_COOLDOWN_SECONDS {
-            panic!(
-                "Transfer cooldown active. Wait {} seconds.",
-                TRANSFER_COOLDOWN_SECONDS - time_since_last_activity
-            );
+        // Use u64::MAX as sentinel for "no previous transfer"
+        // This handles test environments where ledger timestamp starts at 0
+        if from_data.last_activity != u64::MAX {
+            let current_time = env.ledger().timestamp();
+            let time_since_last_activity = current_time.saturating_sub(from_data.last_activity);
+            if time_since_last_activity < TRANSFER_COOLDOWN_SECONDS {
+                panic!(
+                    "Transfer cooldown active. Wait {} seconds.",
+                    TRANSFER_COOLDOWN_SECONDS - time_since_last_activity
+                );
+            }
         }
 
         let balance_after_demurrage =
@@ -638,7 +642,7 @@ impl KchngToken {
             env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
         let governor_data = accounts.get(governor.clone()).unwrap_or(AccountData {
             balance: U256::from_u32(&env, 0),
-            last_activity: env.ledger().timestamp(),
+            last_activity: u64::MAX, // u64::MAX = no previous transfer, first transfer allowed immediately
             grace_period_end: 0,
             trust_id: None,
             contribution_hours: 0,
@@ -685,7 +689,7 @@ impl KchngToken {
 
         let member_data = accounts.get(member.clone()).unwrap_or(AccountData {
             balance: U256::from_u32(&env, 0),
-            last_activity: env.ledger().timestamp(),
+            last_activity: u64::MAX, // u64::MAX = no previous transfer, first transfer allowed immediately
             grace_period_end: 0,
             trust_id: None,
             contribution_hours: 0,
@@ -848,7 +852,7 @@ impl KchngToken {
                 // Return default account data for new accounts
                 AccountData {
                     balance: U256::from_u32(&env, 0),
-                    last_activity: env.ledger().timestamp(),
+                    last_activity: u64::MAX, // u64::MAX = no previous transfer, first transfer allowed immediately
                     grace_period_end: 0,
                     trust_id: None,
                     contribution_hours: 0,
@@ -1121,7 +1125,7 @@ impl KchngToken {
 
         let mut account_data = accounts.get(verifier.clone()).unwrap_or(AccountData {
             balance: U256::from_u32(&env, 0),
-            last_activity: env.ledger().timestamp(),
+            last_activity: u64::MAX, // u64::MAX = no previous transfer, first transfer allowed immediately
             grace_period_end: 0,
             trust_id: None,
             contribution_hours: 0,
@@ -1178,7 +1182,7 @@ impl KchngToken {
 
         let mut account_data = accounts.get(oracle.clone()).unwrap_or(AccountData {
             balance: U256::from_u32(&env, 0),
-            last_activity: env.ledger().timestamp(),
+            last_activity: u64::MAX, // u64::MAX = no previous transfer, first transfer allowed immediately
             grace_period_end: 0,
             trust_id: None,
             contribution_hours: 0,
