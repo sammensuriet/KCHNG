@@ -31,7 +31,6 @@ const initialState: WalletState = {
 };
 
 let walletsKit: any = null;
-let modalElement: any = null;
 
 function createWalletStore() {
   const { subscribe, set, update } = writable<WalletState>(initialState);
@@ -48,8 +47,8 @@ function createWalletStore() {
     try {
       console.log("[Wallet] Starting connection for network:", network);
 
-      // Dynamically import the wallet kit and modal
-      const { StellarWalletsKit, allowAllModules, WalletNetwork, StellarWalletsModal } = await import("@creit.tech/stellar-wallets-kit");
+      // Dynamically import the wallet kit
+      const { StellarWalletsKit, allowAllModules, WalletNetwork } = await import("@creit.tech/stellar-wallets-kit");
 
       // Map network name to WalletNetwork enum
       let walletNetwork: string;
@@ -70,7 +69,7 @@ function createWalletStore() {
           walletNetwork = WalletNetwork.TESTNET;
       }
 
-      // Initialize the kit
+      // Initialize the kit if not already created
       if (!walletsKit) {
         walletsKit = new StellarWalletsKit({
           modules: allowAllModules(),
@@ -78,16 +77,18 @@ function createWalletStore() {
         });
       }
 
-      // Create and show the modal for wallet selection
-      console.log("[Wallet] Creating modal");
-      const modal = new StellarWalletsModal({
-        onWalletSelected: (wallet: any) => {
+      // Open the modal for wallet selection using the kit's openModal method
+      console.log("[Wallet] Opening modal");
+      await walletsKit.openModal({
+        onWalletSelected: async (wallet: { id: string; name: string }) => {
           console.log("[Wallet] Wallet selected:", wallet);
-        },
-        onConnected: (wallet: any) => {
-          console.log("[Wallet] Connected to wallet:", wallet);
-          // Get the address from the kit
-          walletsKit.getAddress().then(({ address }: any) => {
+
+          // Set the selected wallet
+          await walletsKit.setWallet(wallet.id);
+
+          // Get the address
+          try {
+            const { address } = await walletsKit.getAddress();
             console.log("[Wallet] Got address:", address);
             update((s) => ({
               ...s,
@@ -98,33 +99,24 @@ function createWalletStore() {
               error: null,
             }));
             loadBalance(address, network);
-          }).catch((err: any) => {
+          } catch (err: any) {
             console.error("[Wallet] Error getting address:", err);
             update((s) => ({
               ...s,
               error: err.message || "Failed to get wallet address",
             }));
-          });
+          }
         },
-        onDisconnected: () => {
-          console.log("[Wallet] Disconnected");
-          set(initialState);
+        onClosed: (err?: Error) => {
+          if (err) {
+            console.error("[Wallet] Modal closed with error:", err);
+            update((s) => ({
+              ...s,
+              error: err.message || "Wallet selection cancelled",
+            }));
+          }
         },
-        onError: (err: any) => {
-          console.error("[Wallet] Modal error:", err);
-          update((s) => ({
-            ...s,
-            error: err.message || "Wallet connection failed",
-          }));
-        },
-        network: walletNetwork,
-        allowedWallets: await walletsKit.getSupportedWallets(),
       });
-
-      // Show the modal
-      console.log("[Wallet] Opening modal");
-      modal.open();
-      modalElement = modal;
 
     } catch (e: unknown) {
       console.error("[Wallet] Connection error:", e);
@@ -141,14 +133,6 @@ function createWalletStore() {
    * Disconnect wallet
    */
   function disconnect() {
-    if (modalElement) {
-      try {
-        modalElement.close();
-      } catch (e) {
-        console.error("[Wallet] Error closing modal:", e);
-      }
-      modalElement = null;
-    }
     if (walletsKit) {
       walletsKit.disconnect();
       walletsKit = null;
@@ -202,7 +186,6 @@ function createWalletStore() {
     if (state.connected) {
       // Disconnect and reconnect with new network
       walletsKit = null;
-      modalElement = null;
       await connect(network);
     } else {
       update((s) => ({ ...s, network }));
