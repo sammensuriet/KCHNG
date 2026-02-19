@@ -41,7 +41,7 @@ fn test_init() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     // Register contract with constructor arguments
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
@@ -60,7 +60,7 @@ fn test_transfer() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
     let transfer_amount = U256::from_u32(&env, 100);
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
@@ -81,7 +81,7 @@ fn test_demurrage_application() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -104,7 +104,7 @@ fn test_mint() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
     let mint_amount = U256::from_u32(&env, 50_000);
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
@@ -127,7 +127,7 @@ fn test_insufficient_balance() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -147,7 +147,7 @@ fn test_register_trust() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -176,7 +176,7 @@ fn test_join_trust() {
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let member = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -212,7 +212,7 @@ fn test_submit_work_claim() {
     let admin = Address::generate(&env);
     let worker = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -266,7 +266,7 @@ fn test_approve_work_claim() {
     let worker = Address::generate(&env);
     let verifier = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -321,13 +321,13 @@ fn test_register_oracle() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let oracle = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
-    // Give oracle enough stake (500 KCHNG required)
-    let stake_amount = U256::from_u32(&env, 500_000);
+    // Give oracle enough stake (5M KCHNG required)
+    let stake_amount = U256::from_u32(&env, 5_000_000);
     client.transfer(&admin, &oracle, &stake_amount);
 
     // Register oracle
@@ -347,7 +347,7 @@ fn test_activate_grace_period() {
     let oracle = Address::generate(&env);
     let account = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -357,16 +357,17 @@ fn test_activate_grace_period() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
     client.join_trust(&account, &governor);
 
     // Setup oracle
-    let stake_amount = U256::from_u32(&env, 500_000);
+    let stake_amount = U256::from_u32(&env, 5_000_000);
     client.transfer(&admin, &oracle, &stake_amount);
     client.register_oracle(&oracle);
 
     // Give account some balance
+    advance_24_hours(&env);
     client.transfer(&admin, &account, &U256::from_u32(&env, 100));
 
     // Note: Account needs 30+ contribution hours to qualify for grace period
@@ -398,7 +399,7 @@ fn test_calculate_exchange_rate() {
     let admin = Address::generate(&env);
     let trust_a = Address::generate(&env);
     let trust_b = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -425,7 +426,7 @@ fn test_cross_trust_swap() {
     let trust_a = Address::generate(&env);
     let trust_b = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -504,7 +505,7 @@ fn test_cross_trust_simulate_calculation() {
     let admin = Address::generate(&env);
     let trust_a = Address::generate(&env);
     let trust_b = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -543,7 +544,7 @@ fn test_cross_trust_with_zero_balance_should_panic() {
     let trust_a = Address::generate(&env);
     let trust_b = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -567,7 +568,7 @@ fn test_cross_trust_rate_precision() {
     let trust_a = Address::generate(&env);
     let trust_b = Address::generate(&env);
     let trust_c = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -607,13 +608,16 @@ fn test_create_proposal() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+
+    // Give governor tokens for proposal stake (100 KCHNG required)
+    client.transfer(&admin, &governor, &U256::from_u32(&env, 200));
 
     // Create rate change proposal
     let proposal_id = client.create_proposal(
@@ -640,14 +644,16 @@ fn test_vote_on_proposal() {
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let voter = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust and proposal
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
     client.transfer(&admin, &voter, &U256::from_u32(&env, 100));
+    advance_24_hours(&env);
+    client.transfer(&admin, &governor, &U256::from_u32(&env, 200)); // For proposal stake
     client.join_trust(&voter, &governor);
 
     let proposal_id = client.create_proposal(
@@ -694,16 +700,19 @@ fn test_proposal_full_lifecycle() {
     let voter1 = Address::generate(&env);
     let voter2 = Address::generate(&env);
     let voter3 = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust with multiple members
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
     client.join_trust(&voter1, &governor);
     client.join_trust(&voter2, &governor);
     client.join_trust(&voter3, &governor);
+
+    // Give governor tokens for proposal stake (100 KCHNG required)
+    client.transfer(&admin, &governor, &U256::from_u32(&env, 200));
 
     // Create proposal
     let proposal_id = client.create_proposal(
@@ -792,7 +801,7 @@ fn test_proposal_expiration_no_votes() {
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let voter1 = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -869,13 +878,13 @@ fn test_emergency_rate_change() {
     let voter3 = Address::generate(&env);
     let voter4 = Address::generate(&env);
     let voter5 = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
     client.join_trust(&voter1, &governor);
     client.join_trust(&voter2, &governor);
     client.join_trust(&voter3, &governor);
@@ -968,7 +977,7 @@ fn test_proposal_quorum_requirement() {
     let voter2 = Address::generate(&env);
     let voter3 = Address::generate(&env);
     let voter4 = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -976,11 +985,14 @@ fn test_proposal_quorum_requirement() {
     // Setup trust with 5 members (governor + 4 voters)
     // 40% quorum of 5 = 5 * 40 / 100 = 200 / 100 = 2
     // So we need at least 2 votes for quorum
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
     client.join_trust(&voter1, &governor);
     client.join_trust(&voter2, &governor);
     client.join_trust(&voter3, &governor);
     client.join_trust(&voter4, &governor);
+
+    // Give governor tokens for proposal stake (100 KCHNG required)
+    client.transfer(&admin, &governor, &U256::from_u32(&env, 200));
 
     // Create proposal
     let proposal_id = client.create_proposal(
@@ -1046,7 +1058,7 @@ fn test_grace_period_pause_demurrage() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1135,7 +1147,7 @@ fn test_grace_period_contribution_requirement() {
     let oracle = Address::generate(&env);
     let account = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1175,7 +1187,7 @@ fn test_grace_period_annual_limit() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1252,7 +1264,7 @@ fn test_grace_period_annual_limit_exceeded() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1318,7 +1330,7 @@ fn test_grace_period_oracle_stake() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let oracle = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1341,7 +1353,7 @@ fn test_grace_period_duration_limits() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1420,7 +1432,7 @@ fn test_grace_period_duration_limit_exceeded() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1484,7 +1496,7 @@ fn test_grace_period_is_in_grace() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1571,7 +1583,7 @@ fn test_demurrage_calculation_no_truncation() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1634,7 +1646,7 @@ fn test_demurrage_multiple_periods() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1686,7 +1698,7 @@ fn test_reputation_increases_on_approval() {
     let worker = Address::generate(&env);
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env); // Second verifier needed
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1739,7 +1751,7 @@ fn test_reputation_increases_on_rejection() {
     let worker = Address::generate(&env);
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env); // Second verifier needed
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1787,7 +1799,7 @@ fn test_reputation_caps_at_1000() {
     let worker = Address::generate(&env);
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env); // Second verifier needed
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1847,7 +1859,7 @@ fn test_role_score_initializes_to_neutral() {
     let governor = Address::generate(&env);
     let verifier = Address::generate(&env);
     let scorer = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1887,7 +1899,7 @@ fn test_role_score_positive_delta() {
     let governor = Address::generate(&env);
     let verifier = Address::generate(&env);
     let scorer = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1926,7 +1938,7 @@ fn test_role_score_negative_delta() {
     let governor = Address::generate(&env);
     let verifier = Address::generate(&env);
     let scorer = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -1965,7 +1977,7 @@ fn test_role_score_upper_bound() {
     let governor = Address::generate(&env);
     let verifier = Address::generate(&env);
     let scorer = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2001,7 +2013,7 @@ fn test_role_score_lower_bound() {
     let governor = Address::generate(&env);
     let verifier = Address::generate(&env);
     let scorer = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2037,7 +2049,7 @@ fn test_role_score_multiple_aspects() {
     let governor = Address::generate(&env);
     let verifier = Address::generate(&env);
     let scorer = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2081,7 +2093,7 @@ fn test_role_score_prevent_self_scoring() {
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let verifier = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2121,7 +2133,7 @@ fn test_work_claim_mints_new_tokens() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
 
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
@@ -2195,7 +2207,7 @@ fn test_multiple_work_claims_increase_supply() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
 
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
@@ -2214,6 +2226,7 @@ fn test_multiple_work_claims_increase_supply() {
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
     client.register_verifier(&verifier2, &governor);
@@ -2270,7 +2283,7 @@ fn test_role_score_verifier_not_found() {
     let admin = Address::generate(&env);
     let verifier = Address::generate(&env);
     let scorer = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2290,7 +2303,7 @@ fn test_cannot_transfer_to_self() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2306,7 +2319,7 @@ fn test_transfer_below_minimum() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2321,7 +2334,7 @@ fn test_transfer_minimum_amount() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2337,7 +2350,7 @@ fn test_transfer_cooldown_first_transfer() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2354,7 +2367,7 @@ fn test_transfer_cooldown_second_transfer_fails() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2372,7 +2385,7 @@ fn test_transfer_cooldown_after_24_hours() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2405,7 +2418,7 @@ fn test_governor_cannot_create_multiple_trusts() {
     let env = Env::default();
     env.mock_all_auths();
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&governor, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2434,7 +2447,7 @@ fn test_leave_trust() {
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let member = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2477,7 +2490,7 @@ fn test_leave_trust_not_in_trust() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2572,7 +2585,7 @@ fn test_grace_period_contribution_increased_to_100() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2627,7 +2640,7 @@ fn test_grace_period_cooldown_first_succeeds() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2685,7 +2698,7 @@ fn test_grace_period_cooldown_second_fails() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2756,7 +2769,7 @@ fn test_governance_no_division_by_zero() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2766,8 +2779,11 @@ fn test_governance_no_division_by_zero() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
+
+    // Give governor tokens for proposal stake (100 KCHNG required)
+    client.transfer(&admin, &governor, &U256::from_u32(&env, 200));
 
     // Create proposal
     let proposal_id = client.create_proposal(
@@ -2826,7 +2842,7 @@ fn test_reputation_initialization() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2853,7 +2869,7 @@ fn test_verifier_reputation_on_approval() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2909,7 +2925,7 @@ fn test_worker_reputation_on_claim_approved() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2965,7 +2981,7 @@ fn test_worker_reputation_on_claim_rejected() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -3015,7 +3031,7 @@ fn test_governor_reputation_on_member_join() {
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let member = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -3050,7 +3066,7 @@ fn test_governor_reputation_on_member_leave() {
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
     let member = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -3082,7 +3098,7 @@ fn test_verifier_probation_check() {
     let admin = Address::generate(&env);
     let verifier = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -3119,7 +3135,7 @@ fn test_unregister_verifier() {
     let admin = Address::generate(&env);
     let verifier = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -3158,7 +3174,7 @@ fn test_multi_trust_verifier_check() {
     let admin = Address::generate(&env);
     let verifier = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -3187,7 +3203,7 @@ fn test_reputation_decay() {
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -3233,7 +3249,7 @@ fn test_oracle_reputation_on_grace_period() {
     let verifier = Address::generate(&env);
     let verifier2 = Address::generate(&env);
     let governor = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 1_000_000);
+    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
