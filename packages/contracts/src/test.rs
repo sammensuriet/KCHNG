@@ -2507,8 +2507,8 @@ fn test_mint_capped_at_max_supply() {
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
 
-    // Initial supply at max cap
-    let initial_supply = U256::from_u128(&env, 1_000_000_000_000_000_000_u128);
+    // Initial supply at max cap (1 quintillion = 10^21)
+    let initial_supply = U256::from_u128(&env, 1_000_000_000_000_000_000_000_u128);
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
