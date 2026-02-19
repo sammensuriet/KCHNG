@@ -10,4 +10,8 @@ export default defineConfig({
       target: "es2020",
     },
   },
+  build: {
+    // Increase chunk size warning limit (stellar-sdk is large)
+    chunkSizeWarningLimit: 1000,
+  },
 });
