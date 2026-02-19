@@ -1072,7 +1072,7 @@ fn test_grace_period_pause_demurrage() {
     );
 
     // Setup oracle
-    let stake_amount = U256::from_u32(&env, 500_000);
+    let stake_amount = U256::from_u32(&env, 5_000_000);
     client.transfer(&admin, &oracle, &stake_amount);
     client.register_oracle(&oracle);
 
@@ -1090,9 +1090,9 @@ fn test_grace_period_pause_demurrage() {
     // Worker joins trust and earns contribution hours
     client.join_trust(&worker, &governor);
 
-    // Submit and approve work claims to reach 30+ hours
-    // Each claim is 60 minutes (1 hour), need 30 claims for 30 hours
-    for i in 0..30 {
+    // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
+    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
+    for i in 0..100 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
@@ -1161,7 +1161,7 @@ fn test_grace_period_contribution_requirement() {
     );
 
     // Setup oracle
-    let stake_amount = U256::from_u32(&env, 500_000);
+    let stake_amount = U256::from_u32(&env, 5_000_000);
     client.transfer(&admin, &oracle, &stake_amount);
     client.register_oracle(&oracle);
 
@@ -1201,7 +1201,7 @@ fn test_grace_period_annual_limit() {
     );
 
     // Setup oracle
-    let stake_amount = U256::from_u32(&env, 500_000);
+    let stake_amount = U256::from_u32(&env, 5_000_000);
     client.transfer(&admin, &oracle, &stake_amount);
     client.register_oracle(&oracle);
 
@@ -1219,9 +1219,9 @@ fn test_grace_period_annual_limit() {
     // Worker joins trust and earns contribution hours
     client.join_trust(&worker, &governor);
 
-    // Submit and approve work claims to reach 30+ hours
-    // Each claim is 60 minutes (1 hour), need 30 claims for 30 hours
-    for i in 0..30 {
+    // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
+    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
+    for i in 0..100 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
@@ -1278,7 +1278,7 @@ fn test_grace_period_annual_limit_exceeded() {
     );
 
     // Setup oracle
-    let stake_amount = U256::from_u32(&env, 500_000);
+    let stake_amount = U256::from_u32(&env, 5_000_000);
     client.transfer(&admin, &oracle, &stake_amount);
     client.register_oracle(&oracle);
 
@@ -1296,9 +1296,9 @@ fn test_grace_period_annual_limit_exceeded() {
     // Worker joins trust and earns contribution hours
     client.join_trust(&worker, &governor);
 
-    // Submit and approve work claims to reach 30+ hours
-    // Each claim is 60 minutes (1 hour), need 30 claims for 30 hours
-    for i in 0..30 {
+    // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
+    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
+    for i in 0..100 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
@@ -1367,7 +1367,7 @@ fn test_grace_period_duration_limits() {
     );
 
     // Setup oracle
-    let stake_amount = U256::from_u32(&env, 500_000);
+    let stake_amount = U256::from_u32(&env, 5_000_000);
     client.transfer(&admin, &oracle, &stake_amount);
     client.register_oracle(&oracle);
 
@@ -1385,9 +1385,9 @@ fn test_grace_period_duration_limits() {
     // Worker joins trust and earns contribution hours
     client.join_trust(&worker, &governor);
 
-    // Submit and approve work claims to reach 30+ hours
-    // Each claim is 60 minutes (1 hour), need 30 claims for 30 hours
-    for i in 0..30 {
+    // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
+    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
+    for i in 0..100 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
@@ -1446,7 +1446,7 @@ fn test_grace_period_duration_limit_exceeded() {
     );
 
     // Setup oracle
-    let stake_amount = U256::from_u32(&env, 500_000);
+    let stake_amount = U256::from_u32(&env, 5_000_000);
     client.transfer(&admin, &oracle, &stake_amount);
     client.register_oracle(&oracle);
 
@@ -1464,9 +1464,9 @@ fn test_grace_period_duration_limit_exceeded() {
     // Worker joins trust and earns contribution hours
     client.join_trust(&worker, &governor);
 
-    // Submit and approve work claims to reach 30+ hours
-    // Each claim is 60 minutes (1 hour), need 30 claims for 30 hours
-    for i in 0..30 {
+    // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
+    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
+    for i in 0..100 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
@@ -1510,7 +1510,7 @@ fn test_grace_period_is_in_grace() {
     );
 
     // Setup oracle
-    let stake_amount = U256::from_u32(&env, 500_000);
+    let stake_amount = U256::from_u32(&env, 5_000_000);
     client.transfer(&admin, &oracle, &stake_amount);
     client.register_oracle(&oracle);
 
@@ -1528,9 +1528,9 @@ fn test_grace_period_is_in_grace() {
     // Worker joins trust and earns contribution hours
     client.join_trust(&worker, &governor);
 
-    // Submit and approve work claims to reach 30+ hours
-    // Each claim is 60 minutes (1 hour), need 30 claims for 30 hours
-    for i in 0..30 {
+    // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
+    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
+    for i in 0..100 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
@@ -1704,13 +1704,14 @@ fn test_reputation_increases_on_approval() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust first
-    client.register_trust(&admin, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&admin, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
     client.join_trust(&worker, &admin);
     client.join_trust(&verifier, &admin);
     client.join_trust(&verifier2, &admin);
 
     // Give verifiers tokens for staking (minimum stake is 100,000 KCHNG)
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
 
     // Register both verifiers (need at least 2 for work claim submission)
@@ -1757,13 +1758,14 @@ fn test_reputation_increases_on_rejection() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust first
-    client.register_trust(&admin, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&admin, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
     client.join_trust(&worker, &admin);
     client.join_trust(&verifier, &admin);
     client.join_trust(&verifier2, &admin);
 
     // Give verifiers tokens for staking (minimum stake is 100,000 KCHNG)
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
 
     // Register both verifiers
@@ -1805,13 +1807,14 @@ fn test_reputation_caps_at_1000() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust first
-    client.register_trust(&admin, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&admin, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
     client.join_trust(&worker, &admin);
     client.join_trust(&verifier, &admin);
     client.join_trust(&verifier2, &admin);
 
     // Give verifiers tokens for staking (minimum stake is 100,000 KCHNG)
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
 
     // Register both verifiers
@@ -2145,7 +2148,7 @@ fn test_work_claim_mints_new_tokens() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Worker joins trust (creates account)
@@ -2155,6 +2158,7 @@ fn test_work_claim_mints_new_tokens() {
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
     client.register_verifier(&verifier2, &governor);
@@ -2413,7 +2417,7 @@ fn test_transfer_cooldown_after_24_hours() {
 }
 
 #[test]
-#[should_panic(expected = "Governor can only register one trust")]
+#[should_panic(expected = "Governor needs 700+ reputation")]
 fn test_governor_cannot_create_multiple_trusts() {
     let env = Env::default();
     env.mock_all_auths();
@@ -2428,15 +2432,15 @@ fn test_governor_cannot_create_multiple_trusts() {
         &governor,
         &String::from_str(&env, "First Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
-    // Try to register second trust - should panic
+    // Try to register second trust - should panic (governor lacks 700+ reputation)
     client.register_trust(
         &governor,
         &String::from_str(&env, "Second Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 }
 
@@ -2494,6 +2498,9 @@ fn test_leave_trust_not_in_trust() {
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Give user tokens so they have an account
+    client.transfer(&admin, &user, &U256::from_u32(&env, 100));
 
     // Try to leave trust when not in one - should panic
     client.leave_trust(&user);
@@ -2646,13 +2653,15 @@ fn test_grace_period_cooldown_first_succeeds() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust, oracle, verifiers
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
     client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_000_000));
     client.register_oracle(&oracle);
     client.join_trust(&worker, &governor);
     client.join_trust(&verifier, &governor);
     client.join_trust(&verifier2, &governor);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier, &U256::from_u32(&env, 100_000));
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &U256::from_u32(&env, 100_000));
     client.register_verifier(&verifier, &governor);
     client.register_verifier(&verifier2, &governor);
@@ -3259,11 +3268,11 @@ fn test_oracle_reputation_on_grace_period() {
         &governor,
         &String::from_str(&env, "Test Trust"),
         &1200u32,
-        &30u64,
+        &28u64,
     );
 
     // Setup oracle
-    let oracle_stake = U256::from_u32(&env, 500_000);
+    let oracle_stake = U256::from_u32(&env, 5_000_000);
     client.transfer(&admin, &oracle, &oracle_stake);
     client.register_oracle(&oracle);
 
@@ -3273,6 +3282,7 @@ fn test_oracle_reputation_on_grace_period() {
 
     // Setup verifiers and worker with contribution hours
     let verifier_stake = U256::from_u32(&env, 100_000);
+    advance_24_hours(&env);
     client.transfer(&admin, &verifier, &verifier_stake);
     advance_24_hours(&env);
     client.transfer(&admin, &verifier2, &verifier_stake);
@@ -3282,8 +3292,8 @@ fn test_oracle_reputation_on_grace_period() {
     client.register_verifier(&verifier2, &governor);
     client.join_trust(&worker, &governor);
 
-    // Submit and approve work claims to get 30+ hours
-    for i in 0..30 {
+    // Submit and approve work claims to get 100+ hours
+    for i in 0..100 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
