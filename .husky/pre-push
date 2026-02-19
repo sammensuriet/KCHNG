@@ -3,3 +3,10 @@
 # Run contract tests before pushing
 echo "Running contract tests..."
 cd packages/contracts && cargo test --target x86_64-unknown-linux-gnu
+
+# Build and deploy frontend to Netlify
+echo "Building frontend..."
+cd /home/pokho/dev/KCHNG && pnpm --filter shared build && pnpm --filter frontend build
+
+echo "Deploying to Netlify..."
+netlify deploy --prod --dir=packages/frontend/build --no-build --filter=@kchng/frontend
