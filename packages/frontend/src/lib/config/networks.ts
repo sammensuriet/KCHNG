@@ -25,6 +25,6 @@ export function getKchngNetworkConfig(network: Network): NetworkConfig & {
 /**
  * Current active network (can be made configurable via UI later)
  */
-export const CURRENT_NETWORK: Network = "testnet";
+export const CURRENT_NETWORK: Network = "mainnet";
 
 export const networkConfig = getKchngNetworkConfig(CURRENT_NETWORK);
