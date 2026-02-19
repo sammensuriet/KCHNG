@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+# Run contract tests before pushing
+echo "Running contract tests..."
+cd packages/contracts && cargo test --target x86_64-unknown-linux-gnu
