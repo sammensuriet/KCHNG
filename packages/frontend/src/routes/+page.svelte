@@ -32,12 +32,37 @@
   {/if}
 </div>
 
+<div class="why-section">
+  <h2>Why KCHNG?</h2>
+  <div class="benefits-grid">
+    <div class="benefit">
+      <div class="benefit-icon">🍽️</div>
+      <h3>Real Value Anchor</h3>
+      <p>1 KCHNG unit = 1 community meal. Your labor has tangible, stable value.</p>
+    </div>
+    <div class="benefit">
+      <div class="benefit-icon">🤝</div>
+      <h3>Community Verified</h3>
+      <p>Work is validated by your peers, not algorithms. Trust is built through relationships.</p>
+    </div>
+    <div class="benefit">
+      <div class="benefit-icon">🔄</div>
+      <h3>Encourages Circulation</h3>
+      <p>Demurrage keeps currency moving, strengthening the local economy for everyone.</p>
+    </div>
+    <div class="benefit">
+      <div class="benefit-icon">🌐</div>
+      <h3>Transparent & Decentralized</h3>
+      <p>Built on Stellar blockchain. No hidden fees, no central authority controlling supply.</p>
+    </div>
+  </div>
+</div>
+
 <div class="info">
   <h2>What is Demurrage?</h2>
   <p>
-    Demurrage is a holding tax that encourages circulation. With KCHNG,
-    <strong>2 tokens are burned for every 7 days of account inactivity</strong>.
-    This keeps the currency moving in the community!
+    Demurrage keeps your community currency active. With KCHNG,
+    <strong>idle balances support community circulation</strong> — stay engaged to maintain your full balance.
   </p>
 </div>
 
@@ -99,21 +124,21 @@
 <style>
   .hero {
     text-align: center;
-    padding: 3rem 0;
+    padding: var(--space-xl) 0;
   }
 
   .live-badge {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-md);
   }
 
   .live-indicator {
     display: inline-block;
     width: 10px;
     height: 10px;
-    background: #10b981;
+    background: var(--color-success);
     border-radius: 50%;
     animation: pulse 2s infinite;
-    margin-right: 0.5rem;
+    margin-right: var(--space-sm);
   }
 
   @keyframes pulse {
@@ -128,66 +153,107 @@
   }
 
   .live-text {
-    color: #10b981;
+    color: var(--color-success);
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     letter-spacing: 0.05em;
   }
 
   .hero h1 {
-    font-size: 4rem;
+    font-size: var(--font-size-4xl);
     font-weight: 800;
     margin: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .tagline {
-    font-size: 1.5rem;
-    color: #666;
-    margin: 0.5rem 0;
+    font-size: var(--font-size-2xl);
+    color: var(--color-text-muted);
+    margin: var(--space-sm) 0;
   }
 
   .description {
-    font-size: 1.1rem;
-    color: #888;
+    font-size: var(--font-size-lg);
+    color: var(--color-text-light);
   }
 
   .contract-id {
-    margin-top: 1rem;
-    padding: 0.75rem 1rem;
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
     background: #f0fdf4;
-    border: 1px solid #10b981;
-    border-radius: 8px;
+    border: 1px solid var(--color-success);
+    border-radius: var(--radius-md);
     display: inline-block;
   }
 
   .contract-id small {
-    color: #6b7280;
-    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   .contract-id code {
-    color: #10b981;
-    font-size: 0.875rem;
+    color: var(--color-success);
+    font-size: var(--font-size-sm);
     font-family: monospace;
     background: transparent;
   }
 
+  .why-section {
+    margin: var(--space-xl) 0;
+    text-align: center;
+  }
+
+  .why-section h2 {
+    color: var(--color-text);
+    margin-bottom: var(--space-lg);
+  }
+
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+  }
+
+  .benefit {
+    padding: var(--space-lg);
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-lg);
+    text-align: center;
+  }
+
+  .benefit-icon {
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--space-md);
+  }
+
+  .benefit h3 {
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+    margin: 0 0 var(--space-sm) 0;
+  }
+
+  .benefit p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+
   .info {
-    margin: 2rem 0;
-    padding: 1.5rem;
-    border-radius: 8px;
-    background: #f8f9fa;
+    margin: var(--space-lg) 0;
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-subtle);
   }
 
   .info h2 {
     margin-top: 0;
-    color: #333;
+    color: var(--color-text);
   }
 
   .info ul {
@@ -195,50 +261,64 @@
   }
 
   .cta-section {
-    margin: 3rem 0;
+    margin: var(--space-xl) 0;
     text-align: center;
   }
 
   .cta-section h2 {
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-sm);
   }
 
   .cta-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 2rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
   }
 
   .cta-card {
-    background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 2rem 1rem;
+    background: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl) var(--space-md);
     text-decoration: none;
     color: inherit;
     transition: all 0.2s;
   }
 
   .cta-card:hover {
-    border-color: #667eea;
+    border-color: var(--color-primary);
     transform: translateY(-4px);
-    box-shadow: 0 8px 16px -4px rgb(0 0 0 / 0.1);
+    box-shadow: var(--shadow-lg);
   }
 
   .cta-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--space-md);
   }
 
   .cta-title {
     font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #374151;
+    margin-bottom: var(--space-sm);
+    color: var(--color-text);
   }
 
   .cta-desc {
-    font-size: 0.875rem;
-    color: #6b7280;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .benefits-grid,
+    .cta-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .benefits-grid,
+    .cta-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

@@ -205,22 +205,24 @@
       <li><strong>Cross-Trust:</strong> Exchange tokens between trusts at calculated rates</li>
     </ul>
   </div>
+
+  <p class="value-footer">30 min verified work = 1000 KCHNG = 1 community meal</p>
 </div>
 
 <style>
   .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: var(--space-lg);
   }
 
   h1 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--space-sm);
   }
 
   .subtitle {
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin: 0;
   }
 
@@ -228,25 +230,25 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-lg);
   }
 
   .btn-create {
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--color-gradient);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-weight: 500;
     cursor: pointer;
   }
 
   .create-form {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .create-form h2 {
@@ -254,96 +256,96 @@
   }
 
   .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-md);
   }
 
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    gap: var(--space-md);
   }
 
   label {
     display: block;
     font-weight: 500;
-    margin-bottom: 0.5rem;
-    color: #374151;
+    margin-bottom: var(--space-sm);
+    color: var(--color-text);
   }
 
   input {
     width: 100%;
-    padding: 0.75rem;
+    padding: var(--space-sm);
     border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 1rem;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
   }
 
   small {
     display: block;
-    color: #6b7280;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-xs);
   }
 
   .form-actions {
     display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
   }
 
   .form-actions button {
-    padding: 0.75rem 1.5rem;
+    padding: var(--space-sm) var(--space-lg);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-weight: 500;
     cursor: pointer;
   }
 
   .form-actions button:first-child {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     color: white;
   }
 
   .btn-cancel {
-    background: #f3f4f6 !important;
-    color: #374151 !important;
+    background: var(--color-border-light) !important;
+    color: var(--color-text) !important;
   }
 
   .loading, .empty-state {
     text-align: center;
-    padding: 3rem;
-    background: #f9fafb;
-    border-radius: 8px;
+    padding: var(--space-xl);
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-md);
   }
 
   .empty-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--space-md);
   }
 
   .trusts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 3rem;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
   }
 
   .trust-card {
-    background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 1.5rem;
+    background: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
     transition: all 0.2s;
   }
 
   .trust-card:hover {
-    border-color: #667eea;
+    border-color: var(--color-primary);
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    box-shadow: var(--shadow-md);
   }
 
   .trust-card.in-trust {
-    border-color: #10b981;
+    border-color: var(--color-success);
     background: #f0fdf4;
   }
 
@@ -351,39 +353,39 @@
     display: flex;
     justify-content: space-between;
     align-items: start;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-md);
   }
 
   .trust-header h3 {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: var(--font-size-xl);
   }
 
   .member-badge {
-    background: #10b981;
+    background: var(--color-success);
     color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
     font-weight: 500;
   }
 
   .trust-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
   }
 
   .trust-stat {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--space-xs);
   }
 
   .stat-label {
-    font-size: 0.75rem;
-    color: #6b7280;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
   }
 
   .stat-value {
@@ -392,29 +394,29 @@
 
   .stat-address {
     font-family: monospace;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
   }
 
   .rate-badge {
     background: #ede9fe;
     color: #7c3aed;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.875rem;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
   }
 
   .trust-actions button {
     width: 100%;
-    padding: 0.75rem;
+    padding: var(--space-sm);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .btn-join {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     color: white;
   }
 
@@ -428,41 +430,23 @@
     cursor: not-allowed;
   }
 
-  .info-box {
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
-    border-radius: 8px;
-    padding: 1.5rem;
-  }
-
-  .info-box h3 {
-    margin-top: 0;
-    color: #92400e;
-  }
-
-  .info-box p {
-    color: #78350f;
-    margin-bottom: 1rem;
-  }
-
-  .info-box ul {
-    margin: 0;
-    padding-left: 1.5rem;
-    color: #78350f;
-  }
-
-  .info-box li {
-    margin-bottom: 0.5rem;
+  .value-footer {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
   }
 
   @media (max-width: 640px) {
     .container {
-      padding: 1rem;
+      padding: var(--space-md);
     }
 
     .header-actions {
       flex-direction: column;
-      gap: 1rem;
+      gap: var(--space-md);
     }
 
     .trusts-grid {

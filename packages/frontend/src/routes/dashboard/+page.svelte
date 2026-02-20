@@ -82,11 +82,18 @@
           <span class="stat-value">{formatDate(accountData.last_activity)}</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">Days Inactive:</span>
-          <span class="stat-value {daysSinceActivity(accountData.last_activity) >= 7 ? 'warning' : ''}">
-            {daysSinceActivity(accountData.last_activity)} days
+          <span class="stat-label">Circulation Status:</span>
+          <span class="stat-value {daysSinceActivity(accountData.last_activity) >= 7 ? 'warning' : 'success'}">
+            {#if daysSinceActivity(accountData.last_activity) < 7}
+              Active
+            {:else}
+              {daysSinceActivity(accountData.last_activity)} days inactive
+            {/if}
           </span>
         </div>
+        {#if daysSinceActivity(accountData.last_activity) >= 7}
+          <p class="circulation-hint">Submit work or make a transfer to keep your balance active in the community.</p>
+        {/if}
         {#if accountData.grace_period_end > 0}
           <div class="grace-period">
             <span class="grace-badge">Grace Period Active</span>
@@ -170,48 +177,52 @@
   .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: var(--space-lg);
   }
 
   h1 {
-    font-size: 2rem;
-    margin-bottom: 2rem;
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--space-lg);
   }
 
   h2 {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
-    color: #374151;
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--space-md);
+    color: var(--color-text);
   }
 
   .loading, .error, .no-wallet {
     text-align: center;
-    padding: 3rem;
-    background: #f9fafb;
-    border-radius: 8px;
+    padding: var(--space-xl);
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-md);
   }
 
   .error {
-    color: #991b1b;
+    color: var(--color-error);
     background: #fee2e2;
+  }
+
+  .no-wallet {
+    composes: empty-state;
   }
 
   .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 3rem;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
   }
 
   .card {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 1.5rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
   }
 
   .balance-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     color: white;
   }
 
@@ -220,26 +231,26 @@
   }
 
   .balance-amount {
-    font-size: 2.5rem;
+    font-size: var(--font-size-4xl);
     font-weight: 700;
-    margin: 0.5rem 0;
+    margin: var(--space-sm) 0;
   }
 
   .balance-subtext {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     opacity: 0.9;
   }
 
   .stat-row {
     display: flex;
     justify-content: space-between;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #f3f4f6;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-border-light);
   }
 
   .stat-label {
-    color: #6b7280;
-    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
   }
 
   .stat-value {
@@ -251,42 +262,53 @@
   }
 
   .warning {
-    color: #dc2626;
+    color: var(--color-error);
+  }
+
+  .success {
+    color: var(--color-success);
+  }
+
+  .circulation-hint {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-top: var(--space-sm);
+    font-style: italic;
   }
 
   .grace-period {
-    margin-top: 1rem;
-    padding: 0.75rem;
+    margin-top: var(--space-md);
+    padding: var(--space-sm);
     background: #d1fae5;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
+    gap: var(--space-sm);
+    font-size: var(--font-size-sm);
   }
 
   .grace-badge {
-    background: #10b981;
+    background: var(--color-success);
     color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
     font-weight: 500;
   }
 
   .trust-info, .no-trust {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-md);
   }
 
   .no-trust p {
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin: 0;
   }
 
   .btn-view, .btn-join {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
     text-align: center;
     font-weight: 500;
     text-decoration: none;
@@ -294,35 +316,35 @@
   }
 
   .btn-view {
-    background: #f3f4f6;
-    color: #374151;
+    background: var(--color-border-light);
+    color: var(--color-text);
   }
 
   .btn-view:hover {
-    background: #e5e7eb;
+    background: var(--color-border);
   }
 
   .btn-join {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     color: white;
   }
 
   .actions-section {
-    margin-top: 3rem;
+    margin-top: var(--space-xl);
   }
 
   .actions-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
   }
 
   .action-card {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 1.5rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
     text-decoration: none;
     color: inherit;
     transition: all 0.2s;
@@ -333,41 +355,41 @@
   }
 
   .action-card:hover {
-    border-color: #667eea;
+    border-color: var(--color-primary);
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    box-shadow: var(--shadow-md);
   }
 
   .action-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--space-sm);
   }
 
   .action-title {
     font-weight: 600;
-    margin-bottom: 0.25rem;
-    color: #374151;
+    margin-bottom: var(--space-xs);
+    color: var(--color-text);
   }
 
   .action-desc {
-    font-size: 0.875rem;
-    color: #6b7280;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
   }
 
   button {
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--color-gradient);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-weight: 500;
     cursor: pointer;
-    margin-top: 1rem;
+    margin-top: var(--space-md);
   }
 
   @media (max-width: 640px) {
     .container {
-      padding: 1rem;
+      padding: var(--space-md);
     }
 
     .dashboard-grid {
@@ -375,7 +397,7 @@
     }
 
     .balance-amount {
-      font-size: 2rem;
+      font-size: var(--font-size-3xl);
     }
   }
 </style>

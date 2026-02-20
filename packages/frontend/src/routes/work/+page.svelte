@@ -70,7 +70,7 @@
 
   function calculateTokens(): number {
     const type = workTypes[workType];
-    return (minutesWorked * type.multiplier) / 30; // 30 minutes = 1 KCHNG
+    return (minutesWorked * type.multiplier * 1000) / 30; // 30 min = 1000 KCHNG = 1 community meal
   }
 
   function getWorkTypeName(type: number): string {
@@ -133,7 +133,7 @@
         <div class="form-group">
           <label>Minutes Worked (minimum: 15)</label>
           <input type="number" bind:value={minutesWorked} min="15" />
-          <small>30 minutes = 1 KCHNG base</small>
+          <small>30 min verified work = 1000 KCHNG = 1 community meal</small>
         </div>
 
         <div class="form-group">
@@ -264,44 +264,44 @@
   .container {
     max-width: 1000px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: var(--space-lg);
   }
 
   h1 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--space-sm);
   }
 
   .subtitle {
-    color: #6b7280;
-    margin: 0 0 2rem 0;
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-lg) 0;
   }
 
   .tabs {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 2rem;
-    border-bottom: 1px solid #e5e7eb;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
   }
 
   .tabs button {
-    padding: 0.75rem 1.5rem;
+    padding: var(--space-sm) var(--space-lg);
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
     cursor: pointer;
     font-weight: 500;
-    color: #6b7280;
+    color: var(--color-text-muted);
     transition: all 0.2s;
   }
 
   .tabs button:hover {
-    color: #374151;
+    color: var(--color-text);
   }
 
   .tabs button.active {
-    color: #667eea;
-    border-bottom-color: #667eea;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
   }
 
   .tab-content {
@@ -316,9 +316,9 @@
   .info-banner {
     background: #dbeafe;
     border: 1px solid #93c5fd;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 2rem;
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
     color: #1e40af;
   }
 

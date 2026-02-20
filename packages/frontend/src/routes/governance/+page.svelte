@@ -272,6 +272,8 @@
       </div>
     </div>
   {/if}
+
+  <p class="value-footer">30 min verified work = 1000 KCHNG = 1 community meal</p>
 </div>
 
 <style>
@@ -529,6 +531,15 @@
   .info-box h4 {
     margin: 0 0 0.5rem 0;
     color: #92400e;
+  }
+
+  .value-footer {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
   }
 
   .info-box ul {
