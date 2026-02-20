@@ -61,8 +61,11 @@
 <div class="info">
   <h2>What is Demurrage?</h2>
   <p>
-    Demurrage keeps your community currency active. With KCHNG,
-    <strong>idle balances support community circulation</strong> — stay engaged to maintain your full balance.
+    Demurrage keeps your community currency active. Each trust sets an annual rate (5-15%),
+    applied as a <strong>small percentage on inactive balances</strong> — stay engaged to maintain your full balance.
+  </p>
+  <p>
+    <small>Example: At 12% annual rate, an inactive balance of 10,000 KCHNG reduces by ~1% per month.</small>
   </p>
 </div>
 
