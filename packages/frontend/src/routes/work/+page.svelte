@@ -23,10 +23,10 @@
   let loading = $state(false);
 
   const workTypes = [
-    { value: 0, label: "Basic Care/Agriculture", multiplier: 1.0 },
-    { value: 1, label: "Skilled Care/Heavy Labor", multiplier: 1.3 },
-    { value: 2, label: "Training/Teaching", multiplier: 1.5 },
-    { value: 3, label: "Emergency Care", multiplier: 2.0 },
+    { value: 0, label: "Basic Work", multiplier: 1.0, examples: "care, agriculture, cooking" },
+    { value: 1, label: "Skilled Labor", multiplier: 1.3, examples: "crafting, manufacturing, construction" },
+    { value: 2, label: "Training/Teaching", multiplier: 1.5, examples: "education, hospitality, tour guiding" },
+    { value: 3, label: "Emergency Response", multiplier: 2.0, examples: "crisis relief, urgent care, disaster response" },
   ];
 
   onMount(async () => {
@@ -124,7 +124,7 @@
           <select bind:value={workType}>
             {#each workTypes as type}
               <option value={type.value}>
-                {type.label} ({type.multiplier}x multiplier)
+                {type.label} ({type.multiplier}x) — {type.examples}
               </option>
             {/each}
           </select>
@@ -160,6 +160,7 @@
             <div class="multiplier-card" class:selected={workType === type.value}>
               <div class="multiplier-value">{type.multiplier}x</div>
               <div class="multiplier-label">{type.label}</div>
+              <div class="multiplier-examples">{type.examples}</div>
             </div>
           {/each}
         </div>
@@ -431,6 +432,12 @@
   .multiplier-label {
     font-size: 0.875rem;
     color: #6b7280;
+  }
+
+  .multiplier-examples {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.5rem;
   }
 
   .verifier-status h2 {
