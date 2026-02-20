@@ -38,7 +38,7 @@
     <div class="benefit">
       <div class="benefit-icon">🍽️</div>
       <h3>Real Value Anchor</h3>
-      <p>1 KCHNG unit = 1 community meal. Your labor has tangible, stable value.</p>
+      <p>1000 KCHNG = 1 community meal. Your labor has tangible, stable value.</p>
     </div>
     <div class="benefit">
       <div class="benefit-icon">🤝</div>
