@@ -111,7 +111,7 @@
   {#if activeTab === "submit"}
     <div class="tab-content">
       <div class="info-banner">
-        <strong>How it works:</strong> Submit evidence of community work (care, agriculture, teaching).
+        <strong>How it works:</strong> Submit evidence of community work (basic care, skilled labor, teaching, or emergency response).
         Minimum 2 verifiers from your trust will review and approve your claim.
         Approved work earns KCHNG based on time and work type multiplier.
       </div>
