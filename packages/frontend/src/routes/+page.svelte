@@ -72,7 +72,7 @@
       <div class="stat-desc">4-week cycle for demurrage application</div>
     </div>
     <div class="stat">
-      <div class="stat-value">3x/Year</div>
+      <div class="stat-value">3×/Year</div>
       <div class="stat-label">Grace Period Allowance</div>
       <div class="stat-desc">Economic hardship protection for members</div>
     </div>
@@ -459,6 +459,7 @@
     font-weight: 700;
     color: var(--color-primary);
     margin-bottom: var(--space-xs);
+    word-break: break-word;
   }
 
   .stat-label {
