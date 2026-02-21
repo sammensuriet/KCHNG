@@ -89,9 +89,9 @@
       <div class="stat-desc">Protocol-enforced range (12% default)</div>
     </div>
     <div class="stat">
-      <div class="stat-value">30 Days</div>
+      <div class="stat-value">28 Days</div>
       <div class="stat-label">Demurrage Period</div>
-      <div class="stat-desc">Monthly application of demurrage</div>
+      <div class="stat-desc">4-week cycle for demurrage application</div>
     </div>
     <div class="stat">
       <div class="stat-value">3x/Year</div>
@@ -177,24 +177,32 @@
 
   <div class="work-multipliers">
     <h4>Work Type Multipliers</h4>
+    <p class="mult-intro">Work is valued across all economic sectors: Manufacturing, Services, and Experience Economy.</p>
     <div class="multiplier-grid">
       <div class="multiplier">
         <span class="mult-value">1.0×</span>
-        <span class="mult-label">Basic Care / Agriculture</span>
+        <span class="mult-label">Standard Work</span>
+        <span class="mult-examples">Assembly, basic care, routine tasks</span>
       </div>
       <div class="multiplier">
         <span class="mult-value">1.3×</span>
-        <span class="mult-label">Skilled Care / Heavy Labor</span>
+        <span class="mult-label">Skilled Work</span>
+        <span class="mult-examples">Specialized labor, technical services</span>
       </div>
       <div class="multiplier">
         <span class="mult-value">1.5×</span>
-        <span class="mult-label">Training / Teaching</span>
+        <span class="mult-label">Knowledge Transfer</span>
+        <span class="mult-examples">Training, teaching, mentorship</span>
       </div>
       <div class="multiplier">
         <span class="mult-value">2.0×</span>
-        <span class="mult-label">Emergency Care</span>
+        <span class="mult-label">Critical Response</span>
+        <span class="mult-examples">Emergency, urgent, crisis work</span>
       </div>
     </div>
+    <p class="mult-note">
+      <small>Applies across Manufacturing (production, construction), Services (care, maintenance), and Experience Economy (education, creative, governance, verification work).</small>
+    </p>
   </div>
 
   <!-- GEO: Authoritative Citation -->
@@ -410,11 +418,17 @@
   }
 
   .work-multipliers h4 {
-    margin: 0 0 var(--space-md) 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+  }
+
+  .mult-intro {
+    margin: 0 0 var(--space-md) 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
   }
 
   .multiplier-grid {
@@ -438,9 +452,27 @@
   }
 
   .mult-label {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text);
+    margin-top: var(--space-xs);
+  }
+
+  .mult-examples {
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);
-    margin-top: var(--space-xs);
+    margin-top: 2px;
+  }
+
+  .mult-note {
+    margin: var(--space-md) 0 0 0;
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border-light);
+  }
+
+  .mult-note small {
+    color: var(--color-text-muted);
+    font-style: italic;
   }
 
   /* GEO: Quote styling */
