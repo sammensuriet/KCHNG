@@ -38,6 +38,7 @@
     { id: "governance", label: "Governance" },
     { id: "bug", label: "Bug Report" },
     { id: "feature", label: "Feature Request" },
+    { id: "kchng-request", label: "KCHNG Request / Grant Application" },
   ];
 
   async function switchNetwork(network: NetworkName) {
@@ -71,7 +72,8 @@
       params.append("category", feedbackCategory);
       params.append("message", feedbackMessage);
       params.append("page", browser ? window.location.pathname : "unknown");
-      params.append("wallet", get(wallet).address || "not connected");
+      params.append("network", get(wallet).network || "unknown");
+      params.append("walletAddress", get(wallet).address || "not connected");
       params.append("contactConsent", contactConsent ? "yes" : "no");
       params.append("bot-field", honeypot);
 
@@ -322,7 +324,8 @@
 
         <div class="form-meta">
           <small>Page: {$page.url.pathname}</small>
-          <small>Wallet: {$wallet.connected ? "Connected" : "Not connected"}</small>
+          <small>Network: {$wallet.network}</small>
+          <small>Wallet: {$wallet.address || "Not connected"}</small>
         </div>
 
         {#if feedbackStatus === "success"}
@@ -820,7 +823,8 @@
 
   .form-meta {
     display: flex;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
     margin-bottom: 1rem;
     padding: 0.5rem 0.75rem;
     background: #f9fafb;
@@ -830,6 +834,15 @@
   .form-meta small {
     color: #6b7280;
     font-size: 0.75rem;
+  }
+
+  .form-meta small:nth-child(3) {
+    font-family: monospace;
+    font-size: 0.625rem;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .feedback-success {
