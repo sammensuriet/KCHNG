@@ -1,11 +1,20 @@
 <script lang="ts">
   import { wallet, truncatedAddress, formattedBalance, type NetworkName } from "$lib/stores/wallet";
   import { get } from "svelte/store";
+  import { page } from "$app/stores";
+  import { browser } from "$app/environment";
   import DemurrageInfo from "./DemurrageInfo.svelte";
 
   let showMenu = $state(false);
   let showNetworkSelector = $state(false);
   let currentNetwork = $state(get(wallet).network);
+
+  // Feedback form state
+  let showFeedbackForm = $state(false);
+  let feedbackCategory = $state("general");
+  let feedbackMessage = $state("");
+  let feedbackStatus = $state<"idle" | "submitting" | "success" | "error">("idle");
+  let honeypot = $state("");
 
   // Subscribe to wallet changes to sync network state
   $effect(() => {
@@ -17,9 +26,78 @@
     { id: "mainnet", label: "Mainnet" },
   ];
 
+  const feedbackCategories = [
+    { id: "general", label: "General Feedback" },
+    { id: "work-claims", label: "Work Claims" },
+    { id: "trusts", label: "Trusts" },
+    { id: "wallet", label: "Wallet Connection" },
+    { id: "governance", label: "Governance" },
+    { id: "bug", label: "Bug Report" },
+    { id: "feature", label: "Feature Request" },
+  ];
+
   async function switchNetwork(network: NetworkName) {
     showNetworkSelector = false;
     currentNetwork = network;
+  }
+
+  async function submitFeedback(event: Event) {
+    event.preventDefault();
+
+    // Bot protection: check honeypot
+    if (honeypot) {
+      console.log("Bot detected, ignoring submission");
+      showFeedbackForm = false;
+      return;
+    }
+
+    if (!feedbackMessage.trim()) {
+      feedbackStatus = "error";
+      return;
+    }
+
+    feedbackStatus = "submitting";
+
+    try {
+      const params = new URLSearchParams();
+      params.append("form-name", "feedback");
+      params.append("category", feedbackCategory);
+      params.append("message", feedbackMessage);
+      params.append("page", browser ? window.location.pathname : "unknown");
+      params.append("wallet", get(wallet).address || "not connected");
+      params.append("bot-field", honeypot);
+
+      const response = await fetch("/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params.toString(),
+      });
+
+      if (response.ok) {
+        feedbackStatus = "success";
+        feedbackMessage = "";
+        feedbackCategory = "general";
+        setTimeout(() => {
+          showFeedbackForm = false;
+          feedbackStatus = "idle";
+        }, 2000);
+      } else {
+        throw new Error("Submission failed");
+      }
+    } catch (error) {
+      feedbackStatus = "error";
+      console.error("Feedback submission error:", error);
+    }
+  }
+
+  function closeFeedbackForm() {
+    showFeedbackForm = false;
+    feedbackStatus = "idle";
+    feedbackMessage = "";
+    feedbackCategory = "general";
+    honeypot = "";
   }
 </script>
 
@@ -33,6 +111,18 @@
   </div>
 
   <div class="header-right">
+    <!-- Feedback Button -->
+    <button
+      class="btn-feedback"
+      onclick={() => (showFeedbackForm = !showFeedbackForm)}
+      title="Submit Feedback"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span class="feedback-text">Feedback</span>
+    </button>
+
     {#if $wallet.error}
       <div class="error-message">
         {$wallet.error}
@@ -68,7 +158,7 @@
     {:else}
       <div class="wallet-info">
         <button class="btn-wallet" onclick={() => (showMenu = !showMenu)}>
-          <span class="wallet-address">{truncatedAddress}</span>
+          <span class="wallet-address">{$truncatedAddress}</span>
           <span class="wallet-balance">{$formattedBalance} KCHNG</span>
         </button>
 
@@ -113,6 +203,86 @@
     {/if}
   </div>
 </header>
+
+<!-- Feedback Modal -->
+{#if showFeedbackForm}
+  <div class="feedback-overlay" onclick={closeFeedbackForm}>
+    <div class="feedback-modal" onclick={(e) => e.stopPropagation()}>
+      <div class="feedback-header">
+        <h3>Submit Feedback</h3>
+        <button class="btn-close" onclick={closeFeedbackForm} title="Close">×</button>
+      </div>
+
+      <form name="feedback" method="POST" data-netlify="true" netlify-honeypot="bot-field" onsubmit={submitFeedback}>
+        <input type="hidden" name="form-name" value="feedback" />
+        <!-- Honeypot field for bot protection -->
+        <input
+          type="text"
+          name="bot-field"
+          bind:value={honeypot}
+          class="honeypot"
+          tabindex="-1"
+          autocomplete="off"
+        />
+
+        <div class="form-group">
+          <label for="feedback-category">Category</label>
+          <select id="feedback-category" bind:value={feedbackCategory} disabled={feedbackStatus === "submitting"}>
+            {#each feedbackCategories as cat}
+              <option value={cat.id}>{cat.label}</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="feedback-message">Your Feedback *</label>
+          <textarea
+            id="feedback-message"
+            name="message"
+            bind:value={feedbackMessage}
+            placeholder="Describe your feedback, suggestion, or issue..."
+            rows="4"
+            required
+            disabled={feedbackStatus === "submitting"}
+          ></textarea>
+        </div>
+
+        <div class="form-meta">
+          <small>Page: {$page.url.pathname}</small>
+          <small>Wallet: {$wallet.connected ? "Connected" : "Not connected"}</small>
+        </div>
+
+        {#if feedbackStatus === "success"}
+          <div class="feedback-success">
+            <span class="success-icon">✓</span>
+            Thank you for your feedback!
+          </div>
+        {:else if feedbackStatus === "error"}
+          <div class="feedback-error">
+            <span class="error-icon">⚠</span>
+            Failed to submit. Please try again.
+          </div>
+        {/if}
+
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick={closeFeedbackForm} disabled={feedbackStatus === "submitting"}>
+            Cancel
+          </button>
+          {#if feedbackStatus === "submitting"}
+            <button type="submit" class="btn-submit" disabled>
+              <span class="btn-spinner"></span>
+              Sending...
+            </button>
+          {:else}
+            <button type="submit" class="btn-submit" disabled={!feedbackMessage.trim()}>
+              Send Feedback
+            </button>
+          {/if}
+        </div>
+      </form>
+    </div>
+  </div>
+{/if}
 
 <style>
   .header {
@@ -377,5 +547,244 @@
       width: 260px;
       right: -0.5rem;
     }
+  }
+
+  /* Feedback Button */
+  .btn-feedback {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-feedback:hover {
+    background: #f3f4f6;
+    color: #374151;
+    border-color: #d1d5db;
+  }
+
+  .feedback-text {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .feedback-text {
+      display: inline;
+    }
+  }
+
+  /* Feedback Modal */
+  .feedback-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 1rem;
+  }
+
+  .feedback-modal {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+
+  .feedback-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .feedback-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .btn-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+  }
+
+  .btn-close:hover {
+    background: #f3f4f6;
+    color: #111827;
+  }
+
+  .feedback-modal form {
+    padding: 1.25rem;
+  }
+
+  .honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.375rem;
+  }
+
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: #111827;
+    background: white;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .form-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0.75rem;
+    background: #f9fafb;
+    border-radius: 6px;
+  }
+
+  .form-meta small {
+    color: #6b7280;
+    font-size: 0.75rem;
+  }
+
+  .feedback-success {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .feedback-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .success-icon,
+  .error-icon {
+    font-size: 1rem;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel {
+    padding: 0.625rem 1rem;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-cancel:hover {
+    background: #e5e7eb;
+  }
+
+  .btn-submit {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.625rem 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .btn-submit:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 </style>

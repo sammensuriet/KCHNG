@@ -1,22 +1,6 @@
 headersOrigin = "config"
 redirectsOrigin = "config"
 
-[functions]
-
-[functions."*"]
-
-[[plugins]]
-origin = "config"
-package = "@netlify/plugin-lighthouse"
-
-[plugins.inputs]
-
-[plugins.inputs.thresholds]
-performance = 0.9
-accessibility = 0.9
-best-practices = 0.9
-seo = 0.9
-
 [build]
 publish = "/home/pokho/dev/KCHNG/packages/frontend/build"
 publishOrigin = "config"
@@ -39,6 +23,25 @@ NODE_ENV = "production"
 [build.processing.js]
 
 [build.services]
+
+# Netlify Functions configuration
+[functions]
+directory = "/home/pokho/dev/KCHNG/packages/frontend/netlify/functions"
+node_bundler = "esbuild"
+
+[functions."*"]
+
+[[plugins]]
+origin = "config"
+package = "@netlify/plugin-lighthouse"
+
+[plugins.inputs]
+
+[plugins.inputs.thresholds]
+performance = 0.9
+accessibility = 0.9
+best-practices = 0.9
+seo = 0.9
 
 [[headers]]
 for = "/*"
