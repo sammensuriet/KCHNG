@@ -126,6 +126,13 @@
     </div>
   </div>
 
+  <nav class="header-nav">
+    <a href="/dashboard" class="nav-link" class:active={$page.url.pathname === "/dashboard"}>Dashboard</a>
+    <a href="/work" class="nav-link" class:active={$page.url.pathname.startsWith("/work")}>Work</a>
+    <a href="/trusts" class="nav-link" class:active={$page.url.pathname === "/trusts"}>Trusts</a>
+    <a href="/governance" class="nav-link" class:active={$page.url.pathname === "/governance"}>Governance</a>
+  </nav>
+
   <div class="header-right">
     <!-- Feedback Button -->
     <button
@@ -398,6 +405,32 @@
     background: #10b981;
   }
 
+  .header-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .nav-link {
+    padding: 0.5rem 0.75rem;
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .nav-link:hover {
+    color: #374151;
+    background: #f3f4f6;
+  }
+
+  .nav-link.active {
+    color: #667eea;
+    background: #ede9fe;
+  }
+
   .header-right {
     display: flex;
     align-items: center;
@@ -606,6 +639,10 @@
     }
 
     .network-badge {
+      display: none;
+    }
+
+    .header-nav {
       display: none;
     }
 
