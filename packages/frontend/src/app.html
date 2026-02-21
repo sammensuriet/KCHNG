@@ -60,13 +60,17 @@
   </head>
   <body data-sveltekit-preload-data="hover">
     <!-- Hidden Netlify form for build-time detection (required for adapter-static) -->
-    <form name="feedback" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden style="display: none;">
+    <form name="feedback" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden>
       <input type="hidden" name="form-name" value="feedback" />
-      <input type="text" name="bot-field" tabindex="-1" autocomplete="off" />
+      <input type="text" name="bot-field" />
+      <input type="text" name="firstName" />
+      <input type="email" name="email" />
+      <input type="tel" name="phone" />
       <input type="text" name="category" />
       <input type="text" name="message" />
       <input type="text" name="page" />
       <input type="text" name="wallet" />
+      <input type="checkbox" name="contactConsent" />
     </form>
     <div style="display: contents">%sveltekit.body%</div>
   </body>

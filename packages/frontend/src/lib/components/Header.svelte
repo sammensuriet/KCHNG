@@ -11,8 +11,12 @@
 
   // Feedback form state
   let showFeedbackForm = $state(false);
+  let feedbackFirstName = $state("");
+  let feedbackEmail = $state("");
+  let feedbackPhone = $state("");
   let feedbackCategory = $state("general");
   let feedbackMessage = $state("");
+  let contactConsent = $state(false);
   let feedbackStatus = $state<"idle" | "submitting" | "success" | "error">("idle");
   let honeypot = $state("");
 
@@ -61,10 +65,14 @@
     try {
       const params = new URLSearchParams();
       params.append("form-name", "feedback");
+      params.append("firstName", feedbackFirstName);
+      params.append("email", feedbackEmail);
+      params.append("phone", feedbackPhone);
       params.append("category", feedbackCategory);
       params.append("message", feedbackMessage);
       params.append("page", browser ? window.location.pathname : "unknown");
       params.append("wallet", get(wallet).address || "not connected");
+      params.append("contactConsent", contactConsent ? "yes" : "no");
       params.append("bot-field", honeypot);
 
       const response = await fetch("/", {
@@ -78,7 +86,11 @@
       if (response.ok) {
         feedbackStatus = "success";
         feedbackMessage = "";
+        feedbackFirstName = "";
+        feedbackEmail = "";
+        feedbackPhone = "";
         feedbackCategory = "general";
+        contactConsent = false;
         setTimeout(() => {
           showFeedbackForm = false;
           feedbackStatus = "idle";
@@ -96,7 +108,11 @@
     showFeedbackForm = false;
     feedbackStatus = "idle";
     feedbackMessage = "";
+    feedbackFirstName = "";
+    feedbackEmail = "";
+    feedbackPhone = "";
     feedbackCategory = "general";
+    contactConsent = false;
     honeypot = "";
   }
 </script>
@@ -225,13 +241,51 @@
           autocomplete="off"
         />
 
-        <div class="form-group">
-          <label for="feedback-category">Category</label>
-          <select id="feedback-category" bind:value={feedbackCategory} disabled={feedbackStatus === "submitting"}>
-            {#each feedbackCategories as cat}
-              <option value={cat.id}>{cat.label}</option>
-            {/each}
-          </select>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="feedback-firstName">First Name</label>
+            <input
+              type="text"
+              id="feedback-firstName"
+              name="firstName"
+              bind:value={feedbackFirstName}
+              placeholder="Your name"
+              disabled={feedbackStatus === "submitting"}
+            />
+          </div>
+          <div class="form-group">
+            <label for="feedback-category">Category</label>
+            <select id="feedback-category" bind:value={feedbackCategory} disabled={feedbackStatus === "submitting"}>
+              {#each feedbackCategories as cat}
+                <option value={cat.id}>{cat.label}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="feedback-email">Email</label>
+            <input
+              type="email"
+              id="feedback-email"
+              name="email"
+              bind:value={feedbackEmail}
+              placeholder="your@email.com"
+              disabled={feedbackStatus === "submitting"}
+            />
+          </div>
+          <div class="form-group">
+            <label for="feedback-phone">Phone</label>
+            <input
+              type="tel"
+              id="feedback-phone"
+              name="phone"
+              bind:value={feedbackPhone}
+              placeholder="+45 12 34 56 78"
+              disabled={feedbackStatus === "submitting"}
+            />
+          </div>
         </div>
 
         <div class="form-group">
@@ -245,6 +299,18 @@
             required
             disabled={feedbackStatus === "submitting"}
           ></textarea>
+        </div>
+
+        <div class="form-consent">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="contactConsent"
+              bind:checked={contactConsent}
+              disabled={feedbackStatus === "submitting"}
+            />
+            <span>I agree to be contacted regarding my feedback (optional)</span>
+          </label>
         </div>
 
         <div class="form-meta">
@@ -654,6 +720,12 @@
     margin-bottom: 1rem;
   }
 
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
   .form-group label {
     display: block;
     font-size: 0.875rem;
@@ -662,6 +734,7 @@
     margin-bottom: 0.375rem;
   }
 
+  .form-group input,
   .form-group select,
   .form-group textarea {
     width: 100%;
@@ -674,6 +747,7 @@
     transition: border-color 0.15s, box-shadow 0.15s;
   }
 
+  .form-group input:focus,
   .form-group select:focus,
   .form-group textarea:focus {
     outline: none;
@@ -684,6 +758,27 @@
   .form-group textarea {
     resize: vertical;
     min-height: 100px;
+  }
+
+  .form-consent {
+    margin-bottom: 1rem;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: #6b7280;
+    cursor: pointer;
+    line-height: 1.4;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin-top: 0.125rem;
+    flex-shrink: 0;
+    cursor: pointer;
   }
 
   .form-meta {
@@ -786,5 +881,16 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 480px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .feedback-modal {
+      max-width: 100%;
+      margin: 0.5rem;
+    }
   }
 </style>
