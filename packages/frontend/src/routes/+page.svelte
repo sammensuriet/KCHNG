@@ -442,7 +442,7 @@
 
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--space-lg);
   }
 
@@ -451,6 +451,7 @@
     padding: var(--space-lg);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
+    min-width: 0;
   }
 
   .stat-value {
@@ -469,6 +470,7 @@
   .stat-desc {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
+    overflow-wrap: break-word;
   }
 
   /* Historical data table */
@@ -571,10 +573,15 @@
     color: var(--color-text-muted);
   }
 
+  @media (max-width: 1024px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
   @media (max-width: 768px) {
     .benefits-grid,
-    .cta-grid,
-    .stats-grid {
+    .cta-grid {
       grid-template-columns: repeat(2, 1fr);
     }
 
