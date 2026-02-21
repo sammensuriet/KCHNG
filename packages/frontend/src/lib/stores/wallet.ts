@@ -4,7 +4,7 @@
  * Uses KchngClient to fetch real balance from deployed contract
  */
 
-import { writable, derived, get } from "svelte/store";
+import { writable, derived, get, type Readable } from "svelte/store";
 import { browser } from "$app/environment";
 import { getNetworkConfig } from "@kchng/shared";
 
@@ -18,6 +18,8 @@ export interface WalletState {
   walletName: string | null;
   error: string | null;
   network: NetworkName;
+  trustId: string | null;
+  isTrustMember: boolean;
 }
 
 const initialState: WalletState = {
@@ -28,6 +30,8 @@ const initialState: WalletState = {
   walletName: null,
   error: null,
   network: "testnet",
+  trustId: null,
+  isTrustMember: false,
 };
 
 let walletsKit: any = null;
@@ -50,24 +54,14 @@ function createWalletStore() {
       // Dynamically import the wallet kit
       const { StellarWalletsKit, allowAllModules, WalletNetwork } = await import("@creit.tech/stellar-wallets-kit");
 
-      // Map network name to WalletNetwork enum
-      let walletNetwork: string;
-      switch (network) {
-        case "mainnet":
-          walletNetwork = WalletNetwork.PUBLIC;
-          break;
-        case "testnet":
-          walletNetwork = WalletNetwork.TESTNET;
-          break;
-        case "futurenet":
-          walletNetwork = WalletNetwork.FUTURENET;
-          break;
-        case "standalone":
-          walletNetwork = WalletNetwork.STANDALONE;
-          break;
-        default:
-          walletNetwork = WalletNetwork.TESTNET;
-      }
+      // Map network name to WalletNetwork enum value
+      const walletNetworkMap = {
+        mainnet: WalletNetwork.PUBLIC,
+        testnet: WalletNetwork.TESTNET,
+        futurenet: WalletNetwork.FUTURENET,
+        standalone: WalletNetwork.STANDALONE,
+      };
+      const walletNetwork = walletNetworkMap[network] ?? WalletNetwork.TESTNET;
 
       // Initialize the kit if not already created
       if (!walletsKit) {
@@ -150,10 +144,17 @@ function createWalletStore() {
       const { createKchngClient } = await import("$lib/contracts/kchng");
       const kchngClient = createKchngClient(network);
       const accountData = await kchngClient.getAccountData(address);
+
+      // Extract trust membership status
+      const trustId = accountData.trust_id;
+      const isTrustMember = trustId !== null;
+
       update((s) => ({
         ...s,
         balance: accountData.balance,
         lastActivity: Number(accountData.last_activity),
+        trustId,
+        isTrustMember,
         error: null,
       }));
     } catch (e) {
@@ -164,7 +165,35 @@ function createWalletStore() {
         ...s,
         error: errorMsg,
         balance: 0n,
+        trustId: null,
+        isTrustMember: false,
       }));
+    }
+  }
+
+  /**
+   * Sign a transaction using the connected wallet
+   */
+  async function signTransaction(xdr: string): Promise<string> {
+    if (!walletsKit) throw new Error("Wallet not connected");
+    const state = get({ subscribe });
+    if (!state.connected) throw new Error("Wallet not connected");
+
+    const networkConfig = getNetworkConfig(state.network);
+    const { signedTxXdr } = await walletsKit.signTransaction(xdr, {
+      address: state.address!,
+      networkPassphrase: networkConfig.networkPassphrase,
+    });
+    return signedTxXdr;
+  }
+
+  /**
+   * Refresh trust status after joining/leaving a trust
+   */
+  async function refreshTrustStatus() {
+    const state = get({ subscribe });
+    if (state.connected && state.address) {
+      await loadBalance(state.address, state.network);
     }
   }
 
@@ -172,7 +201,7 @@ function createWalletStore() {
    * Refresh balance (useful after transactions)
    */
   async function refreshBalance() {
-    const state = get(store);
+    const state = get({ subscribe });
     if (state.connected && state.address) {
       await loadBalance(state.address, state.network);
     }
@@ -182,7 +211,7 @@ function createWalletStore() {
    * Switch network
    */
   async function switchNetwork(network: NetworkName) {
-    const state = get(store);
+    const state = get({ subscribe });
     if (state.connected) {
       // Disconnect and reconnect with new network
       walletsKit = null;
@@ -192,16 +221,16 @@ function createWalletStore() {
     }
   }
 
-  const store = {
+  return {
     subscribe,
     connect,
     disconnect,
     loadBalance,
     refreshBalance,
     switchNetwork,
+    signTransaction,
+    refreshTrustStatus,
   };
-
-  return store;
 }
 
 export const wallet = createWalletStore();

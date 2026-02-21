@@ -22,6 +22,10 @@
   let newTrustRate = $state(1200); // 12%
   let newTrustPeriod = $state(30);
 
+  // Transaction state
+  let txPending = $state(false);
+  let txMessage = $state<{ type: "success" | "error" | "info"; text: string } | null>(null);
+
   onMount(async () => {
     await loadData();
   });
@@ -66,40 +70,90 @@
 
   async function createTrust() {
     if (!$wallet.connected || !$wallet.address) {
-      alert("Please connect your wallet first");
+      txMessage = { type: "error", text: "Please connect your wallet first" };
       return;
     }
 
     if (!newTrustName.trim()) {
-      alert("Please enter a trust name");
+      txMessage = { type: "error", text: "Please enter a trust name" };
       return;
     }
+
+    txPending = true;
+    txMessage = { type: "info", text: "Preparing transaction..." };
 
     try {
       const { createKchngClient } = await import("$lib/contracts/kchng");
       const kchngClient = createKchngClient($wallet.network);
 
-      // This would call the contract's register_trust function
-      // For now, just show an alert
-      alert(`Trust creation requires transaction signing.\n\nTrust: ${newTrustName}\nRate: ${newTrustRate / 100}%\nPeriod: ${newTrustPeriod} days`);
+      // Set up the signing callback
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      // Create the trust
+      const txHash = await kchngClient.registerTrust(
+        $wallet.address!,
+        newTrustName,
+        newTrustRate,
+        newTrustPeriod
+      );
+
+      txMessage = {
+        type: "success",
+        text: `Trust created! Transaction: ${txHash.slice(0, 8)}...`
+      };
 
       showCreateForm = false;
       newTrustName = "";
+
+      // Refresh data
+      await loadData();
+      await wallet.refreshTrustStatus();
+
     } catch (e) {
-      alert("Failed to create trust: " + (e instanceof Error ? e.message : "Unknown error"));
+      txMessage = {
+        type: "error",
+        text: e instanceof Error ? e.message : "Failed to create trust"
+      };
+    } finally {
+      txPending = false;
     }
   }
 
   async function joinTrust(trustId: string) {
-    if (!$wallet.connected) {
-      alert("Please connect your wallet first");
+    if (!$wallet.connected || !$wallet.address) {
+      txMessage = { type: "error", text: "Please connect your wallet first" };
       return;
     }
 
+    txPending = true;
+    txMessage = { type: "info", text: "Preparing transaction..." };
+
     try {
-      alert(`Joining trust requires transaction signing.\n\nTrust ID: ${trustId.slice(0, 8)}...`);
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+
+      // Set up the signing callback
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      // Join the trust
+      const txHash = await kchngClient.joinTrust(trustId, $wallet.address);
+
+      txMessage = {
+        type: "success",
+        text: `Joined trust! Transaction: ${txHash.slice(0, 8)}...`
+      };
+
+      // Refresh data
+      await loadData();
+      await wallet.refreshTrustStatus();
+
     } catch (e) {
-      alert("Failed to join trust: " + (e instanceof Error ? e.message : "Unknown error"));
+      txMessage = {
+        type: "error",
+        text: e instanceof Error ? e.message : "Failed to join trust"
+      };
+    } finally {
+      txPending = false;
     }
   }
 
@@ -125,23 +179,58 @@
       <h2>Create New Trust</h2>
       <div class="form-group">
         <label>Trust Name</label>
-        <input type="text" bind:value={newTrustName} placeholder="e.g., Urban Elder Care Trust" />
+        <input type="text" bind:value={newTrustName} placeholder="e.g., Urban Elder Care Trust" disabled={txPending} />
       </div>
       <div class="form-row">
         <div class="form-group">
           <label>Annual Rate (%)</label>
-          <input type="number" bind:value={newTrustRate} min="500" max="1500" step="100" />
+          <input type="number" bind:value={newTrustRate} min="500" max="1500" step="100" disabled={txPending} />
           <small>Protocol limits: 5% - 15%</small>
         </div>
         <div class="form-group">
           <label>Demurrage Period (days)</label>
-          <input type="number" bind:value={newTrustPeriod} min="1" max="365" />
+          <input type="number" bind:value={newTrustPeriod} min="1" max="365" disabled={txPending} />
         </div>
       </div>
+
+      {#if txMessage}
+        <div class="tx-message tx-message-{txMessage.type}">
+          {#if txMessage.type === "info"}
+            <span class="spinner"></span>
+          {:else if txMessage.type === "success"}
+            <span class="icon">✓</span>
+          {:else}
+            <span class="icon">⚠</span>
+          {/if}
+          {txMessage.text}
+        </div>
+      {/if}
+
       <div class="form-actions">
-        <button onclick={createTrust}>Create Trust</button>
-        <button class="btn-cancel" onclick={() => showCreateForm = false}>Cancel</button>
+        <button onclick={createTrust} disabled={txPending}>
+          {#if txPending}
+            <span class="btn-spinner"></span>
+            Creating...
+          {:else}
+            Create Trust
+          {/if}
+        </button>
+        <button class="btn-cancel" onclick={() => { showCreateForm = false; txMessage = null; }} disabled={txPending}>Cancel</button>
       </div>
+    </div>
+  {/if}
+
+  {#if txMessage && !showCreateForm}
+    <div class="tx-message tx-message-{txMessage.type}">
+      {#if txMessage.type === "info"}
+        <span class="spinner"></span>
+      {:else if txMessage.type === "success"}
+        <span class="icon">✓</span>
+      {:else}
+        <span class="icon">⚠</span>
+      {/if}
+      {txMessage.text}
+      <button class="btn-dismiss" onclick={() => txMessage = null}>×</button>
     </div>
   {/if}
 
@@ -187,7 +276,18 @@
             {#if userTrustId === trust.id}
               <button class="btn-view" disabled>✓ Joined</button>
             {:else}
-              <button class="btn-join" onclick={() => joinTrust(trust.id)}>Join Trust</button>
+              <button
+                class="btn-join"
+                onclick={() => joinTrust(trust.id)}
+                disabled={txPending}
+              >
+                {#if txPending}
+                  <span class="btn-spinner"></span>
+                  Joining...
+                {:else}
+                  Join Trust
+                {/if}
+              </button>
             {/if}
           </div>
         </div>
@@ -437,6 +537,80 @@
     margin-top: var(--space-lg);
     padding-top: var(--space-md);
     border-top: 1px solid var(--color-border);
+  }
+
+  .tx-message {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .tx-message-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+  }
+
+  .tx-message-success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+  }
+
+  .tx-message-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+  }
+
+  .tx-message .icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .tx-message .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  .btn-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+    margin-right: var(--space-xs);
+  }
+
+  .btn-dismiss {
+    margin-left: auto;
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0;
+    color: inherit;
+    opacity: 0.7;
+    width: auto;
+  }
+
+  .btn-dismiss:hover {
+    opacity: 1;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 
   @media (max-width: 640px) {

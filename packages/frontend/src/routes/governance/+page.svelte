@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { wallet } from "$lib/stores/wallet";
+  import { ProposalStatus } from "@kchng/shared";
 
   let activeTab = $state<"proposals" | "create">("proposals");
 
@@ -166,7 +167,7 @@
               <div class="proposal-header">
                 <div class="proposal-title-row">
                   <h3>{proposal.title}</h3>
-                  <span class:proposal-status class:status-review={proposal.status === 0} class:status-voting={proposal.status === 1} class:status-approved={proposal.status === 2} class:status-rejected={proposal.status === 3} class:status-implemented={proposal.status === 4} class:status-expired={proposal.status === 5}>
+                  <span class="proposal-status status-{proposal.status}">
                     {getStatusName(proposal.status)}
                   </span>
                 </div>

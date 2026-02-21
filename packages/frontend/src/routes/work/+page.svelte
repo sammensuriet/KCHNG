@@ -1,13 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { wallet } from "$lib/stores/wallet";
+  import FileUpload from "$lib/components/FileUpload.svelte";
 
   let activeTab = $state<"submit" | "verify" | "my-claims">("submit");
 
   // Submit work form
   let workType = $state(0); // BasicCare
   let minutesWorked = $state(30);
-  let evidenceHash = $state("");
+  let evidenceCid = $state("");
+
+  // Submission state
+  let submitting = $state(false);
+  let submitMessage = $state<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
   // Work claims
   let workClaims = $state<Array<{
@@ -21,6 +26,9 @@
   }>>([]);
 
   let loading = $state(false);
+
+  // Derived: can submit work only if connected AND in a trust
+  let canSubmitWork = $derived($wallet.connected && $wallet.isTrustMember);
 
   const workTypes = [
     { value: 0, label: "Basic Work", multiplier: 1.0, examples: "care, agriculture, cooking" },
@@ -51,20 +59,57 @@
   }
 
   async function submitWorkClaim() {
+    submitMessage = null;
+
     if (!$wallet.connected) {
-      alert("Please connect your wallet first");
+      submitMessage = { type: "error", text: "Please connect your wallet first" };
+      return;
+    }
+
+    if (!$wallet.isTrustMember) {
+      submitMessage = { type: "error", text: "You must join a trust before submitting work claims" };
       return;
     }
 
     if (minutesWorked < 15) {
-      alert("Minimum work time is 15 minutes");
+      submitMessage = { type: "error", text: "Minimum work time is 15 minutes" };
       return;
     }
 
+    submitting = true;
+    submitMessage = { type: "info", text: "Preparing transaction..." };
+
     try {
-      alert(`Work claim submission requires transaction signing.\n\nType: ${workTypes[workType].label}\nMinutes: ${minutesWorked}\nMultiplier: ${workTypes[workType].multiplier}x\n\nEvidence hash: ${evidenceHash || "None"}`);
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+
+      // Set up the signing callback
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      // Submit the work claim
+      const txHash = await kchngClient.submitWorkClaim(
+        $wallet.address!,
+        workType,
+        minutesWorked,
+        evidenceCid || "0x0" // Default empty hash if no evidence
+      );
+
+      submitMessage = {
+        type: "success",
+        text: `Work claim submitted! Transaction: ${txHash.slice(0, 8)}... Pending verification. You'll earn ${calculateTokens().toFixed(2)} KCHNG when approved.`
+      };
+
+      // Clear form after success
+      minutesWorked = 30;
+      evidenceCid = "";
+
     } catch (e) {
-      alert("Failed to submit work claim: " + (e instanceof Error ? e.message : "Unknown error"));
+      submitMessage = {
+        type: "error",
+        text: e instanceof Error ? e.message : "Failed to submit work claim"
+      };
+    } finally {
+      submitting = false;
     }
   }
 
@@ -110,6 +155,13 @@
 
   {#if activeTab === "submit"}
     <div class="tab-content">
+      {#if $wallet.connected && !$wallet.isTrustMember}
+        <div class="warning-banner">
+          <strong>Trust Membership Required:</strong> You must join a trust before submitting work claims.
+          <a href="/trusts">View Trusts</a>
+        </div>
+      {/if}
+
       <div class="info-banner">
         <strong>How it works:</strong> Submit evidence of community work (basic care, skilled labor, teaching, or emergency response).
         Minimum 2 verifiers from your trust will review and approve your claim.
@@ -137,9 +189,9 @@
         </div>
 
         <div class="form-group">
-          <label>Evidence Hash (IPFS CID recommended)</label>
-          <input type="text" bind:value={evidenceHash} placeholder="Qm..." />
-          <small>Upload photos/documents to IPFS and enter the CID</small>
+          <label>Evidence (Photo/Document)</label>
+          <FileUpload onUpload={(cid) => evidenceCid = cid} existingCid={evidenceCid} />
+          <small>Upload photos or documents as proof of your work</small>
         </div>
 
         <div class="preview-box">
@@ -150,7 +202,32 @@
           </div>
         </div>
 
-        <button onclick={submitWorkClaim}>Submit Work Claim</button>
+        {#if submitMessage}
+          <div class="message message-{submitMessage.type}">
+            {#if submitMessage.type === "info"}
+              <span class="spinner"></span>
+            {:else if submitMessage.type === "success"}
+              <span class="icon">✓</span>
+            {:else}
+              <span class="icon">⚠</span>
+            {/if}
+            {submitMessage.text}
+          </div>
+        {/if}
+
+        <button
+          class="submit-btn"
+          class:submitting
+          onclick={submitWorkClaim}
+          disabled={submitting || !canSubmitWork}
+        >
+          {#if submitting}
+            <span class="btn-spinner"></span>
+            Submitting...
+          {:else}
+            Submit Work Claim
+          {/if}
+        </button>
       </div>
 
       <div class="work-types-info">
@@ -323,6 +400,30 @@
     color: #1e40af;
   }
 
+  .warning-banner {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
+    color: #92400e;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+
+  .warning-banner a {
+    color: #92400e;
+    text-decoration: underline;
+    font-weight: 500;
+    margin-left: var(--space-xs);
+  }
+
+  .warning-banner a:hover {
+    color: #78350f;
+  }
+
   .form-card {
     background: white;
     border: 1px solid #e5e7eb;
@@ -396,6 +497,85 @@
     font-weight: 500;
     cursor: pointer;
     width: 100%;
+  }
+
+  .submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    transition: opacity 0.2s;
+  }
+
+  .submit-btn:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  .submit-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  .submit-btn.submitting {
+    background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  }
+
+  .btn-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .message {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+  }
+
+  .message-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+  }
+
+  .message-success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+  }
+
+  .message-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+  }
+
+  .message .icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .message .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
   }
 
   .work-types-info h3 {

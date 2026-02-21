@@ -1,19 +1,32 @@
 headersOrigin = "config"
 redirectsOrigin = "config"
-plugins = []
 
 [functions]
 
 [functions."*"]
+
+[[plugins]]
+origin = "config"
+package = "@netlify/plugin-lighthouse"
+
+[plugins.inputs]
+
+[plugins.inputs.thresholds]
+performance = 0.9
+accessibility = 0.9
+best-practices = 0.9
+seo = 0.9
 
 [build]
 publish = "/home/pokho/dev/KCHNG/packages/frontend/build"
 publishOrigin = "config"
 commandOrigin = "config"
 base = "/home/pokho/dev/KCHNG/packages/frontend"
-command = "pnpm build"
+command = "pnpm build && pnpm test:smoke"
 
 [build.environment]
+NODE_VERSION = "20.19"
+NODE_ENV = "production"
 
 [build.processing]
 
@@ -31,6 +44,7 @@ command = "pnpm build"
 for = "/*"
 
 [headers.values]
+Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
 X-Frame-Options = "SAMEORIGIN"
 X-Content-Type-Options = "nosniff"
 X-XSS-Protection = "1; mode=block"
