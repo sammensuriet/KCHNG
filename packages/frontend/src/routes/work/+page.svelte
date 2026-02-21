@@ -31,10 +31,10 @@
   let canSubmitWork = $derived($wallet.connected && $wallet.isTrustMember);
 
   const workTypes = [
-    { value: 0, label: "Basic Work", multiplier: 1.0, examples: "care, agriculture, cooking" },
-    { value: 1, label: "Skilled Labor", multiplier: 1.3, examples: "crafting, manufacturing, construction" },
-    { value: 2, label: "Training/Teaching", multiplier: 1.5, examples: "education, hospitality, tour guiding" },
-    { value: 3, label: "Emergency Response", multiplier: 2.0, examples: "crisis relief, urgent care, disaster response" },
+    { value: 0, label: "Standard Work", multiplier: 1.0, examples: "Assembly, basic care, routine tasks" },
+    { value: 1, label: "Skilled Work", multiplier: 1.3, examples: "Specialized labor, technical services" },
+    { value: 2, label: "Knowledge Transfer", multiplier: 1.5, examples: "Training, teaching, mentorship" },
+    { value: 3, label: "Critical Response", multiplier: 2.0, examples: "Emergency, urgent, crisis work" },
   ];
 
   onMount(async () => {

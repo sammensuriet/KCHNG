@@ -1,15 +1,5 @@
 <script lang="ts">
   import { calculateBalanceWithDemurrage } from "@kchng/shared";
-  import { onMount } from "svelte";
-  import { NETWORKS } from "@kchng/shared";
-
-  let mainnetContractId = "";
-  let isLive = false;
-
-  onMount(() => {
-    mainnetContractId = NETWORKS.mainnet.contractId;
-    isLive = !!mainnetContractId;
-  });
 </script>
 
 <svelte:head>
@@ -34,23 +24,11 @@
 </svelte:head>
 
 <div class="hero">
-  <div class="live-badge">
-    {#if isLive}
-      <span class="live-indicator"></span>
-      <span class="live-text">LIVE ON STELLAR MAINNET</span>
-    {/if}
-  </div>
   <h1>KCHNG</h1>
   <p class="tagline">A Community Currency with Demurrage</p>
   <p class="description">
     Built on Stellar - where 1000 KCHNG = 30 minutes work = 1 community meal
   </p>
-  {#if isLive}
-    <p class="contract-id">
-      <small>Contract:</small><br>
-      <code>{mainnetContractId.slice(0, 20)}...{mainnetContractId.slice(-4)}</code>
-    </p>
-  {/if}
 </div>
 
 <div class="why-section">
@@ -207,7 +185,7 @@
 
   <!-- GEO: Authoritative Citation -->
   <p class="citation">
-    Built on <a href="https://developers.stellar.org/docs/learn/smart-contract-internals" target="_blank" rel="noopener">Soroban Smart Contracts</a> —
+    Built on <a href="https://developers.stellar.org/docs/learn/fundamentals/stellar-data-structures/contracts" target="_blank" rel="noopener">Soroban Smart Contracts</a> —
     Stellar's Turing-complete smart contract platform with provable execution guarantees.
     Contract audited with 74 passing tests covering all economic operations.
   </p>
@@ -258,38 +236,6 @@
     padding: var(--space-xl) 0;
   }
 
-  .live-badge {
-    margin-bottom: var(--space-md);
-  }
-
-  .live-indicator {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    background: var(--color-success);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-    margin-right: var(--space-sm);
-  }
-
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.7;
-      transform: scale(1.2);
-    }
-  }
-
-  .live-text {
-    color: var(--color-success);
-    font-weight: 600;
-    font-size: var(--font-size-sm);
-    letter-spacing: 0.05em;
-  }
-
   .hero h1 {
     font-size: var(--font-size-4xl);
     font-weight: 800;
@@ -309,29 +255,6 @@
   .description {
     font-size: var(--font-size-lg);
     color: var(--color-text-light);
-  }
-
-  .contract-id {
-    margin-top: var(--space-md);
-    padding: var(--space-sm) var(--space-md);
-    background: #f0fdf4;
-    border: 1px solid var(--color-success);
-    border-radius: var(--radius-md);
-    display: inline-block;
-  }
-
-  .contract-id small {
-    color: var(--color-text-muted);
-    font-size: var(--font-size-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .contract-id code {
-    color: var(--color-success);
-    font-size: var(--font-size-sm);
-    font-family: monospace;
-    background: transparent;
   }
 
   .why-section {
