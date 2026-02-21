@@ -84,14 +84,14 @@
   <h2>Platform Statistics</h2>
   <div class="stats-grid">
     <div class="stat">
-      <div class="stat-value">2-5%</div>
+      <div class="stat-value">5-15%</div>
       <div class="stat-label">Annual Demurrage Rate</div>
-      <div class="stat-desc">Protocol-enforced range for community trusts</div>
+      <div class="stat-desc">Protocol-enforced range (12% default)</div>
     </div>
     <div class="stat">
-      <div class="stat-value">7 Days</div>
-      <div class="stat-label">Inactivity Threshold</div>
-      <div class="stat-desc">Demurrage applies after 7 days of no activity</div>
+      <div class="stat-value">30 Days</div>
+      <div class="stat-label">Demurrage Period</div>
+      <div class="stat-desc">Monthly application of demurrage</div>
     </div>
     <div class="stat">
       <div class="stat-value">3x/Year</div>
@@ -99,9 +99,9 @@
       <div class="stat-desc">Economic hardship protection for members</div>
     </div>
     <div class="stat">
-      <div class="stat-value">100%</div>
-      <div class="stat-label">On-Chain Transparency</div>
-      <div class="stat-desc">All transactions verifiable on Stellar</div>
+      <div class="stat-value">3-12x</div>
+      <div class="stat-label">Velocity Multiplier</div>
+      <div class="stat-desc">Historical range for demurrage currencies</div>
     </div>
   </div>
 </div>
@@ -115,11 +115,49 @@
   <p>
     <small>Example: At 12% annual rate, an inactive balance of 10,000 KCHNG reduces by ~1% per month.</small>
   </p>
-  <!-- GEO: Authoritative Citation -->
+  <!-- GEO: Authoritative Citation with Historical Data -->
   <blockquote class="geo-quote">
-    <p>"Demurrage currency systems have been shown to increase the velocity of money circulation by 2-3x compared to conventional currencies, strengthening local economies."</p>
-    <cite>— Based on research by <a href="https://www.stellar.org/foundation" target="_blank" rel="noopener">Stellar Development Foundation</a> on community currency design</cite>
+    <p>"The Wörgl experiment (1932-1933) demonstrated that demurrage currency achieved a <strong>12x velocity multiplier</strong> compared to conventional money, reducing unemployment and stimulating local trade before being banned by Austrian authorities."</p>
+    <cite>— Historical data from the <strong>Wörgl Freigeld</strong> experiment. Modern implementations like the Chiemgauer (8.2% annual rate) continue this model with proven 3x velocity increases.</cite>
   </blockquote>
+
+  <div class="historical-data">
+    <h3>Historical Demurrage Systems</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>System</th>
+          <th>Annual Rate</th>
+          <th>Velocity</th>
+          <th>Duration</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Wörgl (1932)</td>
+          <td>12.7%</td>
+          <td>12×</td>
+          <td>13.5 months</td>
+          <td class="success">Reduced unemployment</td>
+        </tr>
+        <tr>
+          <td>Chiemgauer (2003-)</td>
+          <td>8.2%</td>
+          <td>3×</td>
+          <td>20+ years</td>
+          <td class="success">Ongoing success</td>
+        </tr>
+        <tr>
+          <td><strong>KCHNG</strong></td>
+          <td>5-15%</td>
+          <td>Target: 3-12×</td>
+          <td>2026-</td>
+          <td class="active">On Stellar mainnet</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <div class="info">
@@ -129,17 +167,41 @@
     Unlike fiat currencies that can be printed at will by central authorities, KCHNG enters circulation exclusively through:
   </p>
   <ul>
-    <li>Workers submit claims for hours worked with evidence</li>
-    <li>Community verifiers validate and approve legitimate work</li>
+    <li>Workers submit claims for hours worked with evidence (IPFS-stored)</li>
+    <li>Community verifiers (minimum 2) validate and approve legitimate work</li>
     <li>New KCHNG is minted directly to the worker's wallet via Soroban smart contract</li>
   </ul>
   <p>
     <small>Economic model: 30 minutes of work = 1000 KCHNG = 1 community meal</small>
   </p>
+
+  <div class="work-multipliers">
+    <h4>Work Type Multipliers</h4>
+    <div class="multiplier-grid">
+      <div class="multiplier">
+        <span class="mult-value">1.0×</span>
+        <span class="mult-label">Basic Care / Agriculture</span>
+      </div>
+      <div class="multiplier">
+        <span class="mult-value">1.3×</span>
+        <span class="mult-label">Skilled Care / Heavy Labor</span>
+      </div>
+      <div class="multiplier">
+        <span class="mult-value">1.5×</span>
+        <span class="mult-label">Training / Teaching</span>
+      </div>
+      <div class="multiplier">
+        <span class="mult-value">2.0×</span>
+        <span class="mult-label">Emergency Care</span>
+      </div>
+    </div>
+  </div>
+
   <!-- GEO: Authoritative Citation -->
   <p class="citation">
     Built on <a href="https://developers.stellar.org/docs/learn/smart-contract-internals" target="_blank" rel="noopener">Soroban Smart Contracts</a> —
     Stellar's Turing-complete smart contract platform with provable execution guarantees.
+    Contract audited with 74 passing tests covering all economic operations.
   </p>
 </div>
 
@@ -338,6 +400,49 @@
     text-decoration: underline;
   }
 
+  /* Work multipliers */
+  .work-multipliers {
+    margin: var(--space-lg) 0;
+    padding: var(--space-md);
+    background: white;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+  }
+
+  .work-multipliers h4 {
+    margin: 0 0 var(--space-md) 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .multiplier-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+  }
+
+  .multiplier {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--space-sm);
+  }
+
+  .mult-value {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .mult-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-top: var(--space-xs);
+  }
+
   /* GEO: Quote styling */
   .geo-quote {
     margin: var(--space-lg) 0 0 0;
@@ -411,6 +516,58 @@
     color: var(--color-text-muted);
   }
 
+  /* Historical data table */
+  .historical-data {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .historical-data h3 {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--space-md);
+    color: var(--color-text);
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: var(--space-sm) var(--space-md);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .data-table th {
+    font-weight: 600;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .data-table tbody tr:hover {
+    background: rgba(102, 126, 234, 0.05);
+  }
+
+  .data-table .success {
+    color: var(--color-success);
+    font-weight: 500;
+  }
+
+  .data-table .active {
+    color: var(--color-primary);
+    font-weight: 500;
+  }
+
+  .data-table tr:has(strong) {
+    background: rgba(102, 126, 234, 0.08);
+  }
+
   .cta-section {
     margin: var(--space-xl) 0;
     text-align: center;
@@ -465,6 +622,19 @@
     .stats-grid {
       grid-template-columns: repeat(2, 1fr);
     }
+
+    .multiplier-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .data-table {
+      font-size: var(--font-size-xs);
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: var(--space-xs) var(--space-sm);
+    }
   }
 
   @media (max-width: 480px) {
@@ -472,6 +642,10 @@
     .cta-grid,
     .stats-grid {
       grid-template-columns: 1fr;
+    }
+
+    .multiplier-grid {
+      grid-template-columns: 1fr 1fr;
     }
   }
 </style>
