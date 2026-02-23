@@ -9,6 +9,9 @@
   let showNetworkSelector = $state(false);
   let currentNetwork = $state(get(wallet).network);
 
+  // Test wallet creation state
+  let isCreatingTestWallet = $state(false);
+
   // Feedback form state
   let showFeedbackForm = $state(false);
   let feedbackFirstName = $state("");
@@ -44,6 +47,24 @@
   async function switchNetwork(network: NetworkName) {
     showNetworkSelector = false;
     currentNetwork = network;
+  }
+
+  async function handleCreateTestWallet() {
+    if (isCreatingTestWallet) return;
+
+    isCreatingTestWallet = true;
+    try {
+      const walletData = await wallet.createTestWallet();
+      console.log("Test wallet created:", walletData.publicKey);
+      // Copy secret key to clipboard for user reference
+      await navigator.clipboard.writeText(walletData.secretKey);
+      alert("Test wallet created and funded with 777 XLM!\n\nSecret key copied to clipboard. Save it somewhere safe!");
+    } catch (error) {
+      console.error("Failed to create test wallet:", error);
+      alert("Failed to create test wallet. Please try again.");
+    } finally {
+      isCreatingTestWallet = false;
+    }
   }
 
   async function submitFeedback(event: Event) {
@@ -177,6 +198,21 @@
           </div>
         {/if}
       </div>
+      {#if currentNetwork === "testnet"}
+        <button
+          class="btn-test-wallet"
+          onclick={handleCreateTestWallet}
+          disabled={isCreatingTestWallet}
+          title="Create a new test wallet with 777 XLM"
+        >
+          {#if isCreatingTestWallet}
+            <span class="btn-spinner-small"></span>
+            Creating...
+          {:else}
+            Create Test Wallet
+          {/if}
+        </button>
+      {/if}
       <button class="btn-connect" onclick={() => wallet.connect(currentNetwork)}>
         Connect Wallet
       </button>
@@ -511,6 +547,39 @@
 
   .btn-connect:hover {
     opacity: 0.9;
+  }
+
+  .btn-test-wallet {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    font-size: 0.875rem;
+  }
+
+  .btn-test-wallet:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  .btn-test-wallet:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-spinner-small {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
 
   .wallet-info {

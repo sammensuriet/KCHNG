@@ -20,6 +20,12 @@ export interface WalletState {
   network: NetworkName;
   trustId: string | null;
   isTrustMember: boolean;
+  isTestWallet: boolean;
+}
+
+export interface TestWalletData {
+  publicKey: string;
+  secretKey: string;
 }
 
 const initialState: WalletState = {
@@ -32,7 +38,10 @@ const initialState: WalletState = {
   network: "testnet",
   trustId: null,
   isTrustMember: false,
+  isTestWallet: false,
 };
+
+const TEST_WALLET_STORAGE_KEY = "kchng_test_wallet";
 
 let walletsKit: any = null;
 
@@ -135,6 +144,79 @@ function createWalletStore() {
   }
 
   /**
+   * Create a test wallet on testnet with 777 XLM funding from friendbot
+   * Stores the wallet in localStorage for reuse
+   */
+  async function createTestWallet(): Promise<TestWalletData> {
+    if (typeof window === "undefined") {
+      throw new Error("Wallet only available in browser");
+    }
+
+    try {
+      // Dynamically import Stellar SDK
+      const { Keypair } = await import("@stellar/stellar-sdk");
+
+      // Generate new keypair
+      const keypair = Keypair.random();
+      const publicKey = keypair.publicKey();
+      const secretKey = keypair.secret();
+
+      console.log("[Wallet] Created test wallet:", publicKey);
+
+      // Fund via friendbot
+      const friendbotUrl = `https://friendbot.stellar.org/?addr=${publicKey}`;
+      const response = await fetch(friendbotUrl);
+
+      if (!response.ok) {
+        throw new Error("Failed to fund test wallet via friendbot");
+      }
+
+      console.log("[Wallet] Funded test wallet with XLM");
+
+      // Store wallet data for later use
+      const walletData: TestWalletData = { publicKey, secretKey };
+      localStorage.setItem(TEST_WALLET_STORAGE_KEY, JSON.stringify(walletData));
+
+      // Update state to connect this wallet
+      update((s) => ({
+        ...s,
+        connected: true,
+        address: publicKey,
+        network: "testnet",
+        walletName: "Test Wallet",
+        error: null,
+        isTestWallet: true,
+      }));
+
+      // Load balance from contract
+      loadBalance(publicKey, "testnet");
+
+      return walletData;
+    } catch (e: unknown) {
+      const errorMsg = e instanceof Error ? e.message : "Failed to create test wallet";
+      console.error("[Wallet] Test wallet creation error:", errorMsg);
+      update((s) => ({ ...s, error: errorMsg }));
+      throw e;
+    }
+  }
+
+  /**
+   * Get stored test wallet data
+   */
+  function getStoredTestWallet(): TestWalletData | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = localStorage.getItem(TEST_WALLET_STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return null;
+  }
+
+  /**
    * Load KCHNG balance from deployed contract
    * Dynamically imports KchngClient to avoid bundling issues
    */
@@ -225,6 +307,8 @@ function createWalletStore() {
     subscribe,
     connect,
     disconnect,
+    createTestWallet,
+    getStoredTestWallet,
     loadBalance,
     refreshBalance,
     switchNetwork,
