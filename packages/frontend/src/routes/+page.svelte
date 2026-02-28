@@ -8,7 +8,7 @@
     "@context": "https://schema.org",
     "@type": "FinancialProduct",
     "name": "KCHNG",
-    "description": "A labor-backed community currency with native on-chain demurrage on Stellar blockchain. 30 minutes verified work equals 1000 KCHNG equals 1 community meal.",
+    "description": "A community work exchange system where 30 minutes of work equals one shared meal. Built for eco-villages, cooperatives, and community spaces.",
     "brand": {
       "@type": "Brand",
       "name": "KCHNG"
@@ -25,182 +25,112 @@
 
 <div class="hero">
   <h1>KCHNG</h1>
-  <p class="tagline">A Community Currency with Demurrage</p>
+  <p class="tagline">Community Work Exchange</p>
   <p class="description">
-    Built on Stellar - where 1000 KCHNG = 30 minutes work = 1 community meal
+    Turn community service into shared value
+  </p>
+  <p class="audience">
+    For communities, cooperatives, and collectives who want to<br />
+    track and reward the work that keeps them running.
   </p>
 </div>
 
 <div class="why-section">
+  <h2>How It Works</h2>
+  <div class="steps-grid">
+    <div class="step">
+      <div class="step-number">1</div>
+      <h3>Work</h3>
+      <p>Do community service — cooking, cleaning, maintenance, teaching, organizing.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <h3>Verify</h3>
+      <p>Your community validates the work. No algorithms, just trust.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <h3>Earn</h3>
+      <p>Receive KCHNG tokens. 30 minutes = 1 meal.</p>
+    </div>
+  </div>
+</div>
+
+<div class="value-section">
+  <h2>Simple Value</h2>
+  <div class="value-grid">
+    <div class="value-card">
+      <div class="value-icon">30</div>
+      <div class="value-label">minutes work</div>
+      <div class="value-equals">=</div>
+      <div class="value-icon">1</div>
+      <div class="value-label">shared meal</div>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">1,000</div>
+      <div class="value-label">KCHNG</div>
+      <div class="value-equals">=</div>
+      <div class="value-icon">1</div>
+      <div class="value-label">meal</div>
+    </div>
+  </div>
+  <p class="value-note">Value tied to real work, not speculation. One KCHNG always equals the same thing.</p>
+</div>
+
+<div class="benefits-section">
   <h2>Why KCHNG?</h2>
   <div class="benefits-grid">
     <div class="benefit">
       <div class="benefit-icon">🍽️</div>
-      <h3>Real Value Anchor</h3>
-      <p>1000 KCHNG = 1 community meal. Your labor has tangible, stable value.</p>
+      <h3>Real Value</h3>
+      <p>1000 KCHNG = 1 community meal. Simple, stable, understandable.</p>
     </div>
     <div class="benefit">
       <div class="benefit-icon">🤝</div>
       <h3>Community Verified</h3>
-      <p>Work is validated by your peers, not algorithms. Trust is built through relationships.</p>
+      <p>Work is validated by people you know. Trust built through relationships.</p>
     </div>
     <div class="benefit">
       <div class="benefit-icon">🔄</div>
-      <h3>Encourages Circulation</h3>
-      <p>Demurrage keeps currency moving, strengthening the local economy for everyone.</p>
+      <h3>Stays Active</h3>
+      <p>Currency circulates instead of sitting idle. Good for everyone.</p>
     </div>
     <div class="benefit">
-      <div class="benefit-icon">🌐</div>
-      <h3>Transparent & Decentralized</h3>
-      <p>Built on Stellar blockchain. No hidden fees, no central authority controlling supply.</p>
-    </div>
-  </div>
-</div>
-
-<!-- GEO: Statistics Section -->
-<div class="stats-section">
-  <h2>Platform Statistics</h2>
-  <div class="stats-grid">
-    <div class="stat">
-      <div class="stat-value">5-15%</div>
-      <div class="stat-label">Annual Demurrage Rate</div>
-      <div class="stat-desc">Protocol-enforced range (12% default)</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">28 Days</div>
-      <div class="stat-label">Demurrage Period</div>
-      <div class="stat-desc">4-week cycle for demurrage application</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">3×/Year</div>
-      <div class="stat-label">Grace Period Allowance</div>
-      <div class="stat-desc">Economic hardship protection for members</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">3-12x</div>
-      <div class="stat-label">Velocity Multiplier</div>
-      <div class="stat-desc">Historical range for demurrage currencies</div>
+      <div class="benefit-icon">🏠</div>
+      <h3>Made for Communities</h3>
+      <p>Built for eco-villages, cooperatives, housing collectives, and community spaces.</p>
     </div>
   </div>
 </div>
 
 <div class="info">
-  <h2>What is Demurrage?</h2>
+  <h2>Why Do Unused Tokens Decrease?</h2>
   <p>
-    Demurrage keeps your community currency active. Each trust sets an annual rate (5-15%),
-    applied as a <strong>small percentage on inactive balances</strong> — stay engaged to maintain your full balance.
+    KCHNG is designed to <strong>keep value moving</strong> through your community.
+    When tokens sit unused for too long, they gradually decrease — encouraging people
+    to spend, share, or trade rather than hoard.
   </p>
   <p>
-    <small>Example: At 12% annual rate, an inactive balance of 10,000 KCHNG reduces by ~1% per month.</small>
+    This isn't a penalty. It's how the system stays healthy. Active currency means
+    more trades, more connections, and a stronger community economy.
   </p>
-  <!-- GEO: Authoritative Citation with Historical Data -->
-  <blockquote class="geo-quote">
-    <p>"The Wörgl experiment (1932-1933) demonstrated that demurrage currency achieved a <strong>12x velocity multiplier</strong> compared to conventional money, reducing unemployment and stimulating local trade before being banned by Austrian authorities."</p>
-    <cite>— Historical data from the <strong>Wörgl Freigeld</strong> experiment. Modern implementations like the Chiemgauer (8.2% annual rate) continue this model with proven 3x velocity increases.</cite>
-  </blockquote>
-
-  <div class="historical-data">
-    <h3>Historical Demurrage Systems</h3>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>System</th>
-          <th>Annual Rate</th>
-          <th>Velocity</th>
-          <th>Duration</th>
-          <th>Result</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Wörgl (1932)</td>
-          <td>12.7%</td>
-          <td>12×</td>
-          <td>13.5 months</td>
-          <td class="success">Reduced unemployment</td>
-        </tr>
-        <tr>
-          <td>Chiemgauer (2003-)</td>
-          <td>8.2%</td>
-          <td>3×</td>
-          <td>20+ years</td>
-          <td class="success">Ongoing success</td>
-        </tr>
-        <tr>
-          <td><strong>KCHNG</strong></td>
-          <td>5-15%</td>
-          <td>Target: 3-12×</td>
-          <td>2026-</td>
-          <td class="active">On Stellar mainnet</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <p>
+    <small>Example: If you don't use your balance for a month, it might decrease by about 1%. Stay active and it stays full.</small>
+  </p>
 </div>
 
 <div class="info">
-  <h2>Labor-Backed Currency</h2>
-  <p>
-    KCHNG is a labor-backed currency where <strong>new tokens are minted only when work is verified</strong>.
-    Unlike fiat currencies that can be printed at will by central authorities, KCHNG enters circulation exclusively through:
-  </p>
+  <h2>Who Is This For?</h2>
+  <p>KCHNG works best for communities that:</p>
   <ul>
-    <li>Workers submit claims for hours worked with evidence (IPFS-stored)</li>
-    <li>Community verifiers (minimum 2) validate and approve legitimate work</li>
-    <li>New KCHNG is minted directly to the worker's wallet via Soroban smart contract</li>
+    <li>Have a concept of community service or shared work</li>
+    <li>Want to track and reward contributions fairly</li>
+    <li>Are small enough that members know each other</li>
+    <li>Value cooperation over competition</li>
   </ul>
   <p>
-    <small>Economic model: 30 minutes of work = 1000 KCHNG = 1 community meal</small>
+    <a href="/about">Learn more about how KCHNG works →</a>
   </p>
-
-  <div class="work-multipliers">
-    <h4>Work Type Multipliers</h4>
-    <p class="mult-intro">Work is valued across all economic sectors: Manufacturing, Services, and Experience Economy.</p>
-    <div class="multiplier-grid">
-      <div class="multiplier">
-        <span class="mult-value">1.0×</span>
-        <span class="mult-label">Standard Work</span>
-        <span class="mult-examples">Assembly, basic care, routine tasks</span>
-      </div>
-      <div class="multiplier">
-        <span class="mult-value">1.3×</span>
-        <span class="mult-label">Skilled Work</span>
-        <span class="mult-examples">Specialized labor, technical services</span>
-      </div>
-      <div class="multiplier">
-        <span class="mult-value">1.5×</span>
-        <span class="mult-label">Knowledge Transfer</span>
-        <span class="mult-examples">Training, teaching, mentorship</span>
-      </div>
-      <div class="multiplier">
-        <span class="mult-value">2.0×</span>
-        <span class="mult-label">Critical Response</span>
-        <span class="mult-examples">Emergency, urgent, crisis work</span>
-      </div>
-    </div>
-    <p class="mult-note">
-      <small>Applies across Manufacturing (production, construction), Services (care, maintenance), and Experience Economy (education, creative, governance, verification work).</small>
-    </p>
-  </div>
-
-  <!-- GEO: Authoritative Citation -->
-  <p class="citation">
-    Built on <a href="https://developers.stellar.org/docs/learn/fundamentals/stellar-data-structures/contracts" target="_blank" rel="noopener">Soroban Smart Contracts</a> —
-    Stellar's Turing-complete smart contract platform with provable execution guarantees.
-    Contract audited with 74 passing tests covering all economic operations.
-  </p>
-</div>
-
-<div class="info">
-  <h2>Key Features</h2>
-  <ul>
-    <li><strong>Labor-backed</strong> - New tokens minted only through verified work</li>
-    <li><strong>Native on-chain demurrage</strong> - Via Soroban smart contracts</li>
-    <li><strong>Community verification</strong> - Peers validate work claims</li>
-    <li><strong>Grace periods</strong> - Economic hardship protection</li>
-    <li><strong>Transparent and trustless</strong> - All on Stellar blockchain</li>
-    <li><strong>Multi-trust support</strong> - Different communities can set their own rules</li>
-  </ul>
 </div>
 
 <div class="cta-section">
@@ -210,17 +140,17 @@
     <a href="/dashboard" class="cta-card">
       <div class="cta-icon">📊</div>
       <div class="cta-title">Dashboard</div>
-      <div class="cta-desc">View your balance and account details</div>
+      <div class="cta-desc">View your balance and activity</div>
     </a>
     <a href="/trusts" class="cta-card">
       <div class="cta-icon">🏘️</div>
-      <div class="cta-title">Trusts</div>
-      <div class="cta-desc">Join or create community trusts</div>
+      <div class="cta-title">Communities</div>
+      <div class="cta-desc">Join or create a community</div>
     </a>
     <a href="/work" class="cta-card">
       <div class="cta-icon">🔨</div>
       <div class="cta-title">Work</div>
-      <div class="cta-desc">Submit and verify work claims</div>
+      <div class="cta-desc">Submit and verify work</div>
     </a>
     <a href="/governance" class="cta-card">
       <div class="cta-icon">🗳️</div>
@@ -248,21 +178,145 @@
 
   .tagline {
     font-size: var(--font-size-2xl);
-    color: var(--color-text-muted);
+    color: var(--color-text);
     margin: var(--space-sm) 0;
+    font-weight: 600;
   }
 
   .description {
     font-size: var(--font-size-lg);
-    color: var(--color-text-light);
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-sm);
   }
 
+  .audience {
+    font-size: var(--font-size-base);
+    color: var(--color-text-light);
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* Steps / How It Works */
   .why-section {
     margin: var(--space-xl) 0;
     text-align: center;
   }
 
   .why-section h2 {
+    color: var(--color-text);
+    margin-bottom: var(--space-lg);
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-lg);
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .step {
+    padding: var(--space-lg);
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-lg);
+    text-align: center;
+  }
+
+  .step-number {
+    width: 48px;
+    height: 48px;
+    background: var(--color-gradient);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    margin: 0 auto var(--space-md);
+  }
+
+  .step h3 {
+    font-size: var(--font-size-lg);
+    color: var(--color-text);
+    margin: 0 0 var(--space-sm) 0;
+  }
+
+  .step p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Value Section */
+  .value-section {
+    margin: var(--space-xl) 0;
+    padding: var(--space-xl);
+    background: linear-gradient(135deg, #f0fdf4 0%, #ede9fe 100%);
+    border-radius: var(--radius-lg);
+    text-align: center;
+  }
+
+  .value-section h2 {
+    margin-top: 0;
+    margin-bottom: var(--space-lg);
+    color: var(--color-text);
+  }
+
+  .value-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .value-card {
+    background: white;
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .value-icon {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .value-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .value-equals {
+    font-size: var(--font-size-xl);
+    color: var(--color-text-light);
+    margin: var(--space-xs) 0;
+  }
+
+  .value-note {
+    margin-top: var(--space-lg);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Benefits */
+  .benefits-section {
+    margin: var(--space-xl) 0;
+    text-align: center;
+  }
+
+  .benefits-section h2 {
     color: var(--color-text);
     margin-bottom: var(--space-lg);
   }
@@ -314,216 +368,14 @@
     line-height: 1.8;
   }
 
-  .info .citation {
-    margin-top: var(--space-md);
-    padding-top: var(--space-md);
-    border-top: 1px solid var(--color-border);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-  }
-
-  .info .citation a {
+  .info a {
     color: var(--color-primary);
     text-decoration: none;
+    font-weight: 500;
   }
 
-  .info .citation a:hover {
+  .info a:hover {
     text-decoration: underline;
-  }
-
-  /* Work multipliers */
-  .work-multipliers {
-    margin: var(--space-lg) 0;
-    padding: var(--space-md);
-    background: white;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-  }
-
-  .work-multipliers h4 {
-    margin: 0 0 var(--space-sm) 0;
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .mult-intro {
-    margin: 0 0 var(--space-md) 0;
-    font-size: var(--font-size-sm);
-    color: var(--color-text);
-  }
-
-  .multiplier-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-md);
-  }
-
-  .multiplier {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: var(--space-sm);
-  }
-
-  .mult-value {
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    color: var(--color-primary);
-  }
-
-  .mult-label {
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--color-text);
-    margin-top: var(--space-xs);
-  }
-
-  .mult-examples {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
-    margin-top: 2px;
-  }
-
-  .mult-note {
-    margin: var(--space-md) 0 0 0;
-    padding-top: var(--space-sm);
-    border-top: 1px solid var(--color-border-light);
-  }
-
-  .mult-note small {
-    color: var(--color-text-muted);
-    font-style: italic;
-  }
-
-  /* GEO: Quote styling */
-  .geo-quote {
-    margin: var(--space-lg) 0 0 0;
-    padding: var(--space-md);
-    background: white;
-    border-left: 4px solid var(--color-primary);
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  }
-
-  .geo-quote p {
-    margin: 0 0 var(--space-sm) 0;
-    font-style: italic;
-    color: var(--color-text);
-    line-height: 1.6;
-  }
-
-  .geo-quote cite {
-    display: block;
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-    font-style: normal;
-  }
-
-  .geo-quote cite a {
-    color: var(--color-primary);
-  }
-
-  /* GEO: Statistics Section */
-  .stats-section {
-    margin: var(--space-xl) 0;
-    padding: var(--space-xl);
-    background: linear-gradient(135deg, #f0fdf4 0%, #ede9fe 100%);
-    border-radius: var(--radius-lg);
-    text-align: center;
-  }
-
-  .stats-section h2 {
-    margin-top: 0;
-    margin-bottom: var(--space-lg);
-    color: var(--color-text);
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-lg);
-  }
-
-  .stat {
-    background: white;
-    padding: var(--space-lg);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    min-width: 0;
-  }
-
-  .stat-value {
-    font-size: var(--font-size-3xl);
-    font-weight: 700;
-    color: var(--color-primary);
-    margin-bottom: var(--space-xs);
-    word-break: break-word;
-  }
-
-  .stat-label {
-    font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: var(--space-xs);
-  }
-
-  .stat-desc {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-    overflow-wrap: break-word;
-  }
-
-  /* Historical data table */
-  .historical-data {
-    margin-top: var(--space-lg);
-    padding-top: var(--space-lg);
-    border-top: 1px solid var(--color-border);
-  }
-
-  .historical-data h3 {
-    font-size: var(--font-size-base);
-    margin-bottom: var(--space-md);
-    color: var(--color-text);
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--font-size-sm);
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: var(--space-sm) var(--space-md);
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .data-table th {
-    font-weight: 600;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .data-table tbody tr:hover {
-    background: rgba(102, 126, 234, 0.05);
-  }
-
-  .data-table .success {
-    color: var(--color-success);
-    font-weight: 500;
-  }
-
-  .data-table .active {
-    color: var(--color-primary);
-    font-weight: 500;
-  }
-
-  .data-table tr:has(strong) {
-    background: rgba(102, 126, 234, 0.08);
   }
 
   .cta-section {
@@ -575,8 +427,9 @@
   }
 
   @media (max-width: 1024px) {
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
+    .value-grid {
+      grid-template-columns: 1fr;
+      max-width: 300px;
     }
   }
 
@@ -586,29 +439,15 @@
       grid-template-columns: repeat(2, 1fr);
     }
 
-    .multiplier-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .data-table {
-      font-size: var(--font-size-xs);
-    }
-
-    .data-table th,
-    .data-table td {
-      padding: var(--space-xs) var(--space-sm);
+    .steps-grid {
+      grid-template-columns: 1fr;
     }
   }
 
   @media (max-width: 480px) {
     .benefits-grid,
-    .cta-grid,
-    .stats-grid {
+    .cta-grid {
       grid-template-columns: 1fr;
-    }
-
-    .multiplier-grid {
-      grid-template-columns: 1fr 1fr;
     }
   }
 </style>

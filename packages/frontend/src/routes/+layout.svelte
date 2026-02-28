@@ -1,26 +1,39 @@
 <script lang="ts">
   import "../app.css";
   import Header from "$lib/components/Header.svelte";
+  import Footer from "$lib/components/Footer.svelte";
 </script>
 
 <svelte:head>
-  <title>KCHNG - Community Currency</title>
+  <title>KCHNG - Community Work Exchange</title>
   <meta
     name="description"
-    content="A Stellar blockchain community currency with demurrage"
+    content="Community currency for collaborative communities. Track and reward the work that keeps your community running."
   />
 </svelte:head>
 
-<Header />
+<div class="page-wrapper">
+  <Header />
 
-<main class="container">
-  <slot />
-</main>
+  <main class="container">
+    <slot />
+  </main>
+
+  <Footer />
+</div>
 
 <style>
+  .page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
   .container {
-    max-width: 800px;
+    flex: 1;
+    max-width: 900px;
     margin: 0 auto;
     padding: 2rem;
+    width: 100%;
   }
 </style>

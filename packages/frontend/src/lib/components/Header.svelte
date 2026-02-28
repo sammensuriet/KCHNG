@@ -143,16 +143,14 @@
 <header class="header">
   <div class="header-left">
     <a href="/" class="logo">KCHNG</a>
-    <div class="network-badge">
-      <span class="network-dot"></span>
-      {currentNetwork.toUpperCase()}
-    </div>
   </div>
 
   <nav class="header-nav">
+    <a href="/about" class="nav-link" class:active={$page.url.pathname === "/about"}>About</a>
+    <a href="/faq" class="nav-link" class:active={$page.url.pathname === "/faq"}>FAQ</a>
     <a href="/dashboard" class="nav-link" class:active={$page.url.pathname === "/dashboard"}>Dashboard</a>
     <a href="/work" class="nav-link" class:active={$page.url.pathname.startsWith("/work")}>Work</a>
-    <a href="/trusts" class="nav-link" class:active={$page.url.pathname === "/trusts"}>Trusts</a>
+    <a href="/trusts" class="nav-link" class:active={$page.url.pathname === "/trusts"}>Communities</a>
     <a href="/governance" class="nav-link" class:active={$page.url.pathname === "/governance"}>Governance</a>
     <a href="/communicate" class="nav-link" class:active={$page.url.pathname === "/communicate"}>Chat</a>
   </nav>
@@ -426,25 +424,6 @@
     text-decoration: none;
   }
 
-  .network-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    background: #f3f4f6;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #6b7280;
-  }
-
-  .network-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #10b981;
-  }
-
   .header-nav {
     display: flex;
     align-items: center;
@@ -709,10 +688,6 @@
 
     .logo {
       font-size: 1.25rem;
-    }
-
-    .network-badge {
-      display: none;
     }
 
     .header-nav {
