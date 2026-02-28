@@ -154,6 +154,7 @@
     <a href="/work" class="nav-link" class:active={$page.url.pathname.startsWith("/work")}>Work</a>
     <a href="/trusts" class="nav-link" class:active={$page.url.pathname === "/trusts"}>Trusts</a>
     <a href="/governance" class="nav-link" class:active={$page.url.pathname === "/governance"}>Governance</a>
+    <a href="/communicate" class="nav-link" class:active={$page.url.pathname === "/communicate"}>Chat</a>
   </nav>
 
   <div class="header-right">
