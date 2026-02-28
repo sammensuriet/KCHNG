@@ -161,7 +161,7 @@ function buildFormData(body: string | Buffer, boundary: string): Buffer {
   const metadata = JSON.stringify({
     name: `work-evidence-${Date.now()}`,
     keyvalues: {
-      app: 'kachi.ng',
+      app: 'kchng.org',
       type: 'work-evidence',
       uploadedAt: new Date().toISOString(),
     }

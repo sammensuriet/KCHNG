@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document maps user journeys for KCHNG (kachi.ng) across four primary work categories. Each journey details how users discover, join, earn, spend, and govern within the platform.
+This document maps user journeys for KCHNG (kchng.org) across four primary work categories. Each journey details how users discover, join, earn, spend, and govern within the platform.
 
 **Core Economic Equation**: `30 min verified work = 1000 KCHNG = 1 community meal`
 
@@ -43,7 +43,7 @@ This document maps user journeys for KCHNG (kachi.ng) across four primary work c
 | Stage | Action | Platform Feature | Touchpoint |
 |-------|--------|------------------|------------|
 | **Awareness** | Hears about KCHNG from community health worker | Word of mouth | Local clinic partnership |
-| **Interest** | Visits kachi.ng landing page | Landing page hero section | Website |
+| **Interest** | Visits kchng.org landing page | Landing page hero section | Website |
 | **Understanding** | Reads "30 min work = 1000 KCHNG = 1 meal" | Value proposition banner | Website |
 | **Consideration** | Explores "Why KCHNG?" benefits | Benefits grid | Website |
 | **Action** | Clicks "Dashboard" to connect wallet | CTA section | Website |
@@ -291,7 +291,7 @@ Incentive: Spend or transfer within 7 days to avoid any decay
 | Stage | Action | Platform Feature | Touchpoint |
 |-------|--------|------------------|------------|
 | **Awareness** | Sees KCHNG flyer at local hardware store | Print marketing | Hardware store partnership |
-| **Interest** | Scans QR code to visit kachi.ng | QR code campaign | Physical flyer |
+| **Interest** | Scans QR code to visit kchng.org | QR code campaign | Physical flyer |
 | **Understanding** | Watches 2-min explainer video | Video embed | Landing page |
 | **Consideration** | Sees "Skilled Labor 1.3x multiplier" | Work types info | Work page |
 | **Action** | Connects wallet and joins "Artisan Trust" | Trust joining | /trusts |

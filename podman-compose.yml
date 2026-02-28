@@ -27,7 +27,7 @@ services:
       retries: 3
       start_period: 5s
     labels:
-      - "kachi.ng=kchng-frontend"
+      - "kchng.org=kchng-frontend"
       - "com.centos.systemd.keep_after_exit=true"
       - "io.containers.autoupdate=registry"
     volumes:

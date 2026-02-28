@@ -2,14 +2,14 @@
 
 **Server**: 102.68.84.79 (Ubuntu 24.04.3 LTS)
 **Purpose**: Deploy KCHNG frontend alongside existing Padawa PWA
-**Domain**: kachi.ng
+**Domain**: kchng.org
 **Date**: 2025-01-01
 
 ---
 
 ## ✅ Deployment Status
 
-**KCHNG is LIVE at https://kachi.ng**
+**KCHNG is LIVE at https://kchng.org**
 
 - ✅ Frontend built and deployed
 - ✅ nginx configured
@@ -32,7 +32,7 @@
 - `padawa.ng` → localhost:3000
 - `api.padawa.ng` → localhost:3000
 - `www.padawa.ng` → localhost:3000
-- `kachi.ng` → static files via nginx ✅
+- `kchng.org` → static files via nginx ✅
 
 ### System Resources
 - **RAM**: 7.7GB (6.9GB available)
@@ -71,7 +71,7 @@ npx pnpm --filter frontend build
 
 ```nginx
 server {
-    server_name kachi.ng www.kachi.ng;
+    server_name kchng.org www.kchng.org;
     root /opt/deployments/kchng/packages/frontend/build;
     index index.html;
 
@@ -107,7 +107,7 @@ git clone https://github.com/pokho/okdeployman.git ~/okdeployman
 nix profile install ~/okdeployman#default
 
 # Deploy KCHNG updates
-deploy-static kachi.ng deployman@102.68.84.79 ./packages/frontend/build
+deploy-static kchng.org deployman@102.68.84.79 ./packages/frontend/build
 ```
 
 **okdeployman features:**
@@ -121,7 +121,7 @@ deploy-static kachi.ng deployman@102.68.84.79 ./packages/frontend/build
 
 | Method | When to Use | Command |
 |--------|-------------|---------|
-| **okdeployman** | Regular updates | `deploy-static kachi.ng ...` |
+| **okdeployman** | Regular updates | `deploy-static kchng.org ...` |
 | **Manual SSH** | Quick fixes | `ssh deployman@102.68.84.79 "cd /opt/deployments/kchng && pnpm build"` |
 | **deploy-rs** | Complex deployments | `nix run .#deploy` |
 
@@ -142,7 +142,7 @@ rsync -avz ./packages/frontend/build/ deployman@102.68.84.79:/opt/deployments/kc
 
 ```bash
 # Build and deploy in one command
-deploy-static kachi.ng deployman@102.68.84.79 ./packages/frontend/build
+deploy-static kchng.org deployman@102.68.84.79 ./packages/frontend/build
 ```
 
 ---
@@ -167,7 +167,7 @@ mv packages/frontend/build.backup packages/frontend/build
 # Checkout previous version
 git checkout <previous-commit>
 pnpm --filter frontend build
-deploy-static kachi.ng ...
+deploy-static kchng.org ...
 ```
 
 ### 3. Nix Store Rollback (if using Nix builds)
@@ -185,10 +185,10 @@ nix build .#kchng-frontend
 
 ```bash
 # HTTP check
-curl -I https://kachi.ng/
+curl -I https://kchng.org/
 
 # Health check
-curl https://kachi.ng/ | grep -i "kchng"
+curl https://kchng.org/ | grep -i "kchng"
 
 # nginx logs
 ssh deployman@102.68.84.79 "tail -f /var/log/nginx/kachi-access.log"
@@ -237,7 +237,7 @@ Add a new server block for GbamGbam:
 server {
     server_name gbamgbam.ng www.gbamgbam.ng;
     root /opt/deployments/gbamgbam/build;
-    # ... same config as kachi.ng
+    # ... same config as kchng.org
 }
 ```
 
@@ -258,7 +258,7 @@ server {
 ## Summary
 
 **Current Status:**
-- ✅ KCHNG live at https://kachi.ng
+- ✅ KCHNG live at https://kchng.org
 - ✅ SSL configured
 - ✅ nginx serving static files
 - ✅ Auto-renewing SSL certificate
@@ -269,7 +269,7 @@ server {
 - Or deploy-rs for complex multi-server setups
 
 **Key URLs:**
-- Site: https://kachi.ng
+- Site: https://kchng.org
 - Deploy tool: https://github.com/pokho/okdeployman
 - Documentation: See okdeployman README
 

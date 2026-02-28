@@ -39,10 +39,8 @@ function createChatStore() {
     import("gun").then((GunModule) => {
       const Gun = GunModule.default || GunModule;
       gun = Gun({
-        peers: [
-          "https://gun-manhattan.herokuapp.com/gun",
-          "https://gun-us.herokuapp.com/gun",
-        ],
+        // Self-hosted Gun relay with Let's Encrypt SSL
+        peers: ["https://gun.kchng.org/gun"],
       });
 
       // Subscribe to the kchng/chat channel

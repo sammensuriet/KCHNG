@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-KCHNG is a Stellar blockchain token project for kachi.ng - a community currency with native on-chain demurrage. The core economic principle: **1 KCHNG = 1 local community meal**.
+KCHNG is a Stellar blockchain token project for kchng.org - a community currency with native on-chain demurrage. The core economic principle: **1 KCHNG = 1 local community meal**.
 
 ## Technology Stack
 

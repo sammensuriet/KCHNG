@@ -24,14 +24,14 @@ set -euo pipefail
 # Production server - UPDATE THESE VALUES
 PROD_HOST=""  # e.g., "your-server.com" or IP address
 PROD_USER="root"
-PROD_DEPLOY_DIR="/var/www/kachi.ng"
+PROD_DEPLOY_DIR="/var/www/kchng.org"
 PROD_SSH_PORT="22"
 
 # ============================================================================
 # SCRIPT SETTINGS - Usually no need to change these
 # ============================================================================
 
-PROJECT_NAME="kachi.ng"
+PROJECT_NAME="kchng.org"
 LOCAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$LOCAL_DIR/packages/frontend"
 
@@ -142,13 +142,13 @@ configure_nginx() {
 
     ssh -p "$port" "${user}@${host}" << 'ENDSSH'
 # Create nginx config if it doesn't exist
-cat > /etc/nginx/sites-available/kachi.ng << 'EOF'
+cat > /etc/nginx/sites-available/kchng.org << 'EOF'
 server {
     listen 80;
     listen [::]:80;
-    server_name kachi.ng www.kachi.ng;
+    server_name kchng.org www.kchng.org;
 
-    root /var/www/kachi.ng;
+    root /var/www/kchng.org;
     index index.html;
 
     # Security headers
@@ -177,8 +177,8 @@ server {
 EOF
 
 # Enable site
-if [ ! -L /etc/nginx/sites-enabled/kachi.ng ]; then
-    ln -s /etc/nginx/sites-available/kachi.ng /etc/nginx/sites-enabled/kachi.ng
+if [ ! -L /etc/nginx/sites-enabled/kchng.org ]; then
+    ln -s /etc/nginx/sites-available/kchng.org /etc/nginx/sites-enabled/kchng.org
 fi
 
 # Test nginx configuration
@@ -201,14 +201,14 @@ health_check() {
 
     if command -v curl &>/dev/null; then
         local response
-        response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://kachi.ng" 2>/dev/null || echo "000")
+        response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://kchng.org" 2>/dev/null || echo "000")
 
         if [ "$response" = "200" ] || [ "$response" = "304" ]; then
             log_success "Health check passed (HTTP $response)"
             return 0
         else
             log_warning "Health check returned HTTP $response"
-            log_info "Check the site manually at https://kachi.ng"
+            log_info "Check the site manually at https://kchng.org"
         fi
     else
         log_warning "curl not available. Skipping health check."
@@ -223,7 +223,7 @@ deploy_production() {
         echo "Please update the CONFIG section at the top of this script:"
         echo "  PROD_HOST=\"your-server.com\""
         echo "  PROD_USER=\"root\"  # or your deploy user"
-        echo "  PROD_DEPLOY_DIR=\"/var/www/kachi.ng\""
+        echo "  PROD_DEPLOY_DIR=\"/var/www/kchng.org\""
         echo ""
         echo "Then run the deploy script again."
         exit 1
@@ -242,7 +242,7 @@ deploy_production() {
     echo ""
     log_success "Production deployment completed!"
     echo ""
-    echo "Visit: https://kachi.ng"
+    echo "Visit: https://kchng.org"
 }
 
 # ============================================================================

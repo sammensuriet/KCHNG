@@ -1,6 +1,6 @@
 # KCHNG
 
-A Stellar blockchain token for kachi.ng - a community currency with native on-chain demurrage and time-based economics.
+A Stellar blockchain token for kchng.org - a community currency with native on-chain demurrage and time-based economics.
 
 ## Overview
 

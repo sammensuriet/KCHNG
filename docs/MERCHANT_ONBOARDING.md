@@ -246,7 +246,7 @@ Contact your Trust governor for specifics.
 
 - **Trust Governor**: Your primary contact for Trust-specific issues
 - **Community Forum**: Connect with other merchants and users
-- **Technical Issues**: Submit issues at [github.com/kachi-ng/KCHNG](https://github.com/kachi-ng/KCHNG)
+- **Technical Issues**: Submit issues at [github.com/kchng.org/KCHNG](https://github.com/kchng.org/KCHNG)
 
 ---
 
@@ -296,4 +296,4 @@ Contact your Trust governor for specifics.
 
 **Welcome to the KCHNG community!**
 
-Questions? Contact your Trust governor or visit [kachi.ng](https://kachi.ng).
+Questions? Contact your Trust governor or visit [kchng.org](https://kchng.org).

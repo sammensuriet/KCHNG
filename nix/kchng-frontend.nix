@@ -69,7 +69,7 @@ pkgs.buildNpmPackage rec {
   # Metadata
   meta = with pkgs.lib; {
     description = "KCHNG Community Currency Frontend";
-    homepage = "https://kachi.ng";
+    homepage = "https://kchng.org";
     license = licenses.mit;
     platforms = platforms.linux;
   };

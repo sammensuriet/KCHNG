@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kachi.ng/sitemap.xml
+Sitemap: https://kchng.org/sitemap.xml

@@ -1,8 +1,8 @@
 {
   "token_standard": "KCHNG-DEMURRAGE-1.0",
   "token_name": "KCHNG",
-  "token_description": "Community currency with native on-chain demurrage for kachi.ng",
-  "website": "https://kachi.ng",
+  "token_description": "Community currency with native on-chain demurrage for kchng.org",
+  "website": "https://kchng.org",
   "documentation": "https://github.com/pokho/KCHNG",
   
   "data_model": {

@@ -1,6 +1,6 @@
 # KCHNG Product Requirements Document
-**Version**: 1.1
-**Last Updated**: 2026-01-21
+**Version**: 1.2
+**Last Updated**: 2026-02-28
 **Status**: Active Development
 
 ---
@@ -251,6 +251,35 @@ None identified. All contract phases are implemented as designed.
 
 ---
 
+## Phase 8: Community Chat ✅
+
+| Requirement | Status | Notes |
+|-------------|--------|-------|
+| Real-time messaging | ✅ Complete | Gun.js peer-to-peer |
+| Wallet-based identity | ✅ Complete | Stellar address as username |
+| Decentralized storage | ✅ Complete | No central database |
+| Self-hosted relay | ✅ Complete | gun.kchng.org with SSL |
+| Responsive UI | ✅ Complete | Desktop and mobile |
+
+**Technical Specs:**
+- **Technology**: Gun.js (decentralized graph database)
+- **Endpoint**: `/communicate`
+- **Channel**: `kchng/chat` (public, single channel)
+- **Identity**: Connected wallet address (truncated display)
+- **Message limit**: 200 messages retained locally
+- **Relay server**: `https://gun.kchng.org/gun` (WSS)
+
+**Architecture:**
+```
+Browser ←→ Gun.js Client ←→ WSS ←→ Nginx ←→ Gun Relay (VPS)
+                                                       ↓
+                                              Gun P2P Network
+```
+
+**Implementation Report**: `docs/2026-02-28_gun-chat-implementation.md`
+
+---
+
 ## Frontend Status
 
 ### Completed ✅
@@ -259,10 +288,11 @@ None identified. All contract phases are implemented as designed.
 - Network configurations (testnet/mainnet/standalone)
 - Landing page with demurrage explanation
 - Basic routing structure
-
-### In Progress ⚠️
 - Wallet connection UI
 - Dashboard with balance display
+- **Community chat (Gun.js)**
+
+### In Progress ⚠️
 - Trust management interface
 - Work verification UI
 - Governance voting interface
@@ -328,16 +358,16 @@ tests/regression/
 ## Roadmap
 
 ### Immediate (Before Mainnet)
-1. **Fix Reputation System** - Either implement reputation-weighted decisions OR remove if not essential
-2. **Security Audit** - Third-party review of contract
-3. **Complete Frontend** - Wallet UI, dashboard, key workflows
-4. **Test Advanced Features** - Grace periods, governance, swaps in practice
+1. **Security Audit** - Third-party review of contract
+2. **Complete Frontend** - Trust management, work verification, governance UI
+3. **Test Advanced Features** - Grace periods, governance, swaps in practice
 
 ### Short Term (Post-Mainnet)
 1. **Community Onboarding** - Documentation, tutorials
 2. **Mobile App** - Progressive Web App enhancements
 3. **Analytics** - Dashboard for trust administrators
 4. **IPFS Integration** - Decentralized evidence storage
+5. **Chat Enhancements** - Message signing, private channels, moderation
 
 ### Long Term
 1. **Multi-Chain** - Consider other chains
@@ -388,9 +418,10 @@ REPUTATION_INITIAL: 500
 
 - **Design Doc**: `docs/time-standard-token-design.md`
 - **Deployment Report**: `docs/DEPLOYMENT_REPORT.md`
+- **Chat Implementation**: `docs/2026-02-28_gun-chat-implementation.md`
 - **Contract**: `packages/contracts/src/lib.rs`
 - **Tests**: `packages/contracts/src/test.rs`, `tests/regression/`
 
 ---
 
-**Document Status**: ✅ Complete | ⚠️ Needs Update for Reputation Decision
+**Document Status**: ✅ Updated with Community Chat feature (Phase 8)

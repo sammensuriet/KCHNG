@@ -112,7 +112,7 @@ export async function uploadToIPFS(file: File, onProgress?: (percent: number) =>
   const metadata = JSON.stringify({
     name: `work-evidence-${Date.now()}`,
     keyvalues: {
-      app: 'kachi.ng',
+      app: 'kchng.org',
       type: 'work-evidence',
       originalName: file.name,
     }

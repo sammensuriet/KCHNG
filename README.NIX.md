@@ -203,7 +203,7 @@ curl http://localhost:5173
 
 ## Next Steps
 
-- [ ] Configure DNS for `kachi.ng` → `102.68.84.79`
+- [ ] Configure DNS for `kchng.org` → `102.68.84.79`
 - [ ] Setup nginx reverse proxy
 - [ ] Obtain SSL certificate with certbot
 - [ ] Deploy to production VPS
