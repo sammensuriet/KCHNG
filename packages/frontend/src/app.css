@@ -1,5 +1,9 @@
 /* Global styles for KCHNG frontend */
 
+html {
+  overflow-x: hidden;
+}
+
 :root {
   /* Brand Colors */
   --color-primary: #667eea;

@@ -442,12 +442,30 @@
     .steps-grid {
       grid-template-columns: 1fr;
     }
+
+    .value-section {
+      padding: var(--space-lg);
+      margin-left: -1rem;
+      margin-right: -1rem;
+      border-radius: 0;
+    }
+
+    .info {
+      padding: var(--space-md);
+      margin-left: -1rem;
+      margin-right: -1rem;
+      border-radius: 0;
+    }
   }
 
   @media (max-width: 480px) {
     .benefits-grid,
     .cta-grid {
       grid-template-columns: 1fr;
+    }
+
+    .benefit {
+      padding: var(--space-md);
     }
   }
 </style>

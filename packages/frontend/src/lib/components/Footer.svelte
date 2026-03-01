@@ -41,7 +41,8 @@
     background: #f9fafb;
     border-top: 1px solid #e5e7eb;
     margin-top: auto;
-    padding: 2rem 1.5rem;
+    padding: 2rem 1rem;
+    box-sizing: border-box;
   }
 
   .footer-content {
@@ -52,6 +53,7 @@
     gap: 2rem;
     max-width: 1200px;
     margin: 0 auto;
+    box-sizing: border-box;
   }
 
   .footer-brand {

@@ -27,6 +27,7 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   .container {
@@ -35,5 +36,12 @@
     margin: 0 auto;
     padding: 2rem;
     width: 100%;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 640px) {
+    .container {
+      padding: 1rem;
+    }
   }
 </style>
