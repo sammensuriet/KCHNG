@@ -70,7 +70,22 @@ export enum ProposalType {
   RateChange = 0,           // Change trust demurrage rate
   TrustParameters = 1,      // Adjust trust parameters
   ProtocolUpgrade = 2,      // Protocol-level upgrade
-  Emergency = 3,            // Emergency measure (crisis exception),
+  Emergency = 3,            // Emergency measure (crisis exception)
+  RemoveVerifier = 4,       // Vote to remove low-rep verifier
+  RemoveGovernor = 5,       // Vote to replace governor
+  RemoveOracle = 6,         // Vote to remove oracle
+  RoleProbation = 7,        // Put a role in probation status
+}
+
+/**
+ * Role type for reputation tracking and step_down
+ */
+export enum RoleType {
+  Governor = 0,
+  Verifier = 1,
+  Oracle = 2,
+  Worker = 3,
+  Member = 4,
 }
 
 // ============================================================================
@@ -96,6 +111,7 @@ export interface AccountData {
 export interface TrustData {
   name: string;
   governor: AccountId;
+  successor: AccountId | null;     // Designated successor for governor role
   annual_rate_bps: number;         // Annual demurrage rate in basis points
   demurrage_period_days: number;
   member_count: number;
@@ -212,6 +228,8 @@ export interface WorkClaim {
   gps_lon?: number;
   submitted_at: Timestamp;
   verifiers_assigned: AccountId[];
+  approvers: AccountId[];          // Track who approved for TF2T
+  rejecters: AccountId[];          // Track who rejected for TF2T penalty
   approvals_received: number;
   rejections_received: number;
   status: ClaimStatus;
@@ -261,6 +279,8 @@ export interface OracleData {
   stake: Amount;
   reputation_score: number;        // 0-1000 (general trust, independent of roles)
   grace_periods_granted: number;
+  grants_this_year: number;        // Track yearly grants for low-rep limits
+  last_grant_year: number;         // Year of last grant (for reset)
   /**
    * Optional role-based scores (aspect:role → score)
    */

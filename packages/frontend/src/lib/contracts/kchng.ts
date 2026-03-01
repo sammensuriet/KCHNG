@@ -32,6 +32,7 @@ import {
   ProposalType,
   ProposalStatus,
   ClaimStatus,
+  RoleType,
 } from "@kchng/shared";
 
 // Type for the contract's balance() return value
@@ -269,6 +270,30 @@ export class KchngClient {
       console.error("Error fetching all trusts:", error);
       throw new Error("Failed to fetch trusts from contract");
     }
+  }
+
+  /**
+   * Designate a successor for the governor role (sociocratic succession)
+   * Only the current governor can call this
+   * The successor must be a member of the trust
+   */
+  async designateSuccessor(
+    sourceAddress: string,
+    successor: string
+  ): Promise<string> {
+    const successorAddress = new Address(successor);
+    const args = [successorAddress.toScVal()];
+    return this.submitContractCall("designate_successor", args, sourceAddress);
+  }
+
+  /**
+   * Voluntarily step down from a role (sociocratic role release)
+   * For governors: transfers to successor if designated, otherwise disables trust
+   * For verifiers/oracles: returns full stake (no slashing for voluntary release)
+   */
+  async stepDown(sourceAddress: string, role: RoleType): Promise<string> {
+    const args = [xdr.ScVal.scvU32(role)];
+    return this.submitContractCall("step_down", args, sourceAddress);
   }
 
   // ==========================================================================
@@ -862,25 +887,28 @@ export class KchngClient {
 
   /**
    * Convert TrustData ScVal to TrustData
-   * Fields: name (String), governor (Address), annual_rate_bps (u32),
-   *         demurrage_period_days (u64), member_count (u32), is_active (bool), created_at (u64)
+   * Fields: name (String), governor (Address), successor (Option<Address>),
+   *         annual_rate_bps (u32), demurrage_period_days (u64),
+   *         member_count (u32), is_active (bool), created_at (u64)
    */
   private trustDataFromScVal(val: xdr.ScVal): TrustData {
     try {
       return {
         name: this.getStructField(val, 0) ? this.stringFromScVal(this.getStructField(val, 0)!) : "",
         governor: this.getStructField(val, 1) ? this.addressFromScVal(this.getStructField(val, 1)!) : "",
-        annual_rate_bps: this.getStructField(val, 2) ? this.u32FromScVal(this.getStructField(val, 2)!) : 1200,
-        demurrage_period_days: this.getStructField(val, 3) ? this.u64FromScVal(this.getStructField(val, 3)!) : 28,
-        member_count: this.getStructField(val, 4) ? this.u32FromScVal(this.getStructField(val, 4)!) : 0,
-        is_active: this.getStructField(val, 5) ? this.boolFromScVal(this.getStructField(val, 5)!) : false,
-        created_at: this.getStructField(val, 6) ? this.u64FromScVal(this.getStructField(val, 6)!) : 0,
+        successor: this.getStructField(val, 2) ? this.optionAddressFromScVal(this.getStructField(val, 2)!) : null,
+        annual_rate_bps: this.getStructField(val, 3) ? this.u32FromScVal(this.getStructField(val, 3)!) : 1200,
+        demurrage_period_days: this.getStructField(val, 4) ? this.u64FromScVal(this.getStructField(val, 4)!) : 28,
+        member_count: this.getStructField(val, 5) ? this.u32FromScVal(this.getStructField(val, 5)!) : 0,
+        is_active: this.getStructField(val, 6) ? this.boolFromScVal(this.getStructField(val, 6)!) : false,
+        created_at: this.getStructField(val, 7) ? this.u64FromScVal(this.getStructField(val, 7)!) : 0,
       };
     } catch (error) {
       console.error("[KchngClient] Failed to parse TrustData:", error);
       return {
         name: "",
         governor: "",
+        successor: null,
         annual_rate_bps: 1200,
         demurrage_period_days: 28,
         member_count: 0,
@@ -895,6 +923,7 @@ export class KchngClient {
    * Fields: claim_id (u64), worker (Address), work_type (WorkType enum),
    *         minutes_worked (u64), evidence_hash (Bytes), gps_lat (Option<i64>),
    *         gps_lon (Option<i64>), submitted_at (u64), verifiers_assigned (Vec<Address>),
+   *         approvers (Vec<Address>), rejecters (Vec<Address>),
    *         approvals_received (u32), rejections_received (u32), status (ClaimStatus enum),
    *         multiplier (u32)
    */
@@ -909,7 +938,7 @@ export class KchngClient {
         }
       }
 
-      const statusField = this.getStructField(val, 11);
+      const statusField = this.getStructField(val, 13);
       let status: ClaimStatus = ClaimStatus.Pending;
       if (statusField) {
         const enumVal = statusField.u32();
@@ -928,10 +957,12 @@ export class KchngClient {
         gps_lon: this.getStructField(val, 6) ? this.optionI64FromScVal(this.getStructField(val, 6)!) : undefined,
         submitted_at: this.getStructField(val, 7) ? this.u64FromScVal(this.getStructField(val, 7)!) : 0,
         verifiers_assigned: this.getStructField(val, 8) ? this.addressVecFromScVal(this.getStructField(val, 8)!) : [],
-        approvals_received: this.getStructField(val, 9) ? this.u32FromScVal(this.getStructField(val, 9)!) : 0,
-        rejections_received: this.getStructField(val, 10) ? this.u32FromScVal(this.getStructField(val, 10)!) : 0,
+        approvers: this.getStructField(val, 9) ? this.addressVecFromScVal(this.getStructField(val, 9)!) : [],
+        rejecters: this.getStructField(val, 10) ? this.addressVecFromScVal(this.getStructField(val, 10)!) : [],
+        approvals_received: this.getStructField(val, 11) ? this.u32FromScVal(this.getStructField(val, 11)!) : 0,
+        rejections_received: this.getStructField(val, 12) ? this.u32FromScVal(this.getStructField(val, 12)!) : 0,
         status: status,
-        multiplier: this.getStructField(val, 12) ? this.u32FromScVal(this.getStructField(val, 12)!) : 100,
+        multiplier: this.getStructField(val, 14) ? this.u32FromScVal(this.getStructField(val, 14)!) : 100,
       };
     } catch (error) {
       console.error("[KchngClient] Failed to parse WorkClaim:", error);
@@ -943,6 +974,8 @@ export class KchngClient {
         evidence_hash: "",
         submitted_at: 0,
         verifiers_assigned: [],
+        approvers: [],
+        rejecters: [],
         approvals_received: 0,
         rejections_received: 0,
         status: 0 as ClaimStatus.Pending,
