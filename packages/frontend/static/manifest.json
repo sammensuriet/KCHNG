@@ -1,7 +1,7 @@
 {
-  "name": "KCHNG - Community Currency",
+  "name": "KCHNG - Community Work Exchange",
   "short_name": "KCHNG",
-  "description": "Kachi.ng community currency with native on-chain demurrage. 1000 KCHNG = 30 min work = 1 local community meal.",
+  "description": "Community currency for collaborative communities. 30 minutes work = 1 meal. Track and reward community service.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
@@ -82,8 +82,8 @@
       "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
     },
     {
-      "name": "Trusts",
-      "short_name": "Trusts",
+      "name": "Communities",
+      "short_name": "Communities",
       "url": "/trusts",
       "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
     }
