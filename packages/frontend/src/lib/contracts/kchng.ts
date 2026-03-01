@@ -1126,5 +1126,6 @@ export class KchngClient {
  */
 export function createKchngClient(network: NetworkName = "testnet"): KchngClient {
   const config = getNetworkConfig(network);
+  console.log(`[KCHNG] Network: ${network} | Contract: ${config.contractId}`);
   return new KchngClient(config.contractId, config.rpcUrl, config.networkPassphrase);
 }

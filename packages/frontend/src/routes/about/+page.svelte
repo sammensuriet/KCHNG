@@ -187,6 +187,25 @@
   </p>
 </section>
 
+<section class="section contract-info">
+  <h2>Contract Version</h2>
+  <p class="version-note">Current deployed contract addresses on Stellar:</p>
+  <div class="contract-list">
+    <div class="contract-item">
+      <span class="network-label">Testnet</span>
+      <a href="https://stellar.expert/explorer/testnet/contract/CDMSMELWB6ERPXOSD7L3DXXJIG5A6PMBT6R6VFV6FOENKYYN7QNQPBFH" target="_blank" rel="noopener" class="contract-link">
+        CDMSMELWB6ERPXOSD7L3DXXJIG5A6PMBT6R6VFV6FOENKYYN7QNQPBFH
+      </a>
+    </div>
+    <div class="contract-item">
+      <span class="network-label">Mainnet</span>
+      <a href="https://stellar.expert/explorer/public/contract/CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK" target="_blank" rel="noopener" class="contract-link">
+        CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK
+      </a>
+    </div>
+  </div>
+</section>
+
 <section class="section cta-section">
   <h2>Questions?</h2>
   <p>
@@ -438,6 +457,58 @@
   }
 
   .cta-note a {
+    color: var(--color-primary);
+  }
+
+  /* Contract Info */
+  .contract-info {
+    background: var(--color-bg-subtle);
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-xl);
+  }
+
+  .contract-info h2 {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--space-sm);
+    border-bottom: none;
+  }
+
+  .version-note {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-md);
+  }
+
+  .contract-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .contract-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+    font-size: var(--font-size-xs);
+  }
+
+  .network-label {
+    font-weight: 600;
+    color: var(--color-text);
+    min-width: 70px;
+  }
+
+  .contract-link {
+    font-family: monospace;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    word-break: break-all;
+    transition: color 0.2s;
+  }
+
+  .contract-link:hover {
     color: var(--color-primary);
   }
 
