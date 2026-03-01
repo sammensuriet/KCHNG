@@ -82,15 +82,20 @@ function createWalletStore() {
 
       // Open the modal for wallet selection using the kit's openModal method
       console.log("[Wallet] Opening modal");
+      let modalClosed = false;
+
       await walletsKit.openModal({
         onWalletSelected: async (wallet: { id: string; name: string }) => {
           console.log("[Wallet] Wallet selected:", wallet);
+          modalClosed = true; // Modal closed normally
 
-          // Set the selected wallet
-          await walletsKit.setWallet(wallet.id);
-
-          // Get the address
           try {
+            // Set the selected wallet
+            console.log("[Wallet] Setting wallet:", wallet.id);
+            await walletsKit.setWallet(wallet.id);
+            console.log("[Wallet] Wallet set, getting address...");
+
+            // Get the address
             const { address } = await walletsKit.getAddress();
             console.log("[Wallet] Got address:", address);
             update((s) => ({
@@ -103,19 +108,20 @@ function createWalletStore() {
             }));
             loadBalance(address, network);
           } catch (err: any) {
-            console.error("[Wallet] Error getting address:", err);
+            console.error("[Wallet] Error in wallet connection:", err);
             update((s) => ({
               ...s,
-              error: err.message || "Failed to get wallet address",
+              error: err.message || "Failed to connect wallet",
             }));
           }
         },
         onClosed: (err?: Error) => {
-          if (err) {
-            console.error("[Wallet] Modal closed with error:", err);
+          console.log("[Wallet] Modal closed, error:", err, "wasWalletSelected:", modalClosed);
+          if (!modalClosed || err) {
+            console.error("[Wallet] Modal closed unexpectedly");
             update((s) => ({
               ...s,
-              error: err.message || "Wallet selection cancelled",
+              error: err?.message || "Wallet connection cancelled",
             }));
           }
         },
