@@ -1,5 +1,5 @@
 # KCHNG Product Requirements Document
-**Version**: 1.3
+**Version**: 1.4
 **Last Updated**: 2026-03-01
 **Status**: Active Development
 
@@ -148,19 +148,21 @@ Reputation is tracked on-chain but **not enforced** by the contract. This follow
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| Oracle registration | ✅ Complete | 500K KCHNG stake |
+| Oracle registration | ✅ Complete | 5M KCHNG stake (anti-gaming) |
 | Emergency grace (14-90 days) | ✅ Implemented | Untested |
 | Illness grace (30+ days) | ✅ Implemented | Untested |
 | Community-voted grace (30-180 days) | ✅ Implemented | Untested |
 | Grace period extension | ✅ Implemented | Untested |
 | Demurrage suspension during grace | ✅ Implemented | Untested |
-| Anti-abuse (max 3/year, 30h contribution) | ✅ Implemented | Untested |
+| Anti-abuse (max 3/year, 100h contribution) | ✅ Implemented | Untested |
+| Low-rep oracle limits | ✅ Complete | 1 grace/year for <200 rep |
 
 **Technical Specs:**
-- Oracle stake: 500,000 KCHNG
+- Oracle stake: 5,000,000 KCHNG (increased from 500K for anti-gaming)
 - Grace types stored in enum: Emergency, Illness, Community
 - Overlapping grace periods: longest duration wins
 - Contribution hours tracked per account
+- Low-rep oracles (<200): limited to 1 grace period per year
 
 ---
 
@@ -245,9 +247,9 @@ None identified. All contract phases are implemented as designed.
 
 | Issue | Impact | Status |
 |-------|--------|--------|
-| Dead code (`fraud_reports` field) | Code smell | Cleanup needed |
 | Generic error messages | UX | Improvement needed |
 | Access control clarity | Security | Documentation needed |
+| Unused `key_to_role_type` function | Code smell | Cleanup needed |
 
 ---
 
@@ -425,7 +427,7 @@ MAX_ANNUAL_RATE_BPS: 1500      // 15% maximum
 
 // Stake Requirements
 VERIFIER_STAKE: 100,000 KCHNG  // 100 meals = 50 hours work
-ORACLE_STAKE: 500,000 KCHNG   // 500 meals = 250 hours work
+ORACLE_STAKE: 5,000,000 KCHNG  // 5000 meals = 2500 hours work (anti-gaming: increased from 500K)
 
 // Governance
 MIN_VERIFIERS: 2
@@ -453,4 +455,4 @@ REPUTATION_INITIAL: 500
 
 ---
 
-**Document Status**: ✅ Updated with Anti-Requirements section (v1.3)
+**Document Status**: ✅ Aligned with contract (v1.4) - oracle stake, grace limits
