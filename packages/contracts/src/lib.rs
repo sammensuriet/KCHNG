@@ -303,6 +303,9 @@ const REP_EVENT_DECAY: u32 = 14;            // High reputation decays toward 500
 const REP_EVENT_RECOVERY: u32 = 15;         // Low reputation recovers toward 500 (90+ days)
 const REP_EVENT_ROLE_RELEASE: u32 = 16;     // Voluntary step-down from role (neutral)
 
+// Maximum number of approvers/rejecters to track per claim (prevent storage bloat)
+const MAX_VOTERS_PER_CLAIM: u32 = 10;
+
 // Reputation thresholds
 const REP_NEUTRAL: u32 = 500;
 const REP_RESTRICTED: u32 = 200;
@@ -1729,9 +1732,11 @@ impl KchngToken {
             panic!("Verifier not assigned to this claim");
         }
 
-        // Record approval and track approver
+        // Record approval and track approver (limit stored voters to prevent storage bloat)
         claim.approvals_received += 1;
-        claim.approvers.push_back(verifier.clone());
+        if claim.approvers.len() < MAX_VOTERS_PER_CLAIM {
+            claim.approvers.push_back(verifier.clone());
+        }
         claims.set(claim_id, claim.clone());
         env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
 
@@ -1873,9 +1878,11 @@ impl KchngToken {
             panic!("Verifier not assigned to this claim");
         }
 
-        // Record rejection and track rejecter
+        // Record rejection and track rejecter (limit stored voters to prevent storage bloat)
         claim.rejections_received += 1;
-        claim.rejecters.push_back(verifier.clone());
+        if claim.rejecters.len() < MAX_VOTERS_PER_CLAIM {
+            claim.rejecters.push_back(verifier.clone());
+        }
         claims.set(claim_id, claim.clone());
         env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
 

@@ -490,11 +490,11 @@ fn test_cross_trust_large_amounts() {
     let account = client.get_account(&user);
     assert_eq!(account.trust_id, Some(trust_b.clone()));
 
-    // Note: cross_trust_swap deducts the amount from balance (this appears to be
-    // the current contract behavior - tokens are burned during swap)
-    // The user's balance will be 0 after swapping all tokens
+    // After swap, user receives rate-adjusted amount
+    // Exchange rate is ~0.9565 (from 1200bps to 800bps demurrage)
+    // Expected: 1,000,000 * 9565 / 10000 = 956,500
     let final_balance = client.balance(&user);
-    assert_eq!(final_balance, U256::from_u32(&env, 0));
+    assert_eq!(final_balance, U256::from_u32(&env, 956_500));
 
     // Verify trust member counts updated
     let trust_a_info = client.get_trust_info(&trust_a);
@@ -1096,15 +1096,16 @@ fn test_grace_period_pause_demurrage() {
     client.join_trust(&worker, &governor);
 
     // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
-    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
-    for i in 0..100 {
+    // Each claim is 600 minutes (10 hours), need 11 claims for 110 hours
+    // Using fewer claims to avoid storage limits (each claim stores approvers/rejecters)
+    for i in 0..11 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
         let claim_id = client.submit_work_claim(
             &worker,
             &WorkType::BasicCare,
-            &60u64, // 60 minutes = 1 hour per claim
+            &600u64, // 600 minutes = 10 hours per claim
             &evidence_hash,
             &None::<i64>,
             &None::<i64>,
@@ -1118,11 +1119,11 @@ fn test_grace_period_pause_demurrage() {
     client.transfer(&admin, &worker, &U256::from_u32(&env, 1000));
 
     // Verify initial balance and contribution hours
-    // Note: Worker earned 200,000 KCHNG from work claims
-    // (100 claims * 60 min * 1000/30 = 2000 KCHNG per claim = 200,000 total)
-    // Plus 1000 transferred = 201,000 total
+    // Note: Worker earned 220,000 KCHNG from work claims
+    // (11 claims * 600 min * 1000/30 = 20000 KCHNG per claim = 220,000 total)
+    // Plus 1000 transferred = 221,000 total
     let account = client.get_account(&worker);
-    assert_eq!(account.balance, U256::from_u32(&env, 201000));
+    assert_eq!(account.balance, U256::from_u32(&env, 221000));
     assert!(account.contribution_hours >= 100, "Worker should have 100+ contribution hours");
 
     // Activate grace period
@@ -1227,15 +1228,16 @@ fn test_grace_period_annual_limit() {
     client.join_trust(&worker, &governor);
 
     // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
-    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
-    for i in 0..100 {
+    // Each claim is 600 minutes (10 hours), need 11 claims for 110 hours
+    // Using fewer claims to avoid storage limits (each claim stores approvers/rejecters)
+    for i in 0..11 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
         let claim_id = client.submit_work_claim(
             &worker,
             &WorkType::BasicCare,
-            &60u64, // 60 minutes = 1 hour per claim
+            &600u64, // 600 minutes = 10 hours per claim
             &evidence_hash,
             &None::<i64>,
             &None::<i64>,
@@ -1306,15 +1308,16 @@ fn test_grace_period_annual_limit_exceeded() {
     client.join_trust(&worker, &governor);
 
     // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
-    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
-    for i in 0..100 {
+    // Each claim is 600 minutes (10 hours), need 11 claims for 110 hours
+    // Using fewer claims to avoid storage limits (each claim stores approvers/rejecters)
+    for i in 0..11 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
         let claim_id = client.submit_work_claim(
             &worker,
             &WorkType::BasicCare,
-            &60u64, // 60 minutes = 1 hour per claim
+            &600u64, // 600 minutes = 10 hours per claim
             &evidence_hash,
             &None::<i64>,
             &None::<i64>,
@@ -1398,15 +1401,16 @@ fn test_grace_period_duration_limits() {
     client.join_trust(&worker, &governor);
 
     // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
-    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
-    for i in 0..100 {
+    // Each claim is 600 minutes (10 hours), need 11 claims for 110 hours
+    // Using fewer claims to avoid storage limits (each claim stores approvers/rejecters)
+    for i in 0..11 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
         let claim_id = client.submit_work_claim(
             &worker,
             &WorkType::BasicCare,
-            &60u64, // 60 minutes = 1 hour per claim
+            &600u64, // 600 minutes = 10 hours per claim
             &evidence_hash,
             &None::<i64>,
             &None::<i64>,
@@ -1483,15 +1487,16 @@ fn test_grace_period_duration_limit_exceeded() {
     client.join_trust(&worker, &governor);
 
     // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
-    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
-    for i in 0..100 {
+    // Each claim is 600 minutes (10 hours), need 11 claims for 110 hours
+    // Using fewer claims to avoid storage limits (each claim stores approvers/rejecters)
+    for i in 0..11 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
         let claim_id = client.submit_work_claim(
             &worker,
             &WorkType::BasicCare,
-            &60u64, // 60 minutes = 1 hour per claim
+            &600u64, // 600 minutes = 10 hours per claim
             &evidence_hash,
             &None::<i64>,
             &None::<i64>,
@@ -1547,15 +1552,16 @@ fn test_grace_period_is_in_grace() {
     client.join_trust(&worker, &governor);
 
     // Submit and approve work claims to reach 100+ hours (MIN_CONTRIBUTION_HOURS)
-    // Each claim is 60 minutes (1 hour), need 100 claims for 100 hours
-    for i in 0..100 {
+    // Each claim is 600 minutes (10 hours), need 11 claims for 110 hours
+    // Using fewer claims to avoid storage limits (each claim stores approvers/rejecters)
+    for i in 0..11 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
         let claim_id = client.submit_work_claim(
             &worker,
             &WorkType::BasicCare,
-            &60u64, // 60 minutes = 1 hour per claim
+            &600u64, // 600 minutes = 10 hours per claim
             &evidence_hash,
             &None::<i64>,
             &None::<i64>,
@@ -2630,14 +2636,16 @@ fn test_grace_period_contribution_increased_to_100() {
     client.register_verifier(&verifier2, &governor);
 
     // Worker earns 99 hours (below new 100 hour threshold)
-    for i in 0..99 {
+    // Using fewer claims with longer duration to avoid storage limits
+    // 10 claims of 594 minutes = 99 hours total (just under 100 hour threshold)
+    for i in 0..10 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i as u8;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
         let claim_id = client.submit_work_claim(
             &worker,
             &WorkType::BasicCare,
-            &60u64,
+            &594u64, // 594 minutes = 9.9 hours per claim
             &evidence_hash,
             &None::<i64>,
             &None::<i64>,
@@ -2685,14 +2693,15 @@ fn test_grace_period_cooldown_first_succeeds() {
     client.register_verifier(&verifier2, &governor);
 
     // Worker earns 100+ hours (qualifies for grace)
-    for i in 0..101 {
+    // Using fewer claims with longer duration to avoid storage limits
+    for i in 0..11 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i as u8;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
         let claim_id = client.submit_work_claim(
             &worker,
             &WorkType::BasicCare,
-            &60u64,
+            &600u64, // 600 minutes = 10 hours per claim
             &evidence_hash,
             &None::<i64>,
             &None::<i64>,
@@ -2745,14 +2754,15 @@ fn test_grace_period_cooldown_second_fails() {
     client.register_verifier(&verifier2, &governor);
 
     // Worker earns 100+ hours (qualifies for grace)
-    for i in 0..101 {
+    // Using fewer claims with longer duration to avoid storage limits
+    for i in 0..11 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i as u8;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
         let claim_id = client.submit_work_claim(
             &worker,
             &WorkType::BasicCare,
-            &60u64,
+            &600u64, // 600 minutes = 10 hours per claim
             &evidence_hash,
             &None::<i64>,
             &None::<i64>,
@@ -3313,14 +3323,16 @@ fn test_oracle_reputation_on_grace_period() {
     client.join_trust(&worker, &governor);
 
     // Submit and approve work claims to get 100+ hours
-    for i in 0..100 {
+    // Using fewer claims with longer duration to avoid storage limits
+    // 11 claims of 600 minutes = 110 hours
+    for i in 0..11 {
         let mut evidence_array = [0u8; 32];
         evidence_array[0] = i;
         let evidence_hash = Bytes::from_array(&env, &evidence_array);
         let claim_id = client.submit_work_claim(
             &worker,
             &WorkType::BasicCare,
-            &60u64,
+            &600u64, // 600 minutes = 10 hours per claim
             &evidence_hash,
             &None::<i64>,
             &None::<i64>,
