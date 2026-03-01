@@ -207,6 +207,8 @@ pub struct WorkClaim {
     pub gps_lon: Option<i64>,
     pub submitted_at: u64,
     pub verifiers_assigned: Vec<Address>,
+    pub approvers: Vec<Address>,        // Track who approved for TF2T
+    pub rejecters: Vec<Address>,        // Track who rejected for TF2T penalty
     pub approvals_received: u32,
     pub rejections_received: u32,
     pub status: ClaimStatus,
@@ -256,6 +258,8 @@ pub struct OracleData {
     pub stake: U256,
     pub reputation_score: u32,
     pub grace_periods_granted: u32,
+    pub grants_this_year: u32,      // Track yearly grants for low-rep limits
+    pub last_grant_year: u32,       // Year of last grant (for reset)
 }
 
 /// Reputation event for tracking history
@@ -1008,6 +1012,9 @@ impl KchngToken {
     pub fn step_down(env: Env, address: Address, role: RoleType) {
         address.require_auth();
 
+        // Track successor for event emission
+        let successor_for_event: Option<Address>;
+
         match role {
             RoleType::Governor => {
                 // Get governor's trust
@@ -1032,6 +1039,7 @@ impl KchngToken {
                         // Transfer to successor
                         trust.governor = successor.clone();
                         trust.successor = None;
+                        successor_for_event = Some(successor.clone());
 
                         // Update governor trusts mapping
                         let mut gov_trusts: Map<Address, Address> =
@@ -1043,9 +1051,12 @@ impl KchngToken {
                     } else {
                         // No successor - disable trust
                         trust.is_active = false;
+                        successor_for_event = None;
                     }
                     trusts.set(trust_id, trust);
                     env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+                } else {
+                    successor_for_event = None;
                 }
 
                 // Update governor reputation (neutral - voluntary release is not punitive)
@@ -1058,6 +1069,8 @@ impl KchngToken {
                 );
             }
             RoleType::Verifier => {
+                successor_for_event = None;
+
                 // Return full stake (no slashing for voluntary release)
                 let mut verifiers: Map<Address, VerifierData> =
                     env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
@@ -1088,6 +1101,8 @@ impl KchngToken {
                 );
             }
             RoleType::Oracle => {
+                successor_for_event = None;
+
                 // Return full stake (no slashing for voluntary release)
                 let mut oracles: Map<Address, OracleData> =
                     env.storage().persistent().get(&KEY_ORACLES).unwrap_or(Map::new(&env));
@@ -1120,11 +1135,11 @@ impl KchngToken {
             _ => panic!("Role type does not support step_down"),
         }
 
-        // Emit role released event
+        // Emit role released event with successor info
         RoleReleased {
             address: address.clone(),
             role: role as u32,
-            successor: None,  // TODO: Could track successor for governor case
+            successor: successor_for_event,
         }.publish(&env);
     }
 
@@ -1639,6 +1654,8 @@ impl KchngToken {
             gps_lon,
             submitted_at: env.ledger().timestamp(),
             verifiers_assigned: assigned_verifiers.clone(),
+            approvers: Vec::new(&env),
+            rejecters: Vec::new(&env),
             approvals_received: 0,
             rejections_received: 0,
             status: ClaimStatus::Pending,
@@ -1712,8 +1729,9 @@ impl KchngToken {
             panic!("Verifier not assigned to this claim");
         }
 
-        // Record approval
+        // Record approval and track approver
         claim.approvals_received += 1;
+        claim.approvers.push_back(verifier.clone());
         claims.set(claim_id, claim.clone());
         env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
 
@@ -1775,6 +1793,10 @@ impl KchngToken {
             // Mark claim as approved
             claim.status = ClaimStatus::Approved;
             let worker_addr = claim.worker.clone();
+
+            // Clone rejecters list before storing claim (to avoid borrow issues)
+            let rejecters_list = claim.rejecters.clone();
+
             claims.set(claim_id, claim);
             env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
 
@@ -1785,13 +1807,28 @@ impl KchngToken {
                 amount: amount.clone(),
             }.publish(&env);
 
-            // Now check for verifiers who rejected - they get a bad judgment penalty
-            // This implements the TF2T "bad judgment" tracking
-            for i in 0..assigned_verifiers.len() {
-                // We can't easily track who rejected here, so we'll handle this
-                // in a more sophisticated implementation with vote tracking
-                let _assigned = assigned_verifiers.get(i).unwrap();
-                // In a full implementation, we'd penalize rejectors here
+            // Penalize verifiers who wrongly rejected this claim (TF2T bad judgment)
+            // They voted against the majority and were proven wrong
+            for i in 0..rejecters_list.len() {
+                let rejecter = rejecters_list.get(i).unwrap();
+                // Apply bad judgment penalty (-10 reputation)
+                let _ = Self::update_reputation(
+                    &env,
+                    &rejecter,
+                    &RoleType::Verifier,
+                    -10,
+                    REP_EVENT_PATTERN_PENALTY,  // Using pattern penalty for bad judgment
+                );
+
+                // Also update legacy verifier data
+                let mut verifiers: Map<Address, VerifierData> =
+                    env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+                if let Some(mut vdata) = verifiers.get(rejecter.clone()) {
+                    vdata.rejected_claims += 1;
+                    vdata.reputation_score = Self::get_reputation(env.clone(), rejecter.clone(), RoleType::Verifier);
+                    verifiers.set(rejecter, vdata);
+                    env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
+                }
             }
         }
     }
@@ -1836,8 +1873,9 @@ impl KchngToken {
             panic!("Verifier not assigned to this claim");
         }
 
-        // Record rejection
+        // Record rejection and track rejecter
         claim.rejections_received += 1;
+        claim.rejecters.push_back(verifier.clone());
         claims.set(claim_id, claim.clone());
         env.storage().persistent().set(&KEY_WORK_CLAIMS, &claims);
 
@@ -1960,6 +1998,8 @@ impl KchngToken {
             stake: oracle_stake,
             reputation_score: REP_NEUTRAL,
             grace_periods_granted: 0,
+            grants_this_year: 0,
+            last_grant_year: 0,
         };
 
         oracles.set(oracle.clone(), oracle_data);
@@ -1990,7 +2030,7 @@ impl KchngToken {
         }
 
         // Verify oracle is registered
-        let oracles: Map<Address, OracleData> =
+        let mut oracles: Map<Address, OracleData> =
             env.storage().persistent().get(&KEY_ORACLES).unwrap_or(Map::new(&env));
 
         if !oracles.contains_key(oracle.clone()) {
@@ -1999,10 +2039,34 @@ impl KchngToken {
 
         // Check oracle reputation for grace period limits
         let oracle_rep = Self::get_reputation(env.clone(), oracle.clone(), RoleType::Oracle);
+        let current_year = (env.ledger().timestamp() / (365 * SECONDS_PER_DAY)) as u32;
+
         if oracle_rep < REP_RESTRICTED {
             // Low reputation oracle can only grant 1 grace period per year
-            let oracle_data = oracles.get(oracle.clone()).unwrap();
-            // In a full implementation, we'd track yearly grants
+            let mut oracle_data = oracles.get(oracle.clone()).unwrap();
+
+            // Reset yearly counter if new year
+            if oracle_data.last_grant_year != current_year {
+                oracle_data.grants_this_year = 0;
+                oracle_data.last_grant_year = current_year;
+            }
+
+            if oracle_data.grants_this_year >= 1 {
+                panic!("Low reputation oracle limited to 1 grace period per year");
+            }
+
+            // Increment yearly grant counter
+            oracle_data.grants_this_year += 1;
+            oracle_data.grace_periods_granted += 1;
+            oracles.set(oracle.clone(), oracle_data);
+            env.storage().persistent().set(&KEY_ORACLES, &oracles);
+        } else {
+            // High rep oracle - just increment total counter
+            if let Some(mut oracle_data) = oracles.get(oracle.clone()) {
+                oracle_data.grace_periods_granted += 1;
+                oracles.set(oracle.clone(), oracle_data);
+                env.storage().persistent().set(&KEY_ORACLES, &oracles);
+            }
         }
 
         // High reputation oracles can grant longer grace periods (1.5x multiplier)
@@ -2247,7 +2311,7 @@ impl KchngToken {
         let exchange_rate_bps = Self::calculate_exchange_rate(env.clone(), from_trust.clone(), dest_trust.clone());
 
         // Calculate destination amount: amount * exchange_rate / 10000
-        let _dest_amount = {
+        let dest_amount = {
             let rate_factor = U256::from_u128(&env, exchange_rate_bps as u128);
             let tmp = amount.mul(&rate_factor);
             tmp.div(&U256::from_u128(&env, 10000))
@@ -2261,9 +2325,10 @@ impl KchngToken {
             panic!("Insufficient balance");
         }
 
-        // Update from account (deduct amount, update trust membership)
+        // Update from account (deduct original amount, credit dest_amount, update trust membership)
         let mut updated_from = from_data;
         updated_from.balance = balance_after_demurrage.sub(&amount);
+        updated_from.balance = updated_from.balance.add(&dest_amount);  // Credit rate-adjusted amount
         updated_from.last_activity = env.ledger().timestamp();
         updated_from.trust_id = Some(dest_trust.clone()); // Move to destination trust
         accounts.set(from.clone(), updated_from);
