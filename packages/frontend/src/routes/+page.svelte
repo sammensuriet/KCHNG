@@ -64,7 +64,7 @@
       <div class="value-label">minutes work</div>
       <div class="value-equals">=</div>
       <div class="value-icon">1</div>
-      <div class="value-label">shared meal</div>
+      <div class="value-label">meal</div>
     </div>
     <div class="value-card">
       <div class="value-icon">1,000</div>
