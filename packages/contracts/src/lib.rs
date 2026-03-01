@@ -170,7 +170,8 @@ pub struct AccountData {
 pub struct TrustData {
     pub name: String,
     pub governor: Address,
-    pub annual_rate_bps: u32,      // Annual demurrage rate in basis points
+    pub successor: Option<Address>,    // Designated successor for governor role
+    pub annual_rate_bps: u32,          // Annual demurrage rate in basis points
     pub demurrage_period_days: u64,
     pub member_count: u32,
     pub is_active: bool,
@@ -282,21 +283,21 @@ pub struct ReputationData {
 // Reputation event type codes - track history in ReputationData.recent_events
 // Used for TF2T (Tit-for-2-Tats) pattern detection and audit trail
 // See docs/2026-01-02_game_theory_simulation_results.md for TF2T strategy analysis
+// NOTE: BAD_JUDGMENT, FRAUD_DETECTED, INACTIVITY removed - redundant with PATTERN_PENALTY and DECAY
 const REP_EVENT_CLAIM_APPROVED: u32 = 1;    // Verifier approves work claim (+5 rep)
 const REP_EVENT_CLAIM_REJECTED: u32 = 2;    // Verifier rejects work claim (+10 rep)
-const REP_EVENT_BAD_JUDGMENT: u32 = 3;      // [FUTURE] Verifier approved fraudulent claim
-const REP_EVENT_FRAUD_DETECTED: u32 = 4;    // [FUTURE] Pattern of fraudulent behavior detected
+// 3, 4, 8 removed - were: BAD_JUDGMENT, FRAUD_DETECTED, INACTIVITY
 const REP_EVENT_MEMBER_JOIN: u32 = 5;       // Member joins trust (+2 gov, +5 member)
 const REP_EVENT_MEMBER_LEAVE: u32 = 6;      // Member leaves trust (-5 gov, -50 if empty)
 const REP_EVENT_PATTERN_PENALTY: u32 = 7;   // TF2T: 2+ consecutive negatives (-25 bonus)
-const REP_EVENT_INACTIVITY: u32 = 8;        // [FUTURE] Long period of no activity
 const REP_EVENT_GRACE_GRANTED: u32 = 9;     // Oracle grants grace period (+5 oracle)
-const REP_EVENT_GRACE_ABUSED: u32 = 10;     // [FUTURE] Grace period conditions violated
+const REP_EVENT_GRACE_ABUSED: u32 = 10;     // Grace period conditions violated (after warning)
 const REP_EVENT_PROPOSAL_PASS: u32 = 11;    // Governance proposal passes (+5 proposer)
 const REP_EVENT_PROPOSAL_FAIL: u32 = 12;    // Governance proposal fails quorum (-3 proposer)
 const REP_EVENT_VOTE_PARTICIPATE: u32 = 13; // Member votes on proposal (+2)
 const REP_EVENT_DECAY: u32 = 14;            // High reputation decays toward 500 (30+ days)
 const REP_EVENT_RECOVERY: u32 = 15;         // Low reputation recovers toward 500 (90+ days)
+const REP_EVENT_ROLE_RELEASE: u32 = 16;     // Voluntary step-down from role (neutral)
 
 // Reputation thresholds
 const REP_NEUTRAL: u32 = 500;
@@ -415,6 +416,25 @@ pub struct ReputationChanged {
     pub role: u32,
     pub change: i32,
     pub new_score: u32,
+}
+
+/// Emitted when reputation drops below a threshold (notification for circle review)
+#[contractevent]
+pub struct ReputationThreshold {
+    #[topic]
+    pub address: Address,
+    pub role: u32,
+    pub score: u32,
+    pub threshold: u32,   // Which threshold was crossed (200 = probation, 100 = removal)
+}
+
+/// Emitted when a role holder voluntarily steps down
+#[contractevent]
+pub struct RoleReleased {
+    #[topic]
+    pub address: Address,
+    pub role: u32,
+    pub successor: Option<Address>,
 }
 
 /// KCHNG Token Contract with native on-chain demurrage
@@ -718,6 +738,7 @@ impl KchngToken {
         let trust = TrustData {
             name: name.clone(),
             governor: governor.clone(),
+            successor: None,  // No successor designated initially
             annual_rate_bps,
             demurrage_period_days,
             member_count: 1, // Governor counts as first member
@@ -936,6 +957,175 @@ impl KchngToken {
             trust_ids.push_back(trust_id);
         }
         trust_ids
+    }
+
+    /// Designate a successor for the governor role (sociocratic succession)
+    /// Only the current governor can call this
+    /// The successor must be a member of the trust
+    pub fn designate_successor(env: Env, governor: Address, successor: Address) {
+        governor.require_auth();
+
+        // Get governor's trust
+        let governor_trusts: Map<Address, Address> =
+            env.storage().persistent().get(&KEY_GOVERNOR_TRUSTS)
+                .unwrap_or(Map::new(&env));
+
+        let trust_id = match governor_trusts.get(governor.clone()) {
+            Some(tid) => tid,
+            None => panic!("Governor has no trust"),
+        };
+
+        // Verify successor is a member of the trust
+        let accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let successor_account = match accounts.get(successor.clone()) {
+            Some(a) => a,
+            None => panic!("Successor not found"),
+        };
+
+        if successor_account.trust_id.as_ref() != Some(&trust_id) {
+            panic!("Successor must be a member of the trust");
+        }
+
+        // Update trust with successor
+        let mut trusts: Map<Address, TrustData> =
+            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+        if let Some(mut trust) = trusts.get(trust_id.clone()) {
+            if trust.governor != governor {
+                panic!("Only current governor can designate successor");
+            }
+            trust.successor = Some(successor.clone());
+            trusts.set(trust_id, trust);
+            env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+        }
+    }
+
+    /// Voluntarily step down from a role (sociocratic role release)
+    /// For governors: transfers to successor if designated, otherwise disables trust
+    /// For verifiers/oracles: returns full stake (no slashing for voluntary release)
+    pub fn step_down(env: Env, address: Address, role: RoleType) {
+        address.require_auth();
+
+        match role {
+            RoleType::Governor => {
+                // Get governor's trust
+                let governor_trusts: Map<Address, Address> =
+                    env.storage().persistent().get(&KEY_GOVERNOR_TRUSTS)
+                        .unwrap_or(Map::new(&env));
+
+                let trust_id = match governor_trusts.get(address.clone()) {
+                    Some(tid) => tid,
+                    None => panic!("Not a governor"),
+                };
+
+                let mut trusts: Map<Address, TrustData> =
+                    env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+
+                if let Some(mut trust) = trusts.get(trust_id.clone()) {
+                    if trust.governor != address {
+                        panic!("Not the governor of this trust");
+                    }
+
+                    if let Some(successor) = trust.successor.clone() {
+                        // Transfer to successor
+                        trust.governor = successor.clone();
+                        trust.successor = None;
+
+                        // Update governor trusts mapping
+                        let mut gov_trusts: Map<Address, Address> =
+                            env.storage().persistent().get(&KEY_GOVERNOR_TRUSTS)
+                                .unwrap_or(Map::new(&env));
+                        gov_trusts.remove(address.clone());
+                        gov_trusts.set(successor, trust_id.clone());
+                        env.storage().persistent().set(&KEY_GOVERNOR_TRUSTS, &gov_trusts);
+                    } else {
+                        // No successor - disable trust
+                        trust.is_active = false;
+                    }
+                    trusts.set(trust_id, trust);
+                    env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+                }
+
+                // Update governor reputation (neutral - voluntary release is not punitive)
+                let _ = Self::update_reputation(
+                    &env,
+                    &address,
+                    &RoleType::Governor,
+                    0,
+                    REP_EVENT_ROLE_RELEASE,
+                );
+            }
+            RoleType::Verifier => {
+                // Return full stake (no slashing for voluntary release)
+                let mut verifiers: Map<Address, VerifierData> =
+                    env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+
+                if let Some(verifier_data) = verifiers.get(address.clone()) {
+                    // Return full stake to account
+                    let mut accounts: Map<Address, AccountData> =
+                        env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+                    if let Some(mut account) = accounts.get(address.clone()) {
+                        account.balance = account.balance.add(&verifier_data.stake);
+                        accounts.set(address.clone(), account);
+                        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+                    }
+
+                    verifiers.remove(address.clone());
+                    env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
+                } else {
+                    panic!("Not a verifier");
+                }
+
+                // Update reputation (neutral)
+                let _ = Self::update_reputation(
+                    &env,
+                    &address,
+                    &RoleType::Verifier,
+                    0,
+                    REP_EVENT_ROLE_RELEASE,
+                );
+            }
+            RoleType::Oracle => {
+                // Return full stake (no slashing for voluntary release)
+                let mut oracles: Map<Address, OracleData> =
+                    env.storage().persistent().get(&KEY_ORACLES).unwrap_or(Map::new(&env));
+
+                if let Some(oracle_data) = oracles.get(address.clone()) {
+                    // Return full stake to account
+                    let mut accounts: Map<Address, AccountData> =
+                        env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+                    if let Some(mut account) = accounts.get(address.clone()) {
+                        account.balance = account.balance.add(&oracle_data.stake);
+                        accounts.set(address.clone(), account);
+                        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+                    }
+
+                    oracles.remove(address.clone());
+                    env.storage().persistent().set(&KEY_ORACLES, &oracles);
+                } else {
+                    panic!("Not an oracle");
+                }
+
+                // Update reputation (neutral)
+                let _ = Self::update_reputation(
+                    &env,
+                    &address,
+                    &RoleType::Oracle,
+                    0,
+                    REP_EVENT_ROLE_RELEASE,
+                );
+            }
+            _ => panic!("Role type does not support step_down"),
+        }
+
+        // Emit role released event
+        RoleReleased {
+            address: address.clone(),
+            role: role as u32,
+            successor: None,  // TODO: Could track successor for governor case
+        }.publish(&env);
     }
 
     /// Get the trust ID for an account
@@ -2217,10 +2407,11 @@ impl KchngToken {
                 }
             }
             ProposalType::RemoveOracle => {
-                // Must be admin
-                let admin: Address = env.storage().instance().get(&KEY_ADMIN).unwrap();
-                if admin != proposer {
-                    panic!("Only admin can propose oracle removal");
+                // Any verifier can propose if oracle reputation < 200
+                let verifiers: Map<Address, VerifierData> =
+                    env.storage().persistent().get(&KEY_VERIFIERS).unwrap_or(Map::new(&env));
+                if !verifiers.contains_key(proposer.clone()) {
+                    panic!("Only verifiers can propose oracle removal");
                 }
 
                 let target = target_address.as_ref().expect("RemoveOracle requires target_address");
@@ -2605,7 +2796,7 @@ impl KchngToken {
                 let target = proposal.target_address.as_ref()
                     .expect("RemoveGovernor requires target_address");
 
-                // Get trust and disable it or transfer governance
+                // Get trust and transfer governance to successor or disable
                 let trust_id = proposal.trust_id.as_ref()
                     .expect("RemoveGovernor requires trust_id");
 
@@ -2614,8 +2805,23 @@ impl KchngToken {
 
                 if let Some(mut trust) = trusts.get(trust_id.clone()) {
                     if trust.governor == *target {
-                        // Disable trust or mark for new governor election
-                        trust.is_active = false;
+                        // Check if successor is designated
+                        if let Some(successor) = trust.successor.clone() {
+                            // Transfer governance to successor
+                            trust.governor = successor.clone();
+                            trust.successor = None;  // Clear successor
+
+                            // Update governor trusts mapping
+                            let mut governor_trusts: Map<Address, Address> =
+                                env.storage().persistent().get(&KEY_GOVERNOR_TRUSTS)
+                                    .unwrap_or(Map::new(&env));
+                            governor_trusts.remove(target.clone());
+                            governor_trusts.set(successor, trust_id.clone());
+                            env.storage().persistent().set(&KEY_GOVERNOR_TRUSTS, &governor_trusts);
+                        } else {
+                            // No successor - disable trust
+                            trust.is_active = false;
+                        }
                         trusts.set(trust_id.clone(), trust);
                         env.storage().persistent().set(&KEY_TRUSTS, &trusts);
                     }
@@ -2759,6 +2965,9 @@ impl KchngToken {
         // Apply decay before updating
         Self::apply_reputation_decay_internal(env, &mut data);
 
+        // Store old score for threshold detection
+        let old_score = data.score;
+
         // Track consecutive negatives for TF2T pattern detection
         if change < 0 {
             data.consecutive_negatives += 1;
@@ -2794,9 +3003,24 @@ impl KchngToken {
             new_score,
         }.publish(env);
 
-        // Check and enforce removal threshold if score dropped
+        // Emit threshold notification if score dropped below thresholds
+        // This enables circle review for sociocratic governance
         if new_score < REMOVAL_THRESHOLD {
+            ReputationThreshold {
+                address: address.clone(),
+                role: role.clone() as u32,
+                score: new_score,
+                threshold: REMOVAL_THRESHOLD,
+            }.publish(env);
             Self::enforce_removal_threshold(env, address, role);
+        } else if new_score < REP_RESTRICTED && old_score >= REP_RESTRICTED {
+            // Crossed into probation territory
+            ReputationThreshold {
+                address: address.clone(),
+                role: role.clone() as u32,
+                score: new_score,
+                threshold: REP_RESTRICTED,
+            }.publish(env);
         }
 
         new_score

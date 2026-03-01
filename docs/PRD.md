@@ -1,6 +1,6 @@
 # KCHNG Product Requirements Document
-**Version**: 1.2
-**Last Updated**: 2026-02-28
+**Version**: 1.3
+**Last Updated**: 2026-03-01
 **Status**: Active Development
 
 ---
@@ -355,6 +355,35 @@ tests/regression/
 
 ---
 
+## Anti-Requirements (Explicitly Out of Scope)
+
+These features are **deliberately not implemented** due to security, complexity, or gaming concerns.
+
+### Liquid Democracy / Vote Delegation ❌
+
+**Decision**: Vote delegation will NOT be implemented.
+
+**Rationale**: Liquid democracy creates a severe Sybil attack vector:
+- Bad actor creates 1000 dummy accounts
+- Each dummy account delegates voting power to the attacker
+- Attacker gains 1000× voting power with minimal cost
+
+**Current Design**: One member = one vote (no delegation)
+
+**Alternative Considered**: Quadratic voting with identity verification
+- Rejected due to complexity and reliance on external identity providers
+
+### Other Anti-Requirements
+
+| Feature | Reason for Exclusion |
+|---------|---------------------|
+| Anonymous voting | Transparency required for community trust |
+| Token-weighted voting | Would concentrate power with wealthy accounts |
+| Automatic slashing | Requires due process through governance proposals |
+| Fast-track governance | 7-day review period protects against rash decisions |
+
+---
+
 ## Roadmap
 
 ### Immediate (Before Mainnet)
@@ -372,8 +401,8 @@ tests/regression/
 ### Long Term
 1. **Multi-Chain** - Consider other chains
 2. **Fiat Bridge** - Connect to traditional currency
-3. **Advanced Governance** - Quadratic voting, delegation
-4. **Reputation Marketplace** - Cross-trust verifier reputation
+3. **Reputation Marketplace** - Cross-trust verifier reputation
+4. **Advanced Analytics** - Community health metrics, forecasting
 
 ---
 
@@ -424,4 +453,4 @@ REPUTATION_INITIAL: 500
 
 ---
 
-**Document Status**: ✅ Updated with Community Chat feature (Phase 8)
+**Document Status**: ✅ Updated with Anti-Requirements section (v1.3)
