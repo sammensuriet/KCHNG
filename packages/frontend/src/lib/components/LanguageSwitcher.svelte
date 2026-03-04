@@ -8,6 +8,8 @@
     { code: 'es', flag: '🇪🇸', label: languageLabels.es },
     { code: 'ru', flag: '🇷🇺', label: languageLabels.ru },
     { code: 'zh', flag: '🇨🇳', label: languageLabels.zh },
+    { code: 'de', flag: '🇩🇪', label: languageLabels.de },
+    { code: 'ar', flag: '🇸🇦', label: languageLabels.ar },
   ];
 
   function toggleDropdown() {
