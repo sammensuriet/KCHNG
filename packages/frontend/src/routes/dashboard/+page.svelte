@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { wallet } from "$lib/stores/wallet";
+  import { t } from "$lib/i18n";
 
   let accountData = $state<{
     balance: bigint;
@@ -21,7 +22,7 @@
 
   async function loadAccountData() {
     if (!$wallet.connected || !$wallet.address) {
-      error = "Please connect your wallet";
+      error = t('dashboard.pleaseConnect');
       loading = false;
       return;
     }
@@ -54,121 +55,121 @@
 </script>
 
 <div class="container">
-  <h1>Dashboard</h1>
+  <h1>{t('dashboard.title')}</h1>
 
   {#if loading}
-    <div class="loading">Loading account data...</div>
+    <div class="loading">{t('dashboard.loading')}</div>
   {:else if error}
     <div class="error">
       {error}
-      <button onclick={loadAccountData}>Retry</button>
+      <button onclick={loadAccountData}>{t('common.retry')}</button>
     </div>
   {:else if accountData}
     <div class="dashboard-grid">
       <!-- Balance Card -->
       <div class="card balance-card">
-        <h2>Balance</h2>
+        <h2>{t('dashboard.balance')}</h2>
         <div class="balance-amount">{formatBalance(accountData.balance)} KCHNG</div>
         <div class="balance-subtext">
-          1000 KCHNG = 30 minutes work = 1 community meal
+          {t('dashboard.balanceSubtext')}
         </div>
       </div>
 
       <!-- Activity Card -->
       <div class="card">
-        <h2>Account Activity</h2>
+        <h2>{t('dashboard.accountActivity')}</h2>
         <div class="stat-row">
-          <span class="stat-label">Last Activity:</span>
+          <span class="stat-label">{t('dashboard.lastActivity')}</span>
           <span class="stat-value">{formatDate(accountData.last_activity)}</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">Circulation Status:</span>
+          <span class="stat-label">{t('dashboard.circulationStatus')}</span>
           <span class="stat-value {daysSinceActivity(accountData.last_activity) >= 7 ? 'warning' : 'success'}">
             {#if daysSinceActivity(accountData.last_activity) < 7}
-              Active
+              {t('dashboard.active')}
             {:else}
-              {daysSinceActivity(accountData.last_activity)} days inactive
+              {daysSinceActivity(accountData.last_activity)} {t('dashboard.daysInactive')}
             {/if}
           </span>
         </div>
         {#if daysSinceActivity(accountData.last_activity) >= 7}
-          <p class="circulation-hint">Submit work or make a transfer to keep your balance active in the community.</p>
+          <p class="circulation-hint">{t('dashboard.circulationHint')}</p>
         {/if}
         {#if accountData.grace_period_end > 0}
           <div class="grace-period">
-            <span class="grace-badge">Grace Period Active</span>
-            <span>Until {formatDate(accountData.grace_period_end)}</span>
+            <span class="grace-badge">{t('dashboard.gracePeriodActive')}</span>
+            <span>{t('dashboard.until')} {formatDate(accountData.grace_period_end)}</span>
           </div>
         {/if}
       </div>
 
       <!-- Trust Card -->
       <div class="card">
-        <h2>Trust Membership</h2>
+        <h2>{t('dashboard.trustMembership')}</h2>
         {#if accountData.trust_id}
           <div class="trust-info">
             <div class="stat-row">
-              <span class="stat-label">Trust ID:</span>
+              <span class="stat-label">{t('dashboard.trustId')}</span>
               <span class="stat-value stat-address">{accountData.trust_id.slice(0, 8)}...</span>
             </div>
-            <a href="/trusts" class="btn-view">View Trust Details</a>
+            <a href="/trusts" class="btn-view">{t('dashboard.viewTrustDetails')}</a>
           </div>
         {:else}
           <div class="no-trust">
-            <p>You are not a member of any trust.</p>
-            <a href="/trusts" class="btn-join">Browse Trusts</a>
+            <p>{t('dashboard.notTrustMember')}</p>
+            <a href="/trusts" class="btn-join">{t('dashboard.browseTrusts')}</a>
           </div>
         {/if}
       </div>
 
       <!-- Contributions Card -->
       <div class="card">
-        <h2>Contributions</h2>
+        <h2>{t('dashboard.contributions')}</h2>
         <div class="stat-row">
-          <span class="stat-label">Hours Contributed:</span>
+          <span class="stat-label">{t('dashboard.hoursContributed')}</span>
           <span class="stat-value">{accountData.contribution_hours}h</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">Grace Periods Used:</span>
-          <span class="stat-value">{accountData.grace_periods_used}/3 this year</span>
+          <span class="stat-label">{t('dashboard.gracePeriodsUsed')}</span>
+          <span class="stat-value">{accountData.grace_periods_used}/3 {t('dashboard.thisYear')}</span>
         </div>
-        <a href="/work" class="btn-view">Submit Work</a>
+        <a href="/work" class="btn-view">{t('dashboard.submitWork')}</a>
       </div>
     </div>
 
     <!-- Quick Actions -->
     <div class="actions-section">
-      <h2>Quick Actions</h2>
+      <h2>{t('dashboard.quickActions')}</h2>
       <div class="actions-grid">
         <a href="/work" class="action-card">
           <div class="action-icon">🔨</div>
-          <div class="action-title">Submit Work</div>
-          <div class="action-desc">Log verified work hours</div>
+          <div class="action-title">{t('dashboard.actionSubmitWork')}</div>
+          <div class="action-desc">{t('dashboard.actionSubmitWorkDesc')}</div>
         </a>
 
         <a href="/work/verify" class="action-card">
           <div class="action-icon">✓</div>
-          <div class="action-title">Verify Work</div>
-          <div class="action-desc">Review community work claims</div>
+          <div class="action-title">{t('dashboard.actionVerifyWork')}</div>
+          <div class="action-desc">{t('dashboard.actionVerifyWorkDesc')}</div>
         </a>
 
         <a href="/trusts" class="action-card">
           <div class="action-icon">🏘️</div>
-          <div class="action-title">Trusts</div>
-          <div class="action-desc">Manage community trusts</div>
+          <div class="action-title">{t('dashboard.actionTrusts')}</div>
+          <div class="action-desc">{t('dashboard.actionTrustsDesc')}</div>
         </a>
 
         <a href="/governance" class="action-card">
           <div class="action-icon">🗳️</div>
-          <div class="action-title">Governance</div>
-          <div class="action-desc">Vote on proposals</div>
+          <div class="action-title">{t('dashboard.actionGovernance')}</div>
+          <div class="action-desc">{t('dashboard.actionGovernanceDesc')}</div>
         </a>
       </div>
     </div>
   {:else}
     <div class="no-wallet">
-      <p>Please connect your wallet to view your dashboard.</p>
-      <button onclick={() => wallet.connect($wallet.network)}>Connect Wallet</button>
+      <p>{t('dashboard.pleaseConnectWallet')}</p>
+      <button onclick={() => wallet.connect($wallet.network)}>{t('dashboard.connectWallet')}</button>
     </div>
   {/if}
 </div>

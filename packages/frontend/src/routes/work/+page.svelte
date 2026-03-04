@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { wallet } from "$lib/stores/wallet";
+  import { t } from "$lib/i18n";
   import FileUpload from "$lib/components/FileUpload.svelte";
 
   let activeTab = $state<"submit" | "verify" | "my-claims">("submit");
@@ -30,12 +31,12 @@
   // Derived: can submit work only if connected AND in a trust
   let canSubmitWork = $derived($wallet.connected && $wallet.isTrustMember);
 
-  const workTypes = [
-    { value: 0, label: "Standard Work", multiplier: 1.0, examples: "Assembly, basic care, routine tasks" },
-    { value: 1, label: "Skilled Work", multiplier: 1.3, examples: "Specialized labor, technical services" },
-    { value: 2, label: "Knowledge Transfer", multiplier: 1.5, examples: "Training, teaching, mentorship" },
-    { value: 3, label: "Critical Response", multiplier: 2.0, examples: "Emergency, urgent, crisis work" },
-  ];
+  const workTypes = $derived([
+    { value: 0, label: t('work.workTypeStandard'), multiplier: 1.0, examples: t('work.workTypeStandardEx') },
+    { value: 1, label: t('work.workTypeSkilled'), multiplier: 1.3, examples: t('work.workTypeSkilledEx') },
+    { value: 2, label: t('work.workTypeKnowledge'), multiplier: 1.5, examples: t('work.workTypeKnowledgeEx') },
+    { value: 3, label: t('work.workTypeCritical'), multiplier: 2.0, examples: t('work.workTypeCriticalEx') },
+  ]);
 
   onMount(async () => {
     await loadWorkClaims();
@@ -48,9 +49,6 @@
     try {
       const { createKchngClient } = await import("$lib/contracts/kchng");
       const kchngClient = createKchngClient($wallet.network);
-
-      // For demo, just show a message about fetching claims
-      // In real implementation, would fetch from contract
       loading = false;
     } catch (e) {
       console.error("Failed to load work claims:", e);
@@ -62,44 +60,41 @@
     submitMessage = null;
 
     if (!$wallet.connected) {
-      submitMessage = { type: "error", text: "Please connect your wallet first" };
+      submitMessage = { type: "error", text: t('work.connectWalletFirst') };
       return;
     }
 
     if (!$wallet.isTrustMember) {
-      submitMessage = { type: "error", text: "You must join a trust before submitting work claims" };
+      submitMessage = { type: "error", text: t('work.mustJoinTrust') };
       return;
     }
 
     if (minutesWorked < 15) {
-      submitMessage = { type: "error", text: "Minimum work time is 15 minutes" };
+      submitMessage = { type: "error", text: t('work.minWorkTime') };
       return;
     }
 
     submitting = true;
-    submitMessage = { type: "info", text: "Preparing transaction..." };
+    submitMessage = { type: "info", text: t('work.preparingTx') };
 
     try {
       const { createKchngClient } = await import("$lib/contracts/kchng");
       const kchngClient = createKchngClient($wallet.network);
 
-      // Set up the signing callback
       kchngClient.setSignTransactionCallback(wallet.signTransaction);
 
-      // Submit the work claim
       const txHash = await kchngClient.submitWorkClaim(
         $wallet.address!,
         workType,
         minutesWorked,
-        evidenceCid || "0x0" // Default empty hash if no evidence
+        evidenceCid || "0x0"
       );
 
       submitMessage = {
         type: "success",
-        text: `Work claim submitted! Transaction: ${txHash.slice(0, 8)}... Pending verification. You'll earn ${calculateTokens().toFixed(2)} KCHNG when approved.`
+        text: `${t('work.claimSubmitted')} ${t('work.pendingVerification')} ${calculateTokens().toFixed(2)} ${t('work.whenApproved')}`
       };
 
-      // Clear form after success
       minutesWorked = 30;
       evidenceCid = "";
 
@@ -115,7 +110,7 @@
 
   function calculateTokens(): number {
     const type = workTypes[workType];
-    return (minutesWorked * type.multiplier * 1000) / 30; // 30 min = 1000 KCHNG = 1 community meal
+    return (minutesWorked * type.multiplier * 1000) / 30;
   }
 
   function getWorkTypeName(type: number): string {
@@ -123,33 +118,33 @@
   }
 
   function getStatusName(status: number): string {
-    const statuses = ["Pending", "Approved", "Rejected", "Expired"];
+    const statuses = [t('work.statusPending'), t('work.statusApproved'), t('work.statusRejected'), t('work.statusExpired')];
     return statuses[status] || "Unknown";
   }
 </script>
 
 <div class="container">
-  <h1>Work Verification</h1>
-  <p class="subtitle">Earn KCHNG by contributing verified community work</p>
+  <h1>{t('work.title')}</h1>
+  <p class="subtitle">{t('work.subtitle')}</p>
 
   <div class="tabs">
     <button
       class:active={activeTab === "submit"}
       onclick={() => activeTab = "submit"}
     >
-      Submit Work
+      {t('work.tabSubmit')}
     </button>
     <button
       class:active={activeTab === "verify"}
       onclick={() => activeTab = "verify"}
     >
-      Verify Work
+      {t('work.tabVerify')}
     </button>
     <button
       class:active={activeTab === "my-claims"}
       onclick={() => activeTab = "my-claims"}
     >
-      My Claims
+      {t('work.tabMyClaims')}
     </button>
   </div>
 
@@ -157,22 +152,20 @@
     <div class="tab-content">
       {#if $wallet.connected && !$wallet.isTrustMember}
         <div class="warning-banner">
-          <strong>Trust Membership Required:</strong> You must join a trust before submitting work claims.
-          <a href="/trusts">View Trusts</a>
+          <strong>{t('work.trustMembershipRequired')}</strong> {t('work.mustJoinTrust')}
+          <a href="/trusts">{t('work.viewTrusts')}</a>
         </div>
       {/if}
 
       <div class="info-banner">
-        <strong>How it works:</strong> Submit evidence of community work (basic care, skilled labor, teaching, or emergency response).
-        Minimum 2 verifiers from your trust will review and approve your claim.
-        Approved work earns KCHNG based on time and work type multiplier.
+        <strong>{t('work.howItWorks')}</strong> {t('work.howItWorksDesc')}
       </div>
 
       <div class="form-card">
-        <h2>Submit Work Claim</h2>
+        <h2>{t('work.submitWorkClaim')}</h2>
 
         <div class="form-group">
-          <label>Work Type</label>
+          <label>{t('work.workType')}</label>
           <select bind:value={workType}>
             {#each workTypes as type}
               <option value={type.value}>
@@ -183,22 +176,22 @@
         </div>
 
         <div class="form-group">
-          <label>Minutes Worked (minimum: 15)</label>
+          <label>{t('work.minutesWorked')} ({t('work.minimum')} 15)</label>
           <input type="number" bind:value={minutesWorked} min="15" />
-          <small>30 min verified work = 1000 KCHNG = 1 community meal</small>
+          <small>{t('work.minutesHint')}</small>
         </div>
 
         <div class="form-group">
-          <label>Evidence (Photo/Document)</label>
+          <label>{t('work.evidence')}</label>
           <FileUpload onUpload={(cid) => evidenceCid = cid} existingCid={evidenceCid} />
-          <small>Upload photos or documents as proof of your work</small>
+          <small>{t('work.evidenceHint')}</small>
         </div>
 
         <div class="preview-box">
-          <h3>Earned Tokens Preview</h3>
+          <h3>{t('work.earnedTokensPreview')}</h3>
           <div class="token-amount">{calculateTokens().toFixed(2)} KCHNG</div>
           <div class="token-breakdown">
-            {minutesWorked} minutes × {workTypes[workType].label} ({workTypes[workType].multiplier}x) ÷ 30
+            {minutesWorked} min × {workTypes[workType].label} ({workTypes[workType].multiplier}x) ÷ 30
           </div>
         </div>
 
@@ -223,15 +216,15 @@
         >
           {#if submitting}
             <span class="btn-spinner"></span>
-            Submitting...
+            {t('work.submitting')}
           {:else}
-            Submit Work Claim
+            {t('work.submitClaim')}
           {/if}
         </button>
       </div>
 
       <div class="work-types-info">
-        <h3>Work Type Multipliers</h3>
+        <h3>{t('work.workTypeMultipliers')}</h3>
         <div class="multiplier-grid">
           {#each workTypes as type}
             <div class="multiplier-card" class:selected={workType === type.value}>
@@ -247,39 +240,38 @@
   {:else if activeTab === "verify"}
     <div class="tab-content">
       <div class="info-banner">
-        <strong>Become a verifier:</strong> Stake 100,000 KCHNG to verify community work claims.
-        Earn reputation for accurate verification. Required: minimum 2 verifiers per trust.
+        <strong>{t('work.becomeVerifier')}</strong> {t('work.becomeVerifierDesc')}
       </div>
 
       <div class="verifier-status">
-        <h2>Verifier Status</h2>
+        <h2>{t('work.verifierStatus')}</h2>
         {#if !$wallet.connected}
-          <p>Please connect your wallet to check verifier status.</p>
-          <button onclick={() => wallet.connect($wallet.network)}>Connect Wallet</button>
+          <p>{t('work.checkStatus')}</p>
+          <button onclick={() => wallet.connect($wallet.network)}>{t('common.connectWallet')}</button>
         {:else}
           <div class="status-grid">
             <div class="status-card">
-              <div class="status-label">Registered Verifier</div>
-              <div class="status-value">No</div>
-              <button class="btn-register">Register as Verifier</button>
+              <div class="status-label">{t('work.registeredVerifier')}</div>
+              <div class="status-value">{t('work.no')}</div>
+              <button class="btn-register">{t('work.registerVerifier')}</button>
             </div>
             <div class="status-card">
-              <div class="status-label">Required Stake</div>
+              <div class="status-label">{t('work.requiredStake')}</div>
               <div class="status-value">100,000 KCHNG</div>
             </div>
             <div class="status-card">
-              <div class="status-label">Your Stake</div>
+              <div class="status-label">{t('work.yourStake')}</div>
               <div class="status-value">0 KCHNG</div>
             </div>
             <div class="status-card">
-              <div class="status-label">Reputation</div>
+              <div class="status-label">{t('work.reputation')}</div>
               <div class="status-value">-</div>
             </div>
           </div>
 
           <div class="pending-claims">
-            <h3>Pending Claims to Verify</h3>
-            <div class="empty-state">No pending claims available for verification.</div>
+            <h3>{t('work.pendingClaimsVerify')}</h3>
+            <div class="empty-state">{t('work.noPendingClaims')}</div>
           </div>
         {/if}
       </div>
@@ -288,44 +280,44 @@
   {:else if activeTab === "my-claims"}
     <div class="tab-content">
       <div class="claims-list">
-        <h2>My Work Claims</h2>
+        <h2>{t('work.myWorkClaims')}</h2>
 
         {#if !$wallet.connected}
-          <div class="empty-state">Please connect your wallet to view your claims.</div>
+          <div class="empty-state">{t('work.connectToView')}</div>
         {:else if loading}
-          <div class="loading">Loading claims...</div>
+          <div class="loading">{t('work.loadingClaims')}</div>
         {:else if workClaims.length === 0}
           <div class="empty-state">
             <div class="empty-icon">📋</div>
-            <h3>No Work Claims Yet</h3>
-            <p>Submit your first work claim to start earning KCHNG!</p>
-            <button onclick={() => activeTab = "submit"}>Submit Work</button>
+            <h3>{t('work.noClaimsYet')}</h3>
+            <p>{t('work.noClaimsDesc')}</p>
+            <button onclick={() => activeTab = "submit"}>{t('work.tabSubmit')}</button>
           </div>
         {:else}
           <div class="claims-grid">
             {#each workClaims as claim (claim.claim_id)}
               <div class="claim-card">
                 <div class="claim-header">
-                  <span class="claim-id">Claim #{claim.claim_id}</span>
+                  <span class="claim-id">{t('work.claim')} #{claim.claim_id}</span>
                   <span class="claim-status status-{claim.status}">
                     {getStatusName(claim.status)}
                   </span>
                 </div>
                 <div class="claim-details">
                   <div class="claim-detail">
-                    <span class="detail-label">Type:</span>
+                    <span class="detail-label">{t('work.type')}</span>
                     <span>{getWorkTypeName(claim.work_type)}</span>
                   </div>
                   <div class="claim-detail">
-                    <span class="detail-label">Minutes:</span>
+                    <span class="detail-label">{t('work.minutes')}</span>
                     <span>{claim.minutes_worked}</span>
                   </div>
                   <div class="claim-detail">
-                    <span class="detail-label">Multiplier:</span>
+                    <span class="detail-label">{t('work.multiplier')}</span>
                     <span>{claim.multiplier / 100}x</span>
                   </div>
                   <div class="claim-detail">
-                    <span class="detail-label">Submitted:</span>
+                    <span class="detail-label">{t('work.submitted')}</span>
                     <span>{new Date(claim.submitted_at * 1000).toLocaleDateString()}</span>
                   </div>
                 </div>

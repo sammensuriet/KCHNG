@@ -4,6 +4,8 @@
   import { page } from "$app/stores";
   import { browser } from "$app/environment";
   import DemurrageInfo from "./DemurrageInfo.svelte";
+  import LanguageSwitcher from "./LanguageSwitcher.svelte";
+  import { t, messages } from "$lib/i18n";
 
   let showMenu = $state(false);
   let showNetworkSelector = $state(false);
@@ -28,21 +30,23 @@
     currentNetwork = get(wallet).network;
   });
 
-  const networks: { id: NetworkName; label: string }[] = [
-    { id: "testnet", label: "Testnet" },
-    { id: "mainnet", label: "Mainnet" },
-  ];
+  // Reactive arrays that update when language changes
+  // Access $messages to create reactive dependency
+  const networks = $derived<{ id: NetworkName; label: string }[]>([
+    { id: "testnet", label: ($messages, t('header.testnet')) },
+    { id: "mainnet", label: ($messages, t('header.mainnet')) },
+  ]);
 
-  const feedbackCategories = [
-    { id: "general", label: "General Feedback" },
-    { id: "work-claims", label: "Work Claims" },
-    { id: "trusts", label: "Trusts" },
-    { id: "wallet", label: "Wallet Connection" },
-    { id: "governance", label: "Governance" },
-    { id: "bug", label: "Bug Report" },
-    { id: "feature", label: "Feature Request" },
-    { id: "kchng-request", label: "KCHNG Request / Grant Application" },
-  ];
+  const feedbackCategories = $derived([
+    { id: "general", label: ($messages, t('header.generalFeedback')) },
+    { id: "work-claims", label: ($messages, t('header.workClaims')) },
+    { id: "trusts", label: ($messages, t('header.trusts')) },
+    { id: "wallet", label: ($messages, t('header.walletConnection')) },
+    { id: "governance", label: ($messages, t('header.governance')) },
+    { id: "bug", label: ($messages, t('header.bugReport')) },
+    { id: "feature", label: ($messages, t('header.featureRequest')) },
+    { id: "kchng-request", label: ($messages, t('header.kchngRequest')) },
+  ]);
 
   async function switchNetwork(network: NetworkName) {
     showNetworkSelector = false;
@@ -146,26 +150,28 @@
   </div>
 
   <nav class="header-nav">
-    <a href="/about" class="nav-link" class:active={$page.url.pathname === "/about"}>About</a>
-    <a href="/faq" class="nav-link" class:active={$page.url.pathname === "/faq"}>FAQ</a>
-    <a href="/dashboard" class="nav-link" class:active={$page.url.pathname === "/dashboard"}>Dashboard</a>
-    <a href="/work" class="nav-link" class:active={$page.url.pathname.startsWith("/work")}>Work</a>
-    <a href="/trusts" class="nav-link" class:active={$page.url.pathname === "/trusts"}>Communities</a>
-    <a href="/governance" class="nav-link" class:active={$page.url.pathname === "/governance"}>Governance</a>
-    <a href="/communicate" class="nav-link" class:active={$page.url.pathname === "/communicate"}>Chat</a>
+    <a href="/about" class="nav-link" class:active={$page.url.pathname === "/about"}>{t('nav.about')}</a>
+    <a href="/faq" class="nav-link" class:active={$page.url.pathname === "/faq"}>{t('nav.faq')}</a>
+    <a href="/dashboard" class="nav-link" class:active={$page.url.pathname === "/dashboard"}>{t('nav.dashboard')}</a>
+    <a href="/work" class="nav-link" class:active={$page.url.pathname.startsWith("/work")}>{t('nav.work')}</a>
+    <a href="/trusts" class="nav-link" class:active={$page.url.pathname === "/trusts"}>{t('nav.communities')}</a>
+    <a href="/governance" class="nav-link" class:active={$page.url.pathname === "/governance"}>{t('nav.governance')}</a>
+    <a href="/communicate" class="nav-link" class:active={$page.url.pathname === "/communicate"}>{t('nav.chat')}</a>
   </nav>
 
   <div class="header-right">
     <!-- Feedback Button -->
+    <LanguageSwitcher />
+
     <button
       class="btn-feedback"
       onclick={() => (showFeedbackForm = !showFeedbackForm)}
-      title="Submit Feedback"
+      title={t('header.submitFeedback')}
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
       </svg>
-      <span class="feedback-text">Feedback</span>
+      <span class="feedback-text">{t('header.feedback')}</span>
     </button>
 
     {#if $wallet.error}
@@ -202,18 +208,18 @@
           class="btn-test-wallet"
           onclick={handleCreateTestWallet}
           disabled={isCreatingTestWallet}
-          title="Create a new test wallet with 777 XLM"
+          title={t('header.createTestWallet')}
         >
           {#if isCreatingTestWallet}
             <span class="btn-spinner-small"></span>
-            Creating...
+            {t('header.creatingWallet')}
           {:else}
-            Create Test Wallet
+            {t('header.createTestWallet')}
           {/if}
         </button>
       {/if}
       <button class="btn-connect" onclick={() => wallet.connect(currentNetwork)}>
-        Connect Wallet
+        {t('common.connectWallet')}
       </button>
     {:else}
       <div class="wallet-info">
@@ -225,27 +231,27 @@
         {#if showMenu}
           <div class="wallet-dropdown">
             <div class="dropdown-section">
-              <div class="dropdown-label">Connected as</div>
+              <div class="dropdown-label">{t('header.connectedAs')}</div>
               <div class="dropdown-value">{$wallet.walletName}</div>
             </div>
 
             <div class="dropdown-section">
-              <div class="dropdown-label">Network</div>
+              <div class="dropdown-label">{t('header.network')}</div>
               <div class="dropdown-value">{$wallet.network.toUpperCase()}</div>
             </div>
 
             <div class="dropdown-section">
-              <div class="dropdown-label">Address</div>
+              <div class="dropdown-label">{t('header.address')}</div>
               <div class="dropdown-value dropdown-address">{$wallet.address}</div>
             </div>
 
             <div class="dropdown-section">
-              <div class="dropdown-label">Balance</div>
+              <div class="dropdown-label">{t('header.balance')}</div>
               <div class="dropdown-value">{$formattedBalance} KCHNG</div>
             </div>
 
             <div class="dropdown-section">
-              <div class="dropdown-label">Demurrage</div>
+              <div class="dropdown-label">{t('header.demurrage')}</div>
               <DemurrageInfo compact={true} />
             </div>
 
@@ -255,7 +261,7 @@
               class="btn-disconnect"
               onclick={() => wallet.disconnect()}
             >
-              Disconnect
+              {t('common.disconnect')}
             </button>
           </div>
         {/if}
@@ -269,8 +275,8 @@
   <div class="feedback-overlay" onclick={closeFeedbackForm}>
     <div class="feedback-modal" onclick={(e) => e.stopPropagation()}>
       <div class="feedback-header">
-        <h3>Submit Feedback</h3>
-        <button class="btn-close" onclick={closeFeedbackForm} title="Close">×</button>
+        <h3>{t('header.submitFeedback')}</h3>
+        <button class="btn-close" onclick={closeFeedbackForm} title={t('header.close')}>×</button>
       </div>
 
       <form name="feedback" method="POST" data-netlify="true" netlify-honeypot="bot-field" onsubmit={submitFeedback}>
@@ -287,18 +293,18 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="feedback-firstName">First Name</label>
+            <label for="feedback-firstName">{t('header.firstName')}</label>
             <input
               type="text"
               id="feedback-firstName"
               name="firstName"
               bind:value={feedbackFirstName}
-              placeholder="Your name"
+              placeholder={t('header.yourName')}
               disabled={feedbackStatus === "submitting"}
             />
           </div>
           <div class="form-group">
-            <label for="feedback-category">Category</label>
+            <label for="feedback-category">{t('header.category')}</label>
             <select id="feedback-category" bind:value={feedbackCategory} disabled={feedbackStatus === "submitting"}>
               {#each feedbackCategories as cat}
                 <option value={cat.id}>{cat.label}</option>
@@ -309,36 +315,36 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="feedback-email">Email</label>
+            <label for="feedback-email">{t('header.email')}</label>
             <input
               type="email"
               id="feedback-email"
               name="email"
               bind:value={feedbackEmail}
-              placeholder="your@email.com"
+              placeholder={t('header.emailPlaceholder')}
               disabled={feedbackStatus === "submitting"}
             />
           </div>
           <div class="form-group">
-            <label for="feedback-phone">Phone</label>
+            <label for="feedback-phone">{t('header.phone')}</label>
             <input
               type="tel"
               id="feedback-phone"
               name="phone"
               bind:value={feedbackPhone}
-              placeholder="+45 12 34 56 78"
+              placeholder={t('header.phonePlaceholder')}
               disabled={feedbackStatus === "submitting"}
             />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="feedback-message">Your Feedback *</label>
+          <label for="feedback-message">{t('header.yourFeedback')}</label>
           <textarea
             id="feedback-message"
             name="message"
             bind:value={feedbackMessage}
-            placeholder="Describe your feedback, suggestion, or issue..."
+            placeholder={t('header.feedbackPlaceholder')}
             rows="4"
             required
             disabled={feedbackStatus === "submitting"}
@@ -353,40 +359,40 @@
               bind:checked={contactConsent}
               disabled={feedbackStatus === "submitting"}
             />
-            <span>I agree to be contacted regarding my feedback (optional)</span>
+            <span>{t('header.contactConsent')}</span>
           </label>
         </div>
 
         <div class="form-meta">
-          <small>Page: {$page.url.pathname}</small>
-          <small>Network: {$wallet.network}</small>
-          <small>Wallet: {$wallet.address || "Not connected"}</small>
+          <small>{t('header.page')}: {$page.url.pathname}</small>
+          <small>{t('header.network')}: {$wallet.network}</small>
+          <small>{t('header.wallet')}: {$wallet.address || t('header.notConnected')}</small>
         </div>
 
         {#if feedbackStatus === "success"}
           <div class="feedback-success">
             <span class="success-icon">✓</span>
-            Thank you for your feedback!
+            {t('header.feedbackSuccess')}
           </div>
         {:else if feedbackStatus === "error"}
           <div class="feedback-error">
             <span class="error-icon">⚠</span>
-            Failed to submit. Please try again.
+            {t('header.feedbackError')}
           </div>
         {/if}
 
         <div class="form-actions">
           <button type="button" class="btn-cancel" onclick={closeFeedbackForm} disabled={feedbackStatus === "submitting"}>
-            Cancel
+            {t('common.cancel')}
           </button>
           {#if feedbackStatus === "submitting"}
             <button type="submit" class="btn-submit" disabled>
               <span class="btn-spinner"></span>
-              Sending...
+              {t('header.sending')}
             </button>
           {:else}
             <button type="submit" class="btn-submit" disabled={!feedbackMessage.trim()}>
-              Send Feedback
+              {t('header.sendFeedback')}
             </button>
           {/if}
         </div>

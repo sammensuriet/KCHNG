@@ -2,23 +2,31 @@
   import "../app.css";
   import Header from "$lib/components/Header.svelte";
   import Footer from "$lib/components/Footer.svelte";
-</script>
+  import { initFromServer, currentLanguage, type Language, type Messages } from "$lib/i18n";
 
-<svelte:head>
-  <title>KCHNG - Community Work Exchange</title>
-  <meta
-    name="description"
-    content="Community currency for collaborative communities. Track and reward the work that keeps your community running."
-  />
-</svelte:head>
+  // Receive server-loaded data
+  let { data }: { data: { initialLanguage: Language; initialMessages: Messages } } = $props();
+
+  // Initialize i18n immediately with server data (for SSR hydration)
+  initFromServer(data.initialLanguage, data.initialMessages);
+
+  // Subscribe to language changes
+  $effect(() => {
+    const unsubscribe = currentLanguage.subscribe((lang) => {
+      // Update document lang attribute when language changes
+      if (typeof document !== 'undefined') {
+        document.documentElement.lang = lang;
+      }
+    });
+    return unsubscribe;
+  });
+</script>
 
 <div class="page-wrapper">
   <Header />
-
   <main class="container">
     <slot />
   </main>
-
   <Footer />
 </div>
 
@@ -28,20 +36,5 @@
     flex-direction: column;
     min-height: 100vh;
     overflow-x: hidden;
-  }
-
-  .container {
-    flex: 1;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 2rem;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  @media (max-width: 640px) {
-    .container {
-      padding: 1rem;
-    }
   }
 </style>

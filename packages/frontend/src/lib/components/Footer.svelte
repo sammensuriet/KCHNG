@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "$lib/i18n";
   const currentYear = new Date().getFullYear();
 </script>
 
@@ -6,33 +7,33 @@
   <div class="footer-content">
     <div class="footer-brand">
       <a href="/" class="footer-logo">KCHNG</a>
-      <p class="footer-tagline">Community currency for collaborative communities</p>
+      <p class="footer-tagline">{t('footer.tagline')}</p>
     </div>
 
     <nav class="footer-nav">
       <div class="footer-section">
-        <h4>Learn</h4>
-        <a href="/about">About</a>
-        <a href="/faq">FAQ</a>
+        <h4>{t('footer.learn')}</h4>
+        <a href="/about">{t('nav.about')}</a>
+        <a href="/faq">{t('nav.faq')}</a>
       </div>
 
       <div class="footer-section">
-        <h4>Platform</h4>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/work">Work</a>
-        <a href="/trusts">Communities</a>
-        <a href="/governance">Governance</a>
+        <h4>{t('footer.platform')}</h4>
+        <a href="/dashboard">{t('nav.dashboard')}</a>
+        <a href="/work">{t('nav.work')}</a>
+        <a href="/trusts">{t('nav.communities')}</a>
+        <a href="/governance">{t('nav.governance')}</a>
       </div>
 
       <div class="footer-section">
-        <h4>Connect</h4>
-        <a href="/communicate">Chat</a>
+        <h4>{t('footer.connect')}</h4>
+        <a href="/communicate">{t('nav.chat')}</a>
       </div>
     </nav>
   </div>
 
   <div class="footer-bottom">
-    <p>&copy; {currentYear} KCHNG. Built for communities.</p>
+    <p>&copy; {currentYear} KCHNG. {t('footer.builtFor')}</p>
   </div>
 </footer>
 

@@ -1,282 +1,207 @@
+<script lang="ts">
+  import { t } from "$lib/i18n";
+</script>
+
 <svelte:head>
-  <title>FAQ - KCHNG Community Work Exchange</title>
-  <meta name="description" content="Frequently asked questions about KCHNG community currency - how to earn, spend, and use KCHNG in your community." />
+  <title>{t('faq.title')} - KCHNG</title>
+  <meta name="description" content={t('faq.subtitle')} />
 </svelte:head>
 
 <div class="page-header">
-  <h1>Frequently Asked Questions</h1>
-  <p class="subtitle">Everything you need to know about KCHNG</p>
+  <h1>{t('faq.title')}</h1>
+  <p class="subtitle">{t('faq.subtitle')}</p>
 </div>
 
 <div class="faq-list">
   <details class="faq-item">
     <summary class="faq-question">
       <span class="q-icon">Q</span>
-      What can I use KCHNG for?
+      {t('faq.q1Q')}
     </summary>
     <div class="faq-answer">
-      <p>
-        KCHNG can be used within your community for:
-      </p>
+      <p>{t('faq.q1Intro')}</p>
       <ul>
-        <li>Community meals (the base value: 1000 KCHNG = 1 meal)</li>
-        <li>Services from other community members</li>
-        <li>Goods at community markets or exchanges</li>
-        <li>Any transaction your community agrees to accept KCHNG for</li>
+        <li>{t('faq.q1a1')}</li>
+        <li>{t('faq.q1a2')}</li>
+        <li>{t('faq.q1a3')}</li>
+        <li>{t('faq.q1a4')}</li>
       </ul>
-      <p>
-        The more your community adopts KCHNG, the more useful it becomes. It's a tool
-        for internal exchange, not something you'd use at a regular store.
-      </p>
+      <p>{t('faq.q1outro')}</p>
     </div>
   </details>
 
   <details class="faq-item">
     <summary class="faq-question">
       <span class="q-icon">Q</span>
-      How do I earn KCHNG?
+      {t('faq.q2Q')}
     </summary>
     <div class="faq-answer">
-      <p>
-        You earn KCHNG by doing work that benefits your community:
-      </p>
+      <p>{t('faq.q2Intro')}</p>
       <ol>
-        <li><strong>Do the work</strong> — Cook a community meal, fix something, organize an event, clean shared spaces, teach a workshop, etc.</li>
-        <li><strong>Submit a claim</strong> — Log your work in the system with evidence (photos, descriptions, etc.)</li>
-        <li><strong>Get verified</strong> — Other community members confirm the work happened</li>
-        <li><strong>Receive KCHNG</strong> — New tokens are minted directly to your wallet</li>
+        <li>{@html t('faq.q2s1')}</li>
+        <li>{@html t('faq.q2s2')}</li>
+        <li>{@html t('faq.q2s3')}</li>
+        <li>{@html t('faq.q2s4')}</li>
       </ol>
-      <p>
-        The rate is simple: <strong>30 minutes of standard work = 1000 KCHNG</strong>.
-        Skilled work, teaching, or emergency work can earn multipliers (1.3×, 1.5×, or 2×).
-      </p>
+      <p>{@html t('faq.q2outro')}</p>
     </div>
   </details>
 
   <details class="faq-item">
     <summary class="faq-question">
       <span class="q-icon">Q</span>
-      Why do unused tokens decrease over time?
+      {t('faq.q3Q')}
     </summary>
     <div class="faq-answer">
-      <p>
-        This is a feature, not a bug. KCHNG is designed to <strong>circulate</strong>, not sit idle.
-      </p>
-      <p>
-        When tokens aren't used for a while (typically after a month of inactivity),
-        they gradually decrease in value — usually around 1% per month.
-      </p>
-      <p><strong>Why do this?</strong></p>
+      <p>{@html t('faq.q3p1')}</p>
+      <p>{t('faq.q3p2')}</p>
+      <p>{@html t('faq.q3Why')}</p>
       <ul>
-        <li>It encourages people to spend, share, or trade rather than hoard</li>
-        <li>It keeps the community economy active and healthy</li>
-        <li>It prevents wealth accumulation without contribution</li>
-        <li>Historical data shows this increases the "velocity" of money — it changes hands more often, creating more economic activity</li>
+        <li>{t('faq.q3a1')}</li>
+        <li>{t('faq.q3a2')}</li>
+        <li>{t('faq.q3a3')}</li>
+        <li>{t('faq.q3a4')}</li>
       </ul>
-      <p>
-        This model was proven in Wörgl (1932) and continues today with the Chiemgauer in Germany.
-      </p>
-      <p>
-        <strong>Good news:</strong> If you're going through hardship, communities can grant
-        "grace periods" that pause this effect temporarily.
-      </p>
+      <p>{t('faq.q3history')}</p>
+      <p>{@html t('faq.q3good')}</p>
     </div>
   </details>
 
   <details class="faq-item">
     <summary class="faq-question">
       <span class="q-icon">Q</span>
-      Do I need technical knowledge to use KCHNG?
+      {t('faq.q4Q')}
     </summary>
     <div class="faq-answer">
-      <p>
-        <strong>No.</strong> You need to be able to:
-      </p>
+      <p>{@html t('faq.q4No')}</p>
       <ul>
-        <li>Use a web browser</li>
-        <li>Connect a digital wallet (like Freighter for Stellar)</li>
-        <li>Remember your wallet password or secret key</li>
+        <li>{t('faq.q4a1')}</li>
+        <li>{t('faq.q4a2')}</li>
+        <li>{t('faq.q4a3')}</li>
       </ul>
-      <p>
-        That's it. You don't need to understand blockchain, smart contracts, or any
-        technical details. The system handles all of that in the background.
-      </p>
-      <p>
-        If you can use online banking, you can use KCHNG.
-      </p>
+      <p>{t('faq.q4outro')}</p>
+      <p>{t('faq.q4banking')}</p>
     </div>
   </details>
 
   <details class="faq-item">
     <summary class="faq-question">
       <span class="q-icon">Q</span>
-      How is work verified?
+      {t('faq.q5Q')}
     </summary>
     <div class="faq-answer">
-      <p>
-        Work is verified by <strong>other community members</strong>, not by algorithms
-        or central authorities.
-      </p>
-      <p><strong>The typical process:</strong></p>
+      <p>{@html t('faq.q5p1')}</p>
+      <p>{@html t('faq.q5process')}</p>
       <ul>
-        <li>Someone does work and submits a claim with evidence (photos, descriptions, links)</li>
-        <li>Designated "verifiers" in the community review and approve the claim</li>
-        <li>Usually 2 verifiers are required to prevent abuse</li>
-        <li>Once approved, tokens are automatically minted</li>
+        <li>{t('faq.q5a1')}</li>
+        <li>{t('faq.q5a2')}</li>
+        <li>{t('faq.q5a3')}</li>
+        <li>{t('faq.q5a4')}</li>
       </ul>
-      <p>
-        This works best in communities where people know each other. If you claim you
-        fixed the roof, someone probably saw you do it. Trust is built through relationships.
-      </p>
+      <p>{t('faq.q5outro')}</p>
     </div>
   </details>
 
   <details class="faq-item">
     <summary class="faq-question">
       <span class="q-icon">Q</span>
-      What is a "Community" (formerly called a Trust)?
+      {t('faq.q6Q')}
     </summary>
     <div class="faq-answer">
-      <p>
-        A "Community" in KCHNG is a group of people who agree to use KCHNG together.
-        Each community can have its own:
-      </p>
+      <p>{t('faq.q6p1')}</p>
       <ul>
-        <li><strong>Rules</strong> — What work counts, how verification works</li>
-        <li><strong>Activity rate</strong> — How quickly unused tokens decrease (5-15% annually)</li>
-        <li><strong>Members</strong> — Who can participate</li>
-        <li><strong>Verifiers</strong> — Who can approve work claims</li>
+        <li>{@html t('faq.q6a1')}</li>
+        <li>{@html t('faq.q6a2')}</li>
+        <li>{@html t('faq.q6a3')}</li>
+        <li>{@html t('faq.q6a4')}</li>
       </ul>
-      <p>
-        You can belong to multiple communities. For example, you might be in your
-        housing cooperative's community and also your neighborhood's community.
-      </p>
-      <p>
-        <small>Note: In technical documentation, you might see these called "Trusts" —
-        we're moving toward clearer language.</small>
-      </p>
+      <p>{t('faq.q6outro')}</p>
+      <p>{@html t('faq.q6note')}</p>
     </div>
   </details>
 
   <details class="faq-item">
     <summary class="faq-question">
       <span class="q-icon">Q</span>
-      Is this a cryptocurrency?
+      {t('faq.q7Q')}
     </summary>
     <div class="faq-answer">
-      <p>
-        <strong>Yes and no.</strong>
-      </p>
-      <p>
-        Technically, KCHNG runs on blockchain technology (Stellar) and uses cryptographic
-        wallets. So yes, it's a digital token.
-      </p>
-      <p>
-        But unlike typical cryptocurrencies:
-      </p>
+      <p>{@html t('faq.q7YesNo')}</p>
+      <p>{t('faq.q7p1')}</p>
+      <p>{t('faq.q7p2')}</p>
       <ul>
-        <li><strong>Not for speculation</strong> — KCHNG's value is tied to work, not markets</li>
-        <li><strong>Not for investment</strong> — Tokens decrease if held, so there's no "HODL" mentality</li>
-        <li><strong>Community-focused</strong> — Designed for local exchange, not global trading</li>
-        <li><strong>Created by work</strong> — Not mined or pre-mined; new tokens only come from verified work</li>
+        <li>{@html t('faq.q7a1')}</li>
+        <li>{@html t('faq.q7a2')}</li>
+        <li>{@html t('faq.q7a3')}</li>
+        <li>{@html t('faq.q7a4')}</li>
       </ul>
-      <p>
-        Think of it as "community credit on a blockchain" rather than "crypto."
-      </p>
+      <p>{t('faq.q7outro')}</p>
     </div>
   </details>
 
   <details class="faq-item">
     <summary class="faq-question">
       <span class="q-icon">Q</span>
-      How do I join a community?
+      {t('faq.q8Q')}
     </summary>
     <div class="faq-answer">
-      <p>
-        <strong>Step 1: Get a wallet</strong>
-      </p>
+      <p>{@html t('faq.q8s1t')}</p>
       <ul>
-        <li>Install Freighter (a Stellar wallet browser extension) or another Stellar-compatible wallet</li>
-        <li>Create a new wallet and save your secret key somewhere safe</li>
+        <li>{t('faq.q8s1a1')}</li>
+        <li>{t('faq.q8s1a2')}</li>
       </ul>
-      <p>
-        <strong>Step 2: Find a community</strong>
-      </p>
+      <p>{@html t('faq.q8s2t')}</p>
       <ul>
-        <li>Browse existing communities on the <a href="/trusts">Communities page</a></li>
-        <li>Or ask your community if they already have a KCHNG setup</li>
+        <li>{@html t('faq.q8s2a1')}</li>
+        <li>{t('faq.q8s2a2')}</li>
       </ul>
-      <p>
-        <strong>Step 3: Join</strong>
-      </p>
+      <p>{@html t('faq.q8s3t')}</p>
       <ul>
-        <li>Request to join a community</li>
-        <li>Existing members or admins will approve you</li>
-        <li>Once approved, you can submit work and earn KCHNG</li>
+        <li>{t('faq.q8s3a1')}</li>
+        <li>{t('faq.q8s3a2')}</li>
+        <li>{t('faq.q8s3a3')}</li>
       </ul>
-      <p>
-        <strong>No community yet?</strong> You can <a href="/trusts">create your own</a> —
-        it just takes a few other people who want to participate.
-      </p>
+      <p>{@html t('faq.q8outro')}</p>
     </div>
   </details>
 
   <details class="faq-item">
     <summary class="faq-question">
       <span class="q-icon">Q</span>
-      What happens if I lose my wallet?
+      {t('faq.q9Q')}
     </summary>
     <div class="faq-answer">
-      <p>
-        <strong>This is important:</strong> Your KCHNG is stored on the blockchain, not
-        in your wallet app. The wallet is just a key to access it.
-      </p>
-      <p>
-        If you lose access to your wallet:
-      </p>
+      <p>{@html t('faq.q9p1')}</p>
+      <p>{t('faq.q9p2')}</p>
       <ul>
-        <li><strong>If you have your secret key</strong> — You can restore access in any Stellar wallet</li>
-        <li><strong>If you lost your secret key</strong> — Your KCHNG is permanently inaccessible</li>
+        <li>{@html t('faq.q9a1')}</li>
+        <li>{@html t('faq.q9a2')}</li>
       </ul>
-      <p>
-        There's no "forgot password" feature. This is the trade-off of decentralization —
-        you are fully in control, which means you're fully responsible for keeping your keys safe.
-      </p>
-      <p>
-        <strong>Best practice:</strong> Write your secret key on paper and store it somewhere
-        secure. Never share it with anyone.
-      </p>
+      <p>{t('faq.q9p3')}</p>
+      <p>{@html t('faq.q9best')}</p>
     </div>
   </details>
 
   <details class="faq-item">
     <summary class="faq-question">
       <span class="q-icon">Q</span>
-      Can I exchange KCHNG for regular money?
+      {t('faq.q10Q')}
     </summary>
     <div class="faq-answer">
-      <p>
-        Not directly. KCHNG is designed for community exchange, not conversion to fiat currency.
-      </p>
-      <p>
-        However, communities can set up their own exchange mechanisms if they want to.
-        This would be a community decision, not a built-in feature.
-      </p>
-      <p>
-        The goal of KCHNG is to create a <strong>parallel economy</strong> within communities,
-        not to replace national currencies entirely.
-      </p>
+      <p>{t('faq.q10p1')}</p>
+      <p>{t('faq.q10p2')}</p>
+      <p>{@html t('faq.q10outro')}</p>
     </div>
   </details>
 </div>
 
 <div class="more-questions">
-  <h2>Still have questions?</h2>
+  <h2>{t('faq.stillQuestions')}</h2>
   <p>
-    <a href="/communicate" class="cta-button">Chat with us →</a>
+    <a href="/communicate" class="cta-button">{t('faq.chatWithUs')}</a>
   </p>
   <p class="cta-note">
-    Or <a href="/about">learn more about how KCHNG works</a>
+    {@html t('faq.orAbout')}
   </p>
 </div>
 

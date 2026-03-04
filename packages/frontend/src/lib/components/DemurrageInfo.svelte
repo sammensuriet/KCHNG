@@ -1,5 +1,6 @@
 <script lang="ts">
   import { wallet } from "$lib/stores/wallet";
+  import { t } from "$lib/i18n";
   import {
     calculateInactivePeriods,
     calculateDemurrageAmount,
@@ -41,18 +42,18 @@
 
   // Format seconds into human readable time
   function formatTime(seconds: number): string {
-    if (seconds <= 0) return "Now";
+    if (seconds <= 0) return t('demurrage.now');
 
     const days = Math.floor(seconds / SECONDS_PER_DAY);
     const hours = Math.floor((seconds % SECONDS_PER_DAY) / 3600);
 
     if (days > 0) {
-      return `${days} day${days > 1 ? "s" : ""}`;
+      return `${days} ${days > 1 ? t('demurrage.days') : t('demurrage.day')}`;
     }
     if (hours > 0) {
-      return `${hours} hour${hours > 1 ? "s" : ""}`;
+      return `${hours} ${hours > 1 ? t('demurrage.hours') : t('demurrage.hour')}`;
     }
-    return "< 1 hour";
+    return t('demurrage.lessThanHour');
   }
 
   // Calculate percentage of current period used
@@ -68,27 +69,27 @@
 {#if compact}
   <div class="demurrage-compact">
     {#if timeUntilNextBurn() && timeUntilNextBurn()! > 0}
-      <span class="demurrage-safe">Burn in: {formatTime(timeUntilNextBurn()!)}</span>
+      <span class="demurrage-safe">{t('demurrage.burnIn')} {formatTime(timeUntilNextBurn()!)}</span>
     {:else}
-      <span class="demurrage-warning">Burning now!</span>
+      <span class="demurrage-warning">{t('demurrage.burningNow')}</span>
     {/if}
   </div>
 {:else}
   <div class="demurrage-info">
-    <h3>Demurrage Status</h3>
+    <h3>{t('demurrage.title')}</h3>
 
     {#if timeUntilNextBurn() && timeUntilNextBurn()! > 0}
       <div class="demurrage-section">
-        <div class="demurrage-label">Time until next burn</div>
+        <div class="demurrage-label">{t('demurrage.timeUntilBurn')}</div>
         <div class="demurrage-value safe">{formatTime(timeUntilNextBurn()!)}</div>
       </div>
 
       <div class="demurrage-section">
-        <div class="demurrage-label">Current period progress</div>
+        <div class="demurrage-label">{t('demurrage.periodProgress')}</div>
         <div class="progress-bar">
           <div class="progress-fill" style="width: {periodProgress()}%"></div>
         </div>
-        <div class="progress-text">{Math.round(periodProgress())}% of 7 days</div>
+        <div class="progress-text">{Math.round(periodProgress())}% {t('demurrage.of7Days')}</div>
       </div>
 
       <div class="demurrage-notice">
@@ -96,19 +97,19 @@
           <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7 4h2v4H7V4zm0 5h2v2H7V9z"/>
         </svg>
         <span>
-          Send any transaction to reset the timer and prevent demurrage
+          {t('demurrage.resetNotice')}
         </span>
       </div>
     {:else}
       <div class="demurrage-section">
-        <div class="demurrage-label">Status</div>
-        <div class="demurrage-value warning">Burning now!</div>
+        <div class="demurrage-label">{t('demurrage.status')}</div>
+        <div class="demurrage-value warning">{t('demurrage.burningNow')}</div>
       </div>
 
       <div class="demurrage-section">
-        <div class="demurrage-label">Projected burn</div>
+        <div class="demurrage-label">{t('demurrage.projectedBurn')}</div>
         <div class="demurrage-value">
-          {projectedDemurrage().toString()} KCHNG / 7 days
+          {projectedDemurrage().toString()} {t('demurrage.per7Days')}
         </div>
       </div>
 
@@ -117,7 +118,7 @@
           <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm1 11H7v-2h2v2zm0-4H7V4h2v4z"/>
         </svg>
         <span>
-          Your KCHNG is being burned due to inactivity. Make a transaction now to stop it!
+          {t('demurrage.warningNotice')}
         </span>
       </div>
     {/if}

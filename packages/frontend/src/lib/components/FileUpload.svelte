@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "$lib/i18n";
   import {
     uploadToIPFS,
     validateFile,
@@ -181,7 +182,7 @@
     <div class="upload-success">
       <div class="success-icon">✓</div>
       <div class="success-content">
-        <div class="success-label">Evidence uploaded</div>
+        <div class="success-label">{t('fileUpload.evidenceUploaded')}</div>
         <div class="cid-display">{uploadedCid}</div>
         <a
           href={getIPFSUrl(uploadedCid)}
@@ -189,7 +190,7 @@
           rel="noopener noreferrer"
           class="view-link"
         >
-          View on IPFS →
+          {t('fileUpload.viewOnIpfs')}
         </a>
       </div>
       <button
@@ -198,7 +199,7 @@
         onclick={handleClearUpload}
         disabled={disabled}
       >
-        Upload Different File
+        {t('fileUpload.uploadDifferent')}
       </button>
     </div>
 
@@ -220,10 +221,10 @@
 
       <div class="preview-actions">
         <button type="button" class="btn-secondary" onclick={handleRemoveFile}>
-          Remove
+          {t('fileUpload.remove')}
         </button>
         <button type="button" class="btn-primary" onclick={handleUpload}>
-          Upload to IPFS
+          {t('fileUpload.uploadToIpfs')}
         </button>
       </div>
     </div>
@@ -232,7 +233,7 @@
     <!-- Uploading State -->
     <div class="uploading">
       <div class="upload-spinner"></div>
-      <div class="upload-text">Uploading to IPFS...</div>
+      <div class="upload-text">{t('fileUpload.uploading')}</div>
       <div class="upload-progress">
         <div class="progress-bar" style="width: {uploadProgress}%"></div>
       </div>
@@ -249,11 +250,11 @@
     >
       <div class="drop-icon">📎</div>
       <div class="drop-text">
-        <strong>Drag and drop</strong> your evidence file here
+        <strong>{t('fileUpload.dragDrop')}</strong> {t('fileUpload.evidenceHere')}
       </div>
-      <div class="drop-subtext">or</div>
+      <div class="drop-subtext">{t('fileUpload.or')}</div>
       <label class="btn-select">
-        Browse Files
+        {t('fileUpload.browseFiles')}
         <input
           type="file"
           accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
@@ -262,10 +263,10 @@
         />
       </label>
       <button type="button" class="btn-camera" onclick={handleCameraCapture}>
-        📷 Take Photo
+        {t('fileUpload.takePhoto')}
       </button>
       <div class="drop-hint">
-        Images, videos, PDFs, documents • Max 100MB
+        {t('fileUpload.fileHint')}
       </div>
     </div>
 
@@ -276,7 +277,7 @@
         class="btn-toggle-advanced"
         onclick={() => showAdvanced = !showAdvanced}
       >
-        {showAdvanced ? '▼' : '▶'} Advanced: Enter CID manually
+        {showAdvanced ? '▼' : '▶'} {t('fileUpload.advancedCid')}
       </button>
 
       {#if showAdvanced}
@@ -293,7 +294,7 @@
             onclick={handleManualCidSubmit}
             disabled={!manualCid || disabled}
           >
-            Use CID
+            {t('fileUpload.useCid')}
           </button>
         </div>
       {/if}

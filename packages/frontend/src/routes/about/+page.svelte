@@ -1,160 +1,155 @@
+<script lang="ts">
+  import { t } from "$lib/i18n";
+</script>
+
 <svelte:head>
-  <title>About KCHNG - Community Work Exchange</title>
-  <meta name="description" content="Learn about KCHNG, a community work exchange system for eco-villages, cooperatives, and community spaces." />
+  <title>{t('about.title')} - KCHNG</title>
+  <meta name="description" content={t('about.subtitle')} />
 </svelte:head>
 
 <div class="page-header">
-  <h1>About KCHNG</h1>
-  <p class="subtitle">Community currency for collaborative communities</p>
+  <h1>{t('about.title')}</h1>
+  <p class="subtitle">{t('about.subtitle')}</p>
 </div>
 
 <section class="section">
-  <h2>What is KCHNG?</h2>
+  <h2>{t('about.whatIsTitle')}</h2>
   <p>
-    KCHNG is a <strong>community work exchange system</strong> — a way for communities to track
-    and reward the work that keeps them running. Instead of money that comes from outside,
-    KCHNG is created by the community itself, through actual work done by its members.
+    {@html t('about.whatIsP1')}
   </p>
   <p>
-    The core idea is simple: <strong>30 minutes of verified work = 1,000 KCHNG = 1 shared meal</strong>.
-    This creates a stable, understandable value that's tied to real effort, not market speculation.
+    {@html t('about.whatIsP2')}
   </p>
 </section>
 
 <section class="section">
-  <h2>Who Is It For?</h2>
-  <p>KCHNG is designed for communities that:</p>
+  <h2>{t('about.whoForTitle')}</h2>
+  <p>{t('about.whoForIntro')}</p>
   <ul>
-    <li><strong>Eco-villages</strong> — Track contributions to shared infrastructure, gardening, maintenance</li>
-    <li><strong>Cooperatives</strong> — Reward member participation beyond formal employment</li>
-    <li><strong>Community spaces</strong> — Shared venues, event spaces, gathering places</li>
-    <li><strong>Housing collectives</strong> — Manage shared chores and responsibilities</li>
-    <li><strong>Any group</strong> with shared work and a need to track contributions fairly</li>
+    <li>{@html t('about.whoForEco')}</li>
+    <li>{@html t('about.whoForCoop')}</li>
+    <li>{@html t('about.whoForSpaces')}</li>
+    <li>{@html t('about.whoForHousing')}</li>
+    <li>{@html t('about.whoForAny')}</li>
   </ul>
   <div class="highlight">
     <p>
-      <strong>Key requirement:</strong> The community should be small enough that members
-      can know and trust each other. KCHNG works through peer validation, not algorithms.
+      {@html t('about.keyRequirement')}
     </p>
   </div>
 </section>
 
 <section class="section">
-  <h2>How Does It Work?</h2>
+  <h2>{t('about.howWorksTitle')}</h2>
   <div class="steps">
     <div class="step">
       <div class="step-num">1</div>
       <div class="step-content">
-        <h3>Someone Does Work</h3>
-        <p>Cooking communal meals, fixing things, organizing events, teaching workshops, cleaning, gardening — anything the community values.</p>
+        <h3>{t('about.step1Title')}</h3>
+        <p>{t('about.step1Desc')}</p>
       </div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
       <div class="step-content">
-        <h3>Community Validates</h3>
-        <p>Other members confirm the work happened. This isn't bureaucratic — it's just people vouching for each other. Usually 2 verifiers are enough.</p>
+        <h3>{t('about.step2Title')}</h3>
+        <p>{t('about.step2Desc')}</p>
       </div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
       <div class="step-content">
-        <h3>Tokens Are Created</h3>
-        <p>New KCHNG is minted directly to the worker's wallet. This isn't transferred from somewhere else — it's newly created value, backed by real work.</p>
+        <h3>{t('about.step3Title')}</h3>
+        <p>{t('about.step3Desc')}</p>
       </div>
     </div>
   </div>
 </section>
 
 <section class="section">
-  <h2>Why Time-Based Value?</h2>
+  <h2>{t('about.whyTimeTitle')}</h2>
   <p>
-    Unlike regular money, KCHNG's value is tied to <strong>actual human effort</strong>, not
-    what the market decides. One hour of work is worth the same whether you're cooking,
-    cleaning, or teaching.
+    {@html t('about.whyTimeP1')}
   </p>
   <p>
-    This creates fairness. The person scrubbing floors isn't valued less than the person
-    running a workshop. All work that keeps the community going is equally valuable.
+    {t('about.whyTimeP2')}
   </p>
   <div class="work-types">
-    <h4>Work Types and Multipliers</h4>
-    <p>While all work is valued, some work carries more responsibility or urgency:</p>
+    <h4>{t('about.workTypesTitle')}</h4>
+    <p>{t('about.workTypesIntro')}</p>
     <div class="multiplier-grid">
       <div class="multiplier">
         <span class="mult-value">1.0×</span>
-        <span class="mult-label">Standard Work</span>
-        <span class="mult-examples">Cooking, cleaning, routine tasks</span>
+        <span class="mult-label">{t('about.multStandard')}</span>
+        <span class="mult-examples">{t('about.multStandardEx')}</span>
       </div>
       <div class="multiplier">
         <span class="mult-value">1.3×</span>
-        <span class="mult-label">Skilled Work</span>
-        <span class="mult-examples">Technical repairs, specialized services</span>
+        <span class="mult-label">{t('about.multSkilled')}</span>
+        <span class="mult-examples">{t('about.multSkilledEx')}</span>
       </div>
       <div class="multiplier">
         <span class="mult-value">1.5×</span>
-        <span class="mult-label">Teaching</span>
-        <span class="mult-examples">Workshops, training, mentorship</span>
+        <span class="mult-label">{t('about.multTeaching')}</span>
+        <span class="mult-examples">{t('about.multTeachingEx')}</span>
       </div>
       <div class="multiplier">
         <span class="mult-value">2.0×</span>
-        <span class="mult-label">Emergency</span>
-        <span class="mult-examples">Urgent repairs, crisis response</span>
+        <span class="mult-label">{t('about.multEmergency')}</span>
+        <span class="mult-examples">{t('about.multEmergencyEx')}</span>
       </div>
     </div>
   </div>
 </section>
 
 <section class="section">
-  <h2>Why Do Tokens Decrease When Unused?</h2>
+  <h2>{t('about.whyDecreaseTitle')}</h2>
   <p>
-    This is the key difference between KCHNG and regular money. KCHNG is designed to
-    <strong>circulate</strong>, not accumulate.
+    {@html t('about.whyDecreaseP1')}
   </p>
   <p>
-    When tokens sit idle in someone's wallet for too long, they gradually decrease in value.
-    This isn't a punishment — it's how the system stays healthy:
+    {t('about.whyDecreaseP2')}
   </p>
   <ul>
-    <li><strong>Encourages spending</strong> — Use your KCHNG for meals, services, or trade</li>
-    <li><strong>Prevents hoarding</strong> — Wealth can't just sit and grow automatically</li>
-    <li><strong>Keeps value moving</strong> — Active currency means more community interaction</li>
+    <li>{@html t('about.whyDecreaseEncourage')}</li>
+    <li>{@html t('about.whyDecreaseHoarding')}</li>
+    <li>{@html t('about.whyDecreaseMoving')}</li>
   </ul>
   <p>
-    <small>Practical example: If you don't use your balance for a month, it might decrease by about 1%. Stay active and it stays full.</small>
+    <small>{t('about.whyDecreaseExample')}</small>
   </p>
 </section>
 
 <section class="section">
-  <h2>Historical Context</h2>
+  <h2>{t('about.historyTitle')}</h2>
   <p>
-    The idea of "active currency" isn't new. It's been tested and proven in real communities:
+    {t('about.historyIntro')}
   </p>
 
   <div class="history-table">
     <table>
       <thead>
         <tr>
-          <th>System</th>
-          <th>When</th>
-          <th>What Happened</th>
+          <th>{t('about.historySystem')}</th>
+          <th>{t('about.historyWhen')}</th>
+          <th>{t('about.historyWhat')}</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td><strong>Wörgl, Austria</strong></td>
+          <td>{@html t('about.historyWorgl')}</td>
           <td>1932-1933</td>
-          <td>A small town issued "work certificates" that lost value if held. Unemployment dropped dramatically, local trade flourished. The Austrian central bank eventually banned it.</td>
+          <td>{t('about.historyWorglDesc')}</td>
         </tr>
         <tr>
-          <td><strong>Chiemgauer, Germany</strong></td>
+          <td>{@html t('about.historyChiemgauer')}</td>
           <td>2003-present</td>
-          <td>A regional currency with a similar "use it or lose it" design. Still running after 20+ years, with money circulating about 3x faster than regular currency.</td>
+          <td>{t('about.historyChiemgauerDesc')}</td>
         </tr>
         <tr>
-          <td><strong>KCHNG</strong></td>
+          <td>{@html t('about.historyKchng')}</td>
           <td>2026-</td>
-          <td>Bringing this model to communities everywhere, using blockchain technology for transparency and trust.</td>
+          <td>{t('about.historyKchngDesc')}</td>
         </tr>
       </tbody>
     </table>
@@ -162,43 +157,40 @@
 
   <blockquote>
     <p>
-      "The Wörgl experiment demonstrated that active currency achieved a 12× velocity
-      multiplier compared to conventional money — money changed hands 12 times more often,
-      stimulating local trade and reducing unemployment."
+      {t('about.historyQuote')}
     </p>
-    <cite>— Historical data from the Wörgl Freigeld experiment (1932-1933)</cite>
+    <cite>{t('about.historyCite')}</cite>
   </blockquote>
 </section>
 
 <section class="section">
-  <h2>The Technology</h2>
+  <h2>{t('about.techTitle')}</h2>
   <p>
-    KCHNG runs on <strong>Stellar</strong>, a public blockchain. This means:
+    {@html t('about.techIntro')}
   </p>
   <ul>
-    <li><strong>Transparent</strong> — All transactions are public and verifiable</li>
-    <li><strong>No central authority</strong> — No single entity controls the currency</li>
-    <li><strong>Low fees</strong> — Transaction costs are minimal</li>
-    <li><strong>Accessible</strong> — Works anywhere with internet access</li>
+    <li>{@html t('about.techTransparent')}</li>
+    <li>{@html t('about.techNoCentral')}</li>
+    <li>{@html t('about.techLowFees')}</li>
+    <li>{@html t('about.techAccessible')}</li>
   </ul>
   <p>
-    You don't need to understand blockchain to use KCHNG. Just connect a wallet and start
-    participating in your community's economy.
+    {t('about.techOutro')}
   </p>
 </section>
 
 <section class="section contract-info">
-  <h2>Contract Version</h2>
-  <p class="version-note">Current deployed contract addresses on Stellar:</p>
+  <h2>{t('about.contractTitle')}</h2>
+  <p class="version-note">{t('about.contractNote')}</p>
   <div class="contract-list">
     <div class="contract-item">
-      <span class="network-label">Testnet</span>
+      <span class="network-label">{t('header.testnet')}</span>
       <a href="https://stellar.expert/explorer/testnet/contract/CDMSMELWB6ERPXOSD7L3DXXJIG5A6PMBT6R6VFV6FOENKYYN7QNQPBFH" target="_blank" rel="noopener" class="contract-link">
         CDMSMELWB6ERPXOSD7L3DXXJIG5A6PMBT6R6VFV6FOENKYYN7QNQPBFH
       </a>
     </div>
     <div class="contract-item">
-      <span class="network-label">Mainnet</span>
+      <span class="network-label">{t('header.mainnet')}</span>
       <a href="https://stellar.expert/explorer/public/contract/CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK" target="_blank" rel="noopener" class="contract-link">
         CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK
       </a>
@@ -207,12 +199,12 @@
 </section>
 
 <section class="section cta-section">
-  <h2>Questions?</h2>
+  <h2>{t('about.questionsTitle')}</h2>
   <p>
-    <a href="/communicate" class="cta-button">Chat with us →</a>
+    <a href="/communicate" class="cta-button">{t('about.chatWithUs')}</a>
   </p>
   <p class="cta-note">
-    Or check out the <a href="/faq">Frequently Asked Questions</a>
+    {@html t('about.orFaq')}
   </p>
 </section>
 

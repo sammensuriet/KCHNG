@@ -1,0 +1,16 @@
+{
+  "$schema": "https://inlang.com/schema/project-settings",
+  "sourceLanguageTag": "en",
+  "languageTags": ["en", "es", "ru", "zh"],
+  "modules": [
+    {
+      "name": "@inlang/message-format",
+      "type": "file"
+    }
+  ],
+  "plugin": {
+    "id": "@inlang/message-format",
+    "type": "plugin",
+    "path": "./messages/{languageTag}.json"
+  }
+}

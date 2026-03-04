@@ -1,5 +1,14 @@
 <script lang="ts">
   import { calculateBalanceWithDemurrage } from "@kchng/shared";
+  import { t, initI18n, currentLanguage, messages } from "$lib/i18n";
+  import { onMount } from "svelte";
+
+  // Reactive translation function
+  $: translatedText = (key: string, params?: Record<string, string | number>) => t(key, params);
+
+  onMount(() => {
+    initI18n();
+  });
 </script>
 
 <svelte:head>
@@ -24,138 +33,134 @@
 </svelte:head>
 
 <div class="hero">
-  <h1>KCHNG</h1>
-  <p class="tagline">Community Work Exchange</p>
+  <h1>{translatedText('home.title')}</h1>
+  <p class="tagline">{translatedText('home.tagline')}</p>
   <p class="description">
-    Turn community service into shared value
+    {translatedText('home.description')}
   </p>
   <p class="audience">
-    For communities, cooperatives, and collectives who want to<br />
-    track and reward the work that keeps them running.
+    {translatedText('home.audience')}
   </p>
 </div>
 
 <div class="why-section">
-  <h2>How It Works</h2>
+  <h2>{translatedText('home.howItWorks')}</h2>
   <div class="steps-grid">
     <div class="step">
       <div class="step-number">1</div>
-      <h3>Work</h3>
-      <p>Do community service — cooking, cleaning, maintenance, teaching, organizing.</p>
+      <h3>{translatedText('home.step1Title')}</h3>
+      <p>{translatedText('home.step1Desc')}</p>
     </div>
     <div class="step">
       <div class="step-number">2</div>
-      <h3>Verify</h3>
-      <p>Your community validates the work. No algorithms, just trust.</p>
+      <h3>{translatedText('home.step2Title')}</h3>
+      <p>{translatedText('home.step2Desc')}</p>
     </div>
     <div class="step">
       <div class="step-number">3</div>
-      <h3>Earn</h3>
-      <p>Receive KCHNG tokens. 30 minutes = 1 meal.</p>
+      <h3>{translatedText('home.step3Title')}</h3>
+      <p>{translatedText('home.step3Desc')}</p>
     </div>
   </div>
 </div>
 
 <div class="value-section">
-  <h2>Simple Value</h2>
+  <h2>{translatedText('home.simpleValue')}</h2>
   <div class="value-grid">
     <div class="value-card">
       <div class="value-icon">30</div>
-      <div class="value-label">minutes work</div>
+      <div class="value-label">{translatedText('home.minutesWork')}</div>
       <div class="value-equals">=</div>
       <div class="value-icon">1</div>
-      <div class="value-label">meal</div>
+      <div class="value-label">{translatedText('home.meal')}</div>
     </div>
     <div class="value-card">
       <div class="value-icon">1,000</div>
       <div class="value-label">KCHNG</div>
       <div class="value-equals">=</div>
       <div class="value-icon">1</div>
-      <div class="value-label">meal</div>
+      <div class="value-label">{translatedText('home.meal')}</div>
     </div>
   </div>
-  <p class="value-note">Value tied to real work, not speculation. One KCHNG always equals the same thing.</p>
+  <p class="value-note">{translatedText('home.valueNote')}</p>
 </div>
 
 <div class="benefits-section">
-  <h2>Why KCHNG?</h2>
+  <h2>{translatedText('home.whyKchng')}</h2>
   <div class="benefits-grid">
     <div class="benefit">
       <div class="benefit-icon">🍽️</div>
-      <h3>Real Value</h3>
-      <p>1000 KCHNG = 1 community meal. Simple, stable, understandable.</p>
+      <h3>{translatedText('home.realValue')}</h3>
+      <p>{translatedText('home.realValueDesc')}</p>
     </div>
     <div class="benefit">
       <div class="benefit-icon">🤝</div>
-      <h3>Community Verified</h3>
-      <p>Work is validated by people you know. Trust built through relationships.</p>
+      <h3>{translatedText('home.communityVerified')}</h3>
+      <p>{translatedText('home.communityVerifiedDesc')}</p>
     </div>
     <div class="benefit">
       <div class="benefit-icon">🔄</div>
-      <h3>Stays Active</h3>
-      <p>Currency circulates instead of sitting idle. Good for everyone.</p>
+      <h3>{translatedText('home.staysActive')}</h3>
+      <p>{translatedText('home.staysActiveDesc')}</p>
     </div>
     <div class="benefit">
       <div class="benefit-icon">🏠</div>
-      <h3>Made for Communities</h3>
-      <p>Built for eco-villages, cooperatives, housing collectives, and community spaces.</p>
+      <h3>{translatedText('home.madeForCommunities')}</h3>
+      <p>{translatedText('home.madeForCommunitiesDesc')}</p>
     </div>
   </div>
 </div>
 
 <div class="info">
-  <h2>Why Do Unused Tokens Decrease?</h2>
+  <h2>{translatedText('home.whyDemurrage')}</h2>
   <p>
-    KCHNG is designed to <strong>keep value moving</strong> through your community.
-    When tokens sit unused for too long, they gradually decrease — encouraging people
-    to spend, share, or trade rather than hoard.
+    {translatedText('home.whyDemurrageDesc1')}
   </p>
   <p>
-    This isn't a penalty. It's how the system stays healthy. Active currency means
-    more trades, more connections, and a stronger community economy.
+    {translatedText('home.whyDemurrageDesc2')}
   </p>
   <p>
-    <small>Example: If you don't use your balance for a month, it might decrease by about 1%. Stay active and it stays full.</small>
+    <small>{translatedText('home.whyDemurrageExample')}</small>
   </p>
 </div>
 
 <div class="info">
-  <h2>Who Is This For?</h2>
-  <p>KCHNG works best for communities that:</p>
+  <h2>{translatedText('home.whoIsThisFor')}</h2>
+  <p>{translatedText('home.whoIsThisForDesc')}</p>
   <ul>
-    <li>Have a concept of community service or shared work</li>
-    <li>Want to track and reward contributions fairly</li>
-    <li>Are small enough that members know each other</li>
-    <li>Value cooperation over competition</li>
+    <li>{translatedText('home.whoIsThisForItem1')}</li>
+    <li>{translatedText('home.whoIsThisForItem2')}</li>
+    <li>{translatedText('home.whoIsThisForItem3')}</li>
+    <li>{translatedText('home.whoIsThisForItem4')}</li>
   </ul>
   <p>
-    <a href="/about">Learn more about how KCHNG works →</a>
+    <a href="/about">{translatedText('home.learnMoreLink')} →</a>
   </p>
 </div>
 
 <div class="cta-section">
-  <h2>Get Started</h2>
-  <p>Connect your wallet to access the full KCHNG platform:</p>
+  <h2>{translatedText('home.getStarted')}</h2>
+  <p>{translatedText('home.getStartedDesc')}</p>
   <div class="cta-grid">
     <a href="/dashboard" class="cta-card">
       <div class="cta-icon">📊</div>
-      <div class="cta-title">Dashboard</div>
-      <div class="cta-desc">View your balance and activity</div>
+      <div class="cta-title">{translatedText('home.ctaDashboard')}</div>
+      <div class="cta-desc">{translatedText('home.ctaDashboardDesc')}</div>
     </a>
     <a href="/trusts" class="cta-card">
       <div class="cta-icon">🏘️</div>
-      <div class="cta-title">Communities</div>
-      <div class="cta-desc">Join or create a community</div>
+      <div class="cta-title">{translatedText('home.ctaCommunities')}</div>
+      <div class="cta-desc">{translatedText('home.ctaCommunitiesDesc')}</div>
     </a>
     <a href="/work" class="cta-card">
       <div class="cta-icon">🔨</div>
-      <div class="cta-title">Work</div>
-      <div class="cta-desc">Submit and verify work</div>
+      <div class="cta-title">{translatedText('home.ctaWork')}</div>
+      <div class="cta-desc">{translatedText('home.ctaWorkDesc')}</div>
     </a>
     <a href="/governance" class="cta-card">
       <div class="cta-icon">🗳️</div>
-      <div class="cta-title">Governance</div>
-      <div class="cta-desc">Vote on proposals</div>
+      <div class="cta-title">{translatedText('home.ctaGovernance')}</div>
+      <div class="cta-desc">{translatedText('home.ctaGovernanceDesc')}</div>
     </a>
   </div>
 </div>
