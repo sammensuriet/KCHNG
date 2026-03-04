@@ -67,7 +67,9 @@
     "en": "English",
     "es": "Español",
     "ru": "Русский",
-    "zh": "中文"
+    "zh": "中文",
+    "de": "Deutsch",
+    "ar": "العربية"
   },
   "header": {
     "feedback": "Feedback",

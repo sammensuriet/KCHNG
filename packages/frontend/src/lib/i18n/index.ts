@@ -7,7 +7,7 @@ import { writable, derived, get } from 'svelte/store';
 import { browser } from '$app/environment';
 
 // Supported languages
-export const languages = ['en', 'es', 'ru', 'zh'] as const;
+export const languages = ['en', 'es', 'ru', 'zh', 'de', 'ar'] as const;
 export type Language = (typeof languages)[number];
 
 // Language labels for display
@@ -16,6 +16,8 @@ export const languageLabels: Record<Language, string> = {
   es: 'Español',
   ru: 'Русский',
   zh: '中文',
+  de: 'Deutsch',
+  ar: 'العربية',
 };
 
 // Default language
@@ -81,6 +83,8 @@ export function detectBrowserLanguage(): Language {
     es: 'es',
     ru: 'ru',
     zh: 'zh',
+    de: 'de',
+    ar: 'ar',
   };
 
   return langMap[browserLang || ''] || defaultLanguage;
