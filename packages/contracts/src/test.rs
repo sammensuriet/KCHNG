@@ -2370,15 +2370,16 @@ fn test_transfer_minimum_amount() {
     // Transfer exactly minimum amount (100 KCHNG) - should succeed
     client.transfer(&admin, &user, &U256::from_u32(&env, 100));
     assert_eq!(client.balance(&user), U256::from_u32(&env, 100));
-}
+
 
 #[test]
-fn test_transfer_cooldown_first_transfer() {
+fn test_multiple_transfers_allowed() {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
+    let user2 = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
 
     let contract_id = env.register(KchngToken, (&admin, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
@@ -2386,58 +2387,14 @@ fn test_transfer_cooldown_first_transfer() {
     // First transfer - should succeed
     client.transfer(&admin, &user, &U256::from_u32(&env, 100));
     assert_eq!(client.balance(&user), U256::from_u32(&env, 100));
-}
 
-#[test]
-#[should_panic(expected = "Transfer cooldown")]
-fn test_transfer_cooldown_second_transfer_fails() {
-    let env = Env::default();
-    env.mock_all_auths();
-    let admin = Address::generate(&env);
-    let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
-
-    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
-    let client = KchngTokenClient::new(&env, &contract_id);
-
-    // First transfer
-    client.transfer(&admin, &user, &U256::from_u32(&env, 100));
-
-    // Second transfer immediately - should fail due to 24h cooldown
-    client.transfer(&admin, &user, &U256::from_u32(&env, 100));
-}
-
-#[test]
-fn test_transfer_cooldown_after_24_hours() {
-    let env = Env::default();
-    env.mock_all_auths();
-    let admin = Address::generate(&env);
-    let user = Address::generate(&env);
-    let initial_supply = U256::from_u32(&env, 10_000_000); // 10M for oracle stake (5M required)
-
-    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
-    let client = KchngTokenClient::new(&env, &contract_id);
-
-    // First transfer
-    client.transfer(&admin, &user, &U256::from_u32(&env, 100));
-
-    // Jump 24 hours forward
-    use soroban_sdk::testutils::LedgerInfo;
-    let current_info = env.ledger().get();
-    env.ledger().set(LedgerInfo {
-        sequence_number: current_info.sequence_number + 1,
-        timestamp: current_info.timestamp + (24 * 60 * 60),
-        protocol_version: current_info.protocol_version,
-        base_reserve: current_info.base_reserve,
-        min_persistent_entry_ttl: current_info.min_persistent_entry_ttl,
-        min_temp_entry_ttl: current_info.min_temp_entry_ttl,
-        max_entry_ttl: current_info.max_entry_ttl,
-        network_id: current_info.network_id,
-    });
-
-    // Second transfer after 24h - should succeed
+    // Second transfer immediately - should also succeed (no cooldown)
     client.transfer(&admin, &user, &U256::from_u32(&env, 100));
     assert_eq!(client.balance(&user), U256::from_u32(&env, 200));
+
+    // Third transfer to different recipient - should succeed
+    client.transfer(&admin, &user2, &U256::from_u32(&env, 100));
+    assert_eq!(client.balance(&user2), U256::from_u32(&env, 100));
 }
 
 #[test]

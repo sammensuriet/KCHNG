@@ -14,7 +14,6 @@ const MIN_WORK_MINUTES: u64 = 15;
 
 // Transfer protections (anti-gaming: Part 1)
 const MIN_TRANSFER_AMOUNT: u64 = 100; // 100 KCHNG (~1/10 of 1 meal @ 30min/1000KCHNG)
-const TRANSFER_COOLDOWN_SECONDS: u64 = 86_400; // 24 hours
 
 // Time
 const SECONDS_PER_DAY: u64 = 86_400;
@@ -563,20 +562,6 @@ impl KchngToken {
             Some(data) => data,
             None => panic!("Insufficient balance"),
         };
-
-        // Enforce transfer cooldown (anti-gaming: Part 1.3)
-        // Use u64::MAX as sentinel for "no previous transfer"
-        // This handles test environments where ledger timestamp starts at 0
-        if from_data.last_activity != u64::MAX {
-            let current_time = env.ledger().timestamp();
-            let time_since_last_activity = current_time.saturating_sub(from_data.last_activity);
-            if time_since_last_activity < TRANSFER_COOLDOWN_SECONDS {
-                panic!(
-                    "Transfer cooldown active. Wait {} seconds.",
-                    TRANSFER_COOLDOWN_SECONDS - time_since_last_activity
-                );
-            }
-        }
 
         let balance_after_demurrage =
             Self::calculate_balance_with_demurrage(&env, from.clone(), &from_data);
