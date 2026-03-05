@@ -1,6 +1,6 @@
 # KCHNG Product Requirements Document
-**Version**: 1.4
-**Last Updated**: 2026-03-01
+**Version**: 1.5
+**Last Updated**: 2026-03-05
 **Status**: Active Development
 
 ---
@@ -57,9 +57,7 @@ Persistent Storage:
 
 ---
 
-## Requirements by Phase
-
-### Phase 1: Core Token ✅
+## Core Functionality (Foundation)
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
@@ -75,6 +73,8 @@ Persistent Storage:
 - Time-based activity tracking: `last_activity` timestamp per account
 
 ---
+
+## Contract Phases
 
 ### Phase 2: Trust System ✅
 
@@ -92,14 +92,30 @@ Persistent Storage:
 
 ---
 
-### Phase 3: Work Verification ✅
+### Phase 3: Enhanced Demurrage ✅
+
+| Requirement | Status | Notes |
+|-------------|--------|-------|
+| Trust-specific demurrage rates | ✅ Complete | 5-15% bounds enforced |
+| Percentage-based calculation | ✅ Complete | Per-trust configuration |
+| Balance query with trust rates | ✅ Complete | `balance_with_trust_demurrage()` |
+
+**Technical Specs:**
+- Each trust can set its own demurrage rate within bounds
+- Demurrage calculated using compound formula: `balance * (1 - rate)^periods`
+- Accounts inherit demurrage rate from their trust membership
+- Cross-trust exchange accounts for rate differences
+
+---
+
+### Phase 4: Work Verification System ✅
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
 | Submit work claims with evidence | ✅ Complete | IPFS hash support |
 | Multi-verifier assignment | ✅ Complete | Min 2 verifiers per claim |
 | Approval/rejection voting | ✅ Complete | Simple majority |
-| Token minting on approval | ✅ Complete | 30 min = 1 KCHNG base |
+| Token minting on approval | ✅ Complete | 30 min = 1000 KCHNG base |
 | Work type multipliers | ✅ Complete | 1.0×, 1.3×, 1.5×, 2.0× |
 
 **Work Types:**
@@ -119,32 +135,7 @@ Persistent Storage:
 
 ---
 
-### Phase 4: Reputation System ✅
-
-| Requirement | Status | Notes |
-|-------------|--------|-------|
-| Reputation score tracking (0-1000) | ✅ Complete | Initialized at 500 |
-| Score increases on approval (+5) | ✅ Complete | Per-approver increment |
-| Score increases on rejection (+10) | ✅ Complete | Higher reward for fraud detection |
-| Queryable via `get_verifier()` | ✅ Complete | Public read access |
-
-**Design Philosophy:**
-Reputation is tracked on-chain but **not enforced** by the contract. This follows the same pattern as `register_app()` - the contract provides extensible data that third-party applications can use for their own logic:
-- Off-chain verifier selection algorithms
-- Reputation-weighted UI/UX
-- External incentive/bonus systems
-- Community-driven reputation markets
-
-**Technical Specs:**
-- Range: 0-1000, starts at 500 (neutral)
-- Approval: +5 points
-- Rejection: +10 points (higher incentive to catch fraud)
-- No cap resets (permanent reputation building)
-- Queried via `get_verifier(address).reputation_score`
-
----
-
-### Phase 5: Grace Periods ⚠️
+### Phase 5: Grace Period System ⚠️
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
@@ -166,7 +157,7 @@ Reputation is tracked on-chain but **not enforced** by the contract. This follow
 
 ---
 
-### Phase 6: Cross-Trust Exchange ⚠️
+### Phase 6: Cross-Trust Exchange System ⚠️
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
@@ -183,15 +174,49 @@ Reputation is tracked on-chain but **not enforced** by the contract. This follow
 
 ---
 
-### Phase 7: Governance ⚠️
+### Phase 7: Reputation System ✅
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| Proposal creation | ✅ Complete | 4 proposal types |
+| Per-role reputation tracking | ✅ Complete | Governor, Verifier, Oracle, Worker, Member |
+| TF2T pattern detection | ✅ Complete | Tit-for-2-Tats for consecutive negatives |
+| Time-based decay/recovery | ✅ Complete | 30d high→500, 90d low→500 |
+| Probation system | ✅ Complete | Score <200 triggers probation |
+| Stake slashing on unregister | ✅ Complete | 10% verifiers, 25% oracles |
+
+**Role Types:**
+| Role | Reputation Events |
+|------|-------------------|
+| Governor | +2 join, -5 leave (severe if empty), +5 proposal pass |
+| Verifier | +5 approve, +10 reject, -10 rejected claim |
+| Oracle | +5 grace granted, stake slashed on abuse |
+| Worker | +5 claim approved, -10 claim rejected |
+| Member | +5 join, +2 vote participate |
+
+**TF2T (Tit-for-2-Tats) Pattern:**
+- Tracks consecutive negative reputation events
+- 2+ consecutive negatives: -25 bonus penalty
+- Prevents gaming through alternating good/bad behavior
+
+**Technical Specs:**
+- Range: 0-1000, starts at 500 (neutral)
+- Decay: High reputation (>500) decays toward 500 after 30 days
+- Recovery: Low reputation (<500) recovers toward 500 after 90 days
+- Probation: Score <200 triggers probation status
+- Queried via `get_reputation_data(address, role)`
+
+---
+
+## Governance (Cross-Cutting)
+
+Governance functions are integrated across all phases and allow trust members to propose and vote on changes.
+
+| Requirement | Status | Notes |
+|-------------|--------|-------|
+| Proposal creation | ✅ Complete | Multiple proposal types |
 | Voting mechanism | ✅ Implemented | Untested at scale |
 | Quorum requirements | ✅ Implemented | 40% participation, 60% approval |
 | Timeline enforcement | ✅ Complete | 7d review, 3d vote, 30d notice |
-| Proposal implementation | ✅ Implemented | Untested |
 
 **Proposal Types:**
 | Type | Supermajority | Purpose |
@@ -201,13 +226,6 @@ Reputation is tracked on-chain but **not enforced** by the contract. This follow
 | Protocol Upgrade | Yes | System-level changes |
 | Emergency | Yes | Crisis measures (>15% rate) |
 
-**Technical Specs:**
-- Review period: 7 days (editable)
-- Voting period: 3 days (editable)
-- Implementation delay: 30 days (editable)
-- Quorum: 40% of trust members must vote
-- Approval: 60% of votes must support
-
 ---
 
 ## Current Deployment Status
@@ -215,17 +233,20 @@ Reputation is tracked on-chain but **not enforced** by the contract. This follow
 ### Testnet ✅
 | Property | Value |
 |----------|-------|
-| **Contract ID** | `CDAKPFYVD6LYCKMTQAHLOYLLYO2PVE6YJIH3SS2W4R5GEJJ75UUZCDPX` |
-| **Explorer** | [stellar.expert](https://stellar.expert/explorer/testnet/contract/CDAKPFYVD6LYCKMTQAHLOYLLYO2PVE6YJIH3SS2W4R5GEJJ75UUZCDPX) |
-| **WASM Size** | 55,956 bytes (optimized) |
-| **Initial Supply** | 1,000,000 KCHNG |
-| **Public Methods** | 39 |
+| **Contract ID** | `CDMSMELWB6ERPXOSD7L3DXXJIG5A6PMBT6R6VFV6FOENKYYN7QNQPBFH` |
+| **Deployed** | 2026-03-01 (v3) |
+| **Explorer** | [stellar.expert](https://stellar.expert/explorer/testnet/contract/CDMSMELWB6ERPXOSD7L3DXXJIG5A6PMBT6R6VFV6FOENKYYN7QNQPBFH) |
+| **Version** | v3 (succession, TF2T, cross-trust fix) |
 
-### Mainnet ❌
-Not deployed. Pending:
-- Security audit
-- Frontend completion
-- Testing of advanced features (grace periods, governance, swaps)
+### Mainnet ✅
+| Property | Value |
+|----------|-------|
+| **Contract ID** | `CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK` |
+| **Deployed** | 2026-02-19 (v2) |
+| **Explorer** | [stellar.expert](https://stellar.expert/explorer/public/contract/CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK) |
+| **Version** | v2 (anti-gaming, reputation, events) |
+
+**Note**: Testnet is one version ahead of mainnet (v3 vs v2).
 
 ---
 
@@ -253,7 +274,11 @@ None identified. All contract phases are implemented as designed.
 
 ---
 
-## Phase 8: Community Chat ✅
+## External Features (Non-Contract)
+
+These features are part of the KCHNG ecosystem but not implemented in the smart contract.
+
+### Community Chat ✅
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
@@ -455,4 +480,4 @@ REPUTATION_INITIAL: 500
 
 ---
 
-**Document Status**: ✅ Aligned with contract (v1.4) - oracle stake, grace limits
+**Document Status**: ✅ Aligned with contract (v1.5) - phase numbering matches lib.rs, deployment status updated
