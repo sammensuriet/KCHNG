@@ -3477,8 +3477,16 @@ fn test_report_grace_abuse() {
         &1200u32,
         &28u64,
     );
+
+    // Fund and setup verifiers (need account and stake before registering)
+    let verifier_stake = U256::from_u32(&env, 100_000);
+    client.transfer(&admin, &verifier, &verifier_stake);
+    client.transfer(&admin, &verifier2, &verifier_stake);
+    client.join_trust(&verifier, &governor);
+    client.join_trust(&verifier2, &governor);
     client.register_verifier(&verifier, &governor);
     client.register_verifier(&verifier2, &governor);
+
     client.join_trust(&worker, &governor);
 
     // Fund and register oracle
