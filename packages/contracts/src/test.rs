@@ -2370,7 +2370,7 @@ fn test_transfer_minimum_amount() {
     // Transfer exactly minimum amount (100 KCHNG) - should succeed
     client.transfer(&admin, &user, &U256::from_u32(&env, 100));
     assert_eq!(client.balance(&user), U256::from_u32(&env, 100));
-
+}
 
 #[test]
 fn test_multiple_transfers_allowed() {
