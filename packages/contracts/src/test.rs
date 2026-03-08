@@ -1,11 +1,14 @@
 #![allow(dead_code)]
 
 use soroban_sdk::U256;
-use soroban_sdk::{Address, Env, String, Bytes};
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::testutils::Ledger as _;
+use soroban_sdk::{Address, Bytes, Env, String};
 
-use crate::{KchngToken, KchngTokenClient, WorkType, ClaimStatus, ProposalType, ProposalStatus, GraceType, RoleType, ReputationData};
+use crate::{
+    ClaimStatus, GraceType, KchngToken, KchngTokenClient, ProposalStatus, ProposalType,
+    ReputationData, RoleType, WorkType,
+};
 use soroban_sdk::testutils::LedgerInfo;
 
 // ==========================================================================
@@ -410,10 +413,20 @@ fn test_calculate_exchange_rate() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust A (12% rate)
-    client.register_trust(&trust_a, &String::from_str(&env, "Trust A"), &1200u32, &30u64);
+    client.register_trust(
+        &trust_a,
+        &String::from_str(&env, "Trust A"),
+        &1200u32,
+        &30u64,
+    );
 
     // Register trust B (8% rate)
-    client.register_trust(&trust_b, &String::from_str(&env, "Trust B"), &800u32, &30u64);
+    client.register_trust(
+        &trust_b,
+        &String::from_str(&env, "Trust B"),
+        &800u32,
+        &30u64,
+    );
 
     // Calculate exchange rate
     let rate_bps = client.calculate_exchange_rate(&trust_a, &trust_b);
@@ -437,8 +450,18 @@ fn test_cross_trust_swap() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts
-    client.register_trust(&trust_a, &String::from_str(&env, "Trust A"), &1200u32, &30u64);
-    client.register_trust(&trust_b, &String::from_str(&env, "Trust B"), &800u32, &30u64);
+    client.register_trust(
+        &trust_a,
+        &String::from_str(&env, "Trust A"),
+        &1200u32,
+        &30u64,
+    );
+    client.register_trust(
+        &trust_b,
+        &String::from_str(&env, "Trust B"),
+        &800u32,
+        &30u64,
+    );
 
     // Setup user in trust A
     client.transfer(&admin, &user, &U256::from_u32(&env, 100));
@@ -467,8 +490,18 @@ fn test_cross_trust_large_amounts() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts with different rates
-    client.register_trust(&trust_a, &String::from_str(&env, "Trust A"), &1200u32, &30u64);
-    client.register_trust(&trust_b, &String::from_str(&env, "Trust B"), &800u32, &30u64);
+    client.register_trust(
+        &trust_a,
+        &String::from_str(&env, "Trust A"),
+        &1200u32,
+        &30u64,
+    );
+    client.register_trust(
+        &trust_b,
+        &String::from_str(&env, "Trust B"),
+        &800u32,
+        &30u64,
+    );
 
     // Setup user with large balance in trust A
     let large_amount = U256::from_u128(&env, 1_000_000u128);
@@ -516,8 +549,18 @@ fn test_cross_trust_simulate_calculation() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts
-    client.register_trust(&trust_a, &String::from_str(&env, "Trust A"), &1500u32, &30u64); // 15%
-    client.register_trust(&trust_b, &String::from_str(&env, "Trust B"), &500u32, &30u64); // 5%
+    client.register_trust(
+        &trust_a,
+        &String::from_str(&env, "Trust A"),
+        &1500u32,
+        &30u64,
+    ); // 15%
+    client.register_trust(
+        &trust_b,
+        &String::from_str(&env, "Trust B"),
+        &500u32,
+        &30u64,
+    ); // 5%
 
     // Test various amounts
     let test_amounts = [
@@ -532,7 +575,9 @@ fn test_cross_trust_simulate_calculation() {
 
         // Expected rate: (1 - 0.15) / (1 - 0.05) = 0.85 / 0.95 ≈ 0.8947
         // In basis points: ~8947
-        let expected = amount.mul(&U256::from_u32(&env, 8947)).div(&U256::from_u32(&env, 10000));
+        let expected = amount
+            .mul(&U256::from_u32(&env, 8947))
+            .div(&U256::from_u32(&env, 10000));
 
         // Allow small tolerance for rounding
         let tolerance = U256::from_u32(&env, 1);
@@ -555,8 +600,18 @@ fn test_cross_trust_with_zero_balance_should_panic() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts
-    client.register_trust(&trust_a, &String::from_str(&env, "Trust A"), &1200u32, &30u64);
-    client.register_trust(&trust_b, &String::from_str(&env, "Trust B"), &800u32, &30u64);
+    client.register_trust(
+        &trust_a,
+        &String::from_str(&env, "Trust A"),
+        &1200u32,
+        &30u64,
+    );
+    client.register_trust(
+        &trust_b,
+        &String::from_str(&env, "Trust B"),
+        &800u32,
+        &30u64,
+    );
 
     // User joins trust A with zero balance
     client.join_trust(&user, &trust_a);
@@ -579,9 +634,24 @@ fn test_cross_trust_rate_precision() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts with extreme rate differences
-    client.register_trust(&trust_a, &String::from_str(&env, "High Rate"), &1500u32, &30u64); // 15%
-    client.register_trust(&trust_b, &String::from_str(&env, "Low Rate"), &500u32, &30u64); // 5%
-    client.register_trust(&trust_c, &String::from_str(&env, "Mid Rate"), &1000u32, &30u64); // 10%
+    client.register_trust(
+        &trust_a,
+        &String::from_str(&env, "High Rate"),
+        &1500u32,
+        &30u64,
+    ); // 15%
+    client.register_trust(
+        &trust_b,
+        &String::from_str(&env, "Low Rate"),
+        &500u32,
+        &30u64,
+    ); // 5%
+    client.register_trust(
+        &trust_c,
+        &String::from_str(&env, "Mid Rate"),
+        &1000u32,
+        &30u64,
+    ); // 10%
 
     // Test A -> B (high to low)
     let rate_ab = client.calculate_exchange_rate(&trust_a, &trust_b);
@@ -619,7 +689,12 @@ fn test_create_proposal() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
 
     // Give governor tokens for proposal stake (100 KCHNG required)
     client.transfer(&admin, &governor, &U256::from_u32(&env, 200));
@@ -631,7 +706,7 @@ fn test_create_proposal() {
         &String::from_str(&env, "Reduce Rate to 10%"),
         &String::from_str(&env, "Lowering rate due to increased velocity"),
         &Some(governor.clone()),
-        &Some(1000u32), // 10%
+        &Some(1000u32),   // 10%
         &None::<Address>, // No target for rate change
     );
 
@@ -655,7 +730,12 @@ fn test_vote_on_proposal() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust and proposal
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
     client.transfer(&admin, &voter, &U256::from_u32(&env, 100));
     advance_24_hours(&env);
     client.transfer(&admin, &governor, &U256::from_u32(&env, 200)); // For proposal stake
@@ -711,7 +791,12 @@ fn test_proposal_full_lifecycle() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust with multiple members
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
     client.join_trust(&voter1, &governor);
     client.join_trust(&voter2, &governor);
     client.join_trust(&voter3, &governor);
@@ -812,7 +897,12 @@ fn test_proposal_expiration_no_votes() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust with at least 2 members
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
 
     // Give governor tokens for proposal stake (100 KCHNG required)
     client.transfer(&admin, &governor, &U256::from_u32(&env, 200));
@@ -889,7 +979,12 @@ fn test_emergency_rate_change() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
     client.join_trust(&voter1, &governor);
     client.join_trust(&voter2, &governor);
     client.join_trust(&voter3, &governor);
@@ -990,7 +1085,12 @@ fn test_proposal_quorum_requirement() {
     // Setup trust with 5 members (governor + 4 voters)
     // 40% quorum of 5 = 5 * 40 / 100 = 200 / 100 = 2
     // So we need at least 2 votes for quorum
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
     client.join_trust(&voter1, &governor);
     client.join_trust(&voter2, &governor);
     client.join_trust(&voter3, &governor);
@@ -1124,21 +1224,25 @@ fn test_grace_period_pause_demurrage() {
     // Plus 1000 transferred = 221,000 total
     let account = client.get_account(&worker);
     assert_eq!(account.balance, U256::from_u32(&env, 221000));
-    assert!(account.contribution_hours >= 100, "Worker should have 100+ contribution hours");
+    assert!(
+        account.contribution_hours >= 100,
+        "Worker should have 100+ contribution hours"
+    );
 
     // Activate grace period
-    client.activate_grace_period(
-        &oracle,
-        &worker,
-        &GraceType::Emergency,
-        &14u64,
-    );
+    client.activate_grace_period(&oracle, &worker, &GraceType::Emergency, &14u64);
 
     // Verify grace period is active
     let account_after_grace = client.get_account(&worker);
-    assert!(account_after_grace.grace_period_end > 0, "Grace period end should be set");
+    assert!(
+        account_after_grace.grace_period_end > 0,
+        "Grace period end should be set"
+    );
     assert_eq!(account_after_grace.grace_periods_used, 1);
-    assert_eq!(account_after_grace.last_grace_year, (env.ledger().timestamp() / (365 * 86_400)) as u32);
+    assert_eq!(
+        account_after_grace.last_grace_year,
+        (env.ledger().timestamp() / (365 * 86_400)) as u32
+    );
 
     // Verify grace period details
     let grace_period = client.get_grace_period(&worker).unwrap();
@@ -1177,12 +1281,7 @@ fn test_grace_period_contribution_requirement() {
     client.join_trust(&account, &governor);
 
     // Try to activate grace period - should fail due to insufficient hours
-    client.activate_grace_period(
-        &oracle,
-        &account,
-        &GraceType::Emergency,
-        &14u64,
-    );
+    client.activate_grace_period(&oracle, &account, &GraceType::Emergency, &14u64);
 }
 
 #[test]
@@ -1657,8 +1756,8 @@ fn test_demurrage_calculation_no_truncation() {
     let actual_loss = user_amount.sub(&balance_after);
 
     assert!(
-        actual_loss >= expected_loss.sub(&tolerance) &&
-        actual_loss <= expected_loss.add(&tolerance),
+        actual_loss >= expected_loss.sub(&tolerance)
+            && actual_loss <= expected_loss.add(&tolerance),
         "Expected ~1% loss (10 tokens), got {:?}",
         actual_loss
     );
@@ -1703,8 +1802,8 @@ fn test_demurrage_multiple_periods() {
     let actual_loss = user_amount.sub(&balance_after);
 
     assert!(
-        actual_loss >= expected_loss.sub(&tolerance) &&
-        actual_loss <= expected_loss.add(&tolerance),
+        actual_loss >= expected_loss.sub(&tolerance)
+            && actual_loss <= expected_loss.add(&tolerance),
         "Expected ~2% loss over 2 periods (20 tokens), got {:?}",
         actual_loss
     );
@@ -1728,7 +1827,12 @@ fn test_reputation_increases_on_approval() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust first
-    client.register_trust(&admin, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &admin,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
     client.join_trust(&worker, &admin);
     client.join_trust(&verifier, &admin);
     client.join_trust(&verifier2, &admin);
@@ -1782,7 +1886,12 @@ fn test_reputation_increases_on_rejection() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust first
-    client.register_trust(&admin, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &admin,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
     client.join_trust(&worker, &admin);
     client.join_trust(&verifier, &admin);
     client.join_trust(&verifier2, &admin);
@@ -1831,7 +1940,12 @@ fn test_reputation_caps_at_1000() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust first
-    client.register_trust(&admin, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &admin,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
     client.join_trust(&worker, &admin);
     client.join_trust(&verifier, &admin);
     client.join_trust(&verifier2, &admin);
@@ -1912,7 +2026,10 @@ fn test_role_score_initializes_to_neutral() {
     let verifier_data = client.get_verifier(&verifier);
 
     // Check: 500 (neutral) + 30 (delta) = 530
-    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 530);
+    assert_eq!(
+        verifier_data.aspect_scores.get(role_key.clone()).unwrap(),
+        530
+    );
 
     // General reputation should be unchanged
     assert_eq!(verifier_data.reputation_score, 500);
@@ -1949,12 +2066,18 @@ fn test_role_score_positive_delta() {
     // First update: 500 + 100 = 600
     client.update_role_score(&verifier, &role_key, &100, &scorer);
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 600);
+    assert_eq!(
+        verifier_data.aspect_scores.get(role_key.clone()).unwrap(),
+        600
+    );
 
     // Second update: 600 + 50 = 650
     client.update_role_score(&verifier, &role_key, &50, &scorer);
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 650);
+    assert_eq!(
+        verifier_data.aspect_scores.get(role_key.clone()).unwrap(),
+        650
+    );
 }
 
 #[test]
@@ -1988,12 +2111,18 @@ fn test_role_score_negative_delta() {
     // First update: 500 - 50 = 450
     client.update_role_score(&verifier, &role_key, &-50, &scorer);
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 450);
+    assert_eq!(
+        verifier_data.aspect_scores.get(role_key.clone()).unwrap(),
+        450
+    );
 
     // Second update: 450 - 30 = 420
     client.update_role_score(&verifier, &role_key, &-30, &scorer);
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 420);
+    assert_eq!(
+        verifier_data.aspect_scores.get(role_key.clone()).unwrap(),
+        420
+    );
 }
 
 #[test]
@@ -2029,7 +2158,10 @@ fn test_role_score_upper_bound() {
     client.update_role_score(&verifier, &role_key, &600, &scorer); // 600 + 600 = 1200 -> 1000
 
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 1000);
+    assert_eq!(
+        verifier_data.aspect_scores.get(role_key.clone()).unwrap(),
+        1000
+    );
 }
 
 #[test]
@@ -2065,7 +2197,10 @@ fn test_role_score_lower_bound() {
     client.update_role_score(&verifier, &role_key, &-600, &scorer); // 400 - 600 = -200 -> 0
 
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(role_key.clone()).unwrap(), 0);
+    assert_eq!(
+        verifier_data.aspect_scores.get(role_key.clone()).unwrap(),
+        0
+    );
 }
 
 #[test]
@@ -2099,14 +2234,23 @@ fn test_role_score_multiple_aspects() {
     let host_key = Bytes::from_slice(&env, b"dining:host");
     let driver_key = Bytes::from_slice(&env, b"ride_sharing:driver");
 
-    client.update_role_score(&verifier, &guest_key, &100, &scorer);  // 600
-    client.update_role_score(&verifier, &host_key, &-50, &scorer);   // 450
-    client.update_role_score(&verifier, &driver_key, &50, &scorer);  // 550
+    client.update_role_score(&verifier, &guest_key, &100, &scorer); // 600
+    client.update_role_score(&verifier, &host_key, &-50, &scorer); // 450
+    client.update_role_score(&verifier, &driver_key, &50, &scorer); // 550
 
     let verifier_data = client.get_verifier(&verifier);
-    assert_eq!(verifier_data.aspect_scores.get(guest_key.clone()).unwrap(), 600);
-    assert_eq!(verifier_data.aspect_scores.get(host_key.clone()).unwrap(), 450);
-    assert_eq!(verifier_data.aspect_scores.get(driver_key.clone()).unwrap(), 550);
+    assert_eq!(
+        verifier_data.aspect_scores.get(guest_key.clone()).unwrap(),
+        600
+    );
+    assert_eq!(
+        verifier_data.aspect_scores.get(host_key.clone()).unwrap(),
+        450
+    );
+    assert_eq!(
+        verifier_data.aspect_scores.get(driver_key.clone()).unwrap(),
+        550
+    );
 
     // General reputation should be unchanged
     assert_eq!(verifier_data.reputation_score, 500);
@@ -2213,12 +2357,16 @@ fn test_work_claim_mints_new_tokens() {
     let final_worker_balance = client.balance(&worker);
 
     // Verify new tokens were minted (supply increased)
-    assert!(final_total_supply > initial_total_supply,
-        "Supply should increase after work approval");
+    assert!(
+        final_total_supply > initial_total_supply,
+        "Supply should increase after work approval"
+    );
 
     // Verify the worker received the minted tokens
-    assert!(final_worker_balance > initial_worker_balance,
-        "Worker balance should increase after work approval");
+    assert!(
+        final_worker_balance > initial_worker_balance,
+        "Worker balance should increase after work approval"
+    );
 
     // The key point: NEW TOKENS WERE MINTED, not transferred from existing supply
     // This confirms the labor-backed currency model works
@@ -2292,15 +2440,21 @@ fn test_multiple_work_claims_increase_supply() {
     let final_supply = client.total_supply();
 
     // Verify supply increases with each work claim
-    assert!(supply_after_claim1 > supply_after_init,
-        "Supply should increase after first work claim");
-    assert!(final_supply > supply_after_claim1,
-        "Supply should increase after second work claim");
+    assert!(
+        supply_after_claim1 > supply_after_init,
+        "Supply should increase after first work claim"
+    );
+    assert!(
+        final_supply > supply_after_claim1,
+        "Supply should increase after second work claim"
+    );
 
     // Worker's final balance should be higher than what they had after first claim
     let worker_balance = client.balance(&worker);
-    assert!(worker_balance > U256::from_u32(&env, 0),
-        "Worker should have earned tokens from both claims");
+    assert!(
+        worker_balance > U256::from_u32(&env, 0),
+        "Worker should have earned tokens from both claims"
+    );
 }
 
 #[test]
@@ -2579,7 +2733,12 @@ fn test_grace_period_contribution_increased_to_100() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &30u64);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &30u64,
+    );
     client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_000_000));
     client.register_oracle(&oracle);
     client.join_trust(&worker, &governor);
@@ -2612,12 +2771,7 @@ fn test_grace_period_contribution_increased_to_100() {
     }
 
     // Try to activate grace period with only 99 hours - should fail
-    client.activate_grace_period(
-        &oracle,
-        &worker,
-        &GraceType::Emergency,
-        &14u64,
-    );
+    client.activate_grace_period(&oracle, &worker, &GraceType::Emergency, &14u64);
 }
 
 #[test]
@@ -2636,7 +2790,12 @@ fn test_grace_period_cooldown_first_succeeds() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust, oracle, verifiers
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
     client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_000_000));
     client.register_oracle(&oracle);
     client.join_trust(&worker, &governor);
@@ -2668,12 +2827,7 @@ fn test_grace_period_cooldown_first_succeeds() {
     }
 
     // First grace period - should succeed
-    client.activate_grace_period(
-        &oracle,
-        &worker,
-        &GraceType::Emergency,
-        &14u64,
-    );
+    client.activate_grace_period(&oracle, &worker, &GraceType::Emergency, &14u64);
 
     // Verify grace period was activated
     let account = client.get_account(&worker);
@@ -2697,7 +2851,12 @@ fn test_grace_period_cooldown_second_fails() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust, oracle, verifiers
-    client.register_trust(&governor, &String::from_str(&env, "Test Trust"), &1200u32, &28u64);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
     client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_000_000));
     client.register_oracle(&oracle);
     client.join_trust(&worker, &governor);
@@ -2729,12 +2888,7 @@ fn test_grace_period_cooldown_second_fails() {
     }
 
     // First grace period
-    client.activate_grace_period(
-        &oracle,
-        &worker,
-        &GraceType::Emergency,
-        &14u64,
-    );
+    client.activate_grace_period(&oracle, &worker, &GraceType::Emergency, &14u64);
 
     // Jump 30 days forward (less than 90 day cooldown)
     use soroban_sdk::testutils::LedgerInfo;
@@ -2751,12 +2905,7 @@ fn test_grace_period_cooldown_second_fails() {
     });
 
     // Second grace period - should fail due to cooldown
-    client.activate_grace_period(
-        &oracle,
-        &worker,
-        &GraceType::Illness,
-        &30u64,
-    );
+    client.activate_grace_period(&oracle, &worker, &GraceType::Illness, &30u64);
 }
 
 #[test]
@@ -3304,4 +3453,117 @@ fn test_oracle_reputation_on_grace_period() {
     // Verify oracle reputation increased (+5 for granting grace period)
     let new_rep = client.get_reputation(&oracle, &RoleType::Oracle);
     assert_eq!(new_rep, 505);
+}
+
+#[test]
+fn test_report_grace_abuse() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let worker = Address::generate(&env);
+    let oracle = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let verifier2 = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup: register trust, oracle, verifiers
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
+    client.register_verifier(&verifier, &governor);
+    client.register_verifier(&verifier2, &governor);
+    client.join_trust(&worker, &governor);
+
+    // Fund and register oracle
+    client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_500_000));
+    client.register_oracle(&oracle);
+
+    // Submit and approve work claims to get 100+ hours
+    for i in 0..11 {
+        let mut evidence_array = [0u8; 32];
+        evidence_array[0] = i;
+        let evidence_hash = Bytes::from_array(&env, &evidence_array);
+        let claim_id = client.submit_work_claim(
+            &worker,
+            &WorkType::BasicCare,
+            &600u64,
+            &evidence_hash,
+            &None::<i64>,
+            &None::<i64>,
+        );
+        client.approve_work_claim(&verifier, &claim_id);
+        client.approve_work_claim(&verifier2, &claim_id);
+    }
+
+    // Activate grace period
+    client.activate_grace_period(&oracle, &worker, &GraceType::Emergency, &14u64);
+
+    // Verify worker is in grace period
+    assert!(client.is_in_grace_period(&worker));
+
+    // Get initial reputation
+    let initial_worker_rep = client.get_reputation(&worker, &RoleType::Worker);
+    let initial_member_rep = client.get_reputation(&worker, &RoleType::Member);
+
+    // Report abuse
+    client.report_grace_abuse(
+        &oracle,
+        &worker,
+        &String::from_str(&env, "Worker seen doing paid work while on illness grace"),
+    );
+
+    // Verify grace period ended
+    assert!(!client.is_in_grace_period(&worker));
+
+    // Verify reputation penalties applied
+    let new_worker_rep = client.get_reputation(&worker, &RoleType::Worker);
+    let new_member_rep = client.get_reputation(&worker, &RoleType::Member);
+
+    assert_eq!(new_worker_rep, initial_worker_rep - 50);
+    assert_eq!(new_member_rep, initial_member_rep - 25);
+}
+
+#[test]
+#[should_panic(expected = "Only registered oracles can report grace abuse")]
+fn test_non_oracle_cannot_report_abuse() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let worker = Address::generate(&env);
+    let reporter = Address::generate(&env);
+    let oracle = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
+    client.join_trust(&worker, &governor);
+    client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_500_000));
+    client.register_oracle(&oracle);
+
+    // Give worker 100+ hours
+    for i in 0..11 {
+        let mut evidence_array = [0u8; 32];
+        evidence_array[0] = i;
+        let evidence_hash = Bytes::from_array(&env, &evidence_array);
+        // ... simplified - just test the auth check
+    }
+
+    // Non-oracle tries to report - should panic
+    client.report_grace_abuse(&reporter, &worker, &String::from_str(&env, "Fake report"));
 }
