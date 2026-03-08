@@ -191,8 +191,8 @@
     </div>
     <div class="contract-item">
       <span class="network-label">{t('header.mainnet')}</span>
-      <a href="https://stellar.expert/explorer/public/contract/CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK" target="_blank" rel="noopener" class="contract-link">
-        CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK
+      <a href="https://stellar.expert/explorer/public/contract/CAKJ4KXWR57TPAPBKM3KTK4RCAJNBT3TVOBXTXDZVVBNLBAL7UQKHLRO" target="_blank" rel="noopener" class="contract-link">
+        CAKJ4KXWR57TPAPBKM3KTK4RCAJNBT3TVOBXTXDZVVBNLBAL7UQKHLRO
       </a>
     </div>
   </div>
