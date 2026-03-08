@@ -241,12 +241,14 @@ Governance functions are integrated across all phases and allow trust members to
 ### Mainnet ✅
 | Property | Value |
 |----------|-------|
-| **Contract ID** | `CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK` |
-| **Deployed** | 2026-02-19 (v2) |
-| **Explorer** | [stellar.expert](https://stellar.expert/explorer/public/contract/CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK) |
-| **Version** | v2 (anti-gaming, reputation, events) |
+| **Contract ID** | `CAKJ4KXWR57TPAPBKM3KTK4RCAJNBT3TVOBXTXDZVVBNLBAL7UQKHLRO` |
+| **Deployed** | 2026-03-08 (v4) |
+| **Explorer** | [stellar.expert](https://stellar.expert/explorer/public/contract/CAKJ4KXWR57TPAPBKM3KTK4RCAJNBT3TVOBXTXDZVVBNLBAL7UQKHLRO) |
+| **Version** | v4 (grace abuse penalty, SDK 25.3) |
 
-**Note**: Testnet is one version ahead of mainnet (v3 vs v2).
+**Previous versions:**
+- v3: `CDMSMELWB6ERPXOSD7L3DXXJIG5A6PMBT6R6VFV6FOENKYYN7QNQPBFH` (testnet)
+- v2: `CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK` (mainnet, deprecated)
 
 ---
 

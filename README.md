@@ -130,9 +130,9 @@ pnpm dev
 
 | Property | Value |
 |----------|-------|
-| **Contract ID** | `CDMKVYIU6KAATZXLLFT6KTJCKXCWP3HPYNMA3HMEUUWYVCM5DJVZ5AQS` |
-| **Explorer** | [stellar.expert](https://stellar.expert/explorer/public/contract/CDMKVYIU6KAATZXLLFT6KTJCKXCWP3HPYNMA3HMEUUWYVCM5DJVZ5AQS) |
-| **Deployed** | 2026-02-11 |
+| **Contract ID** | `CAKJ4KXWR57TPAPBKM3KTK4RCAJNBT3TVOBXTXDZVVBNLBAL7UQKHLRO` |
+| **Explorer** | [stellar.expert](https://stellar.expert/explorer/public/contract/CAKJ4KXWR57TPAPBKM3KTK4RCAJNBT3TVOBXTXDZVVBNLBAL7UQKHLRO) |
+| **Deployed** | 2026-03-08 |
 
 Pending items:
 - Frontend completion
