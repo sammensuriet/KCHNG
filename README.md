@@ -116,27 +116,29 @@ pnpm dev
 
 ## Deployment Status
 
-### Testnet ✅ Deployed
+> **Source of Truth:** Contract IDs are maintained in [`packages/shared/src/networks.ts`](packages/shared/src/networks.ts)
+> The `/about` page loads contract IDs dynamically from this file.
 
-| Property | Value |
-|----------|-------|
-| **Contract ID** | `CDAKPFYVD6LYCKMTQAHLOYLLYO2PVE6YJIH3SS2W4R5GEJJ75UUZCDPX` |
-| **Explorer** | [stellar.expert](https://stellar.expert/explorer/testnet/contract/CDAKPFYVD6LYCKMTQAHLOYLLYO2PVE6YJIH3SS2W4R5GEJJ75UUZCDPX) |
-| **WASM Size** | 55,956 bytes (optimized) |
-| **Public Methods** | 39 |
-| **Unit Tests** | 15/15 passing |
+### Current Deployments
 
-### Mainnet ✅ Deployed
+| Network | Version | Status |
+|---------|---------|--------|
+| **Mainnet** | v5 | ✅ Active |
+| **Testnet** | v5 | ✅ Active |
 
-| Property | Value |
-|----------|-------|
-| **Contract ID** | `CAKJ4KXWR57TPAPBKM3KTK4RCAJNBT3TVOBXTXDZVVBNLBAL7UQKHLRO` |
-| **Explorer** | [stellar.expert](https://stellar.expert/explorer/public/contract/CAKJ4KXWR57TPAPBKM3KTK4RCAJNBT3TVOBXTXDZVVBNLBAL7UQKHLRO) |
-| **Deployed** | 2026-03-08 |
+See [`CHANGELOG.md`](CHANGELOG.md) for full deployment history and contract addresses.
 
-Pending items:
-- Frontend completion
-- Testing of advanced features (grace periods, governance, swaps)
+### Contract Features
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Core Token | ✅ | Transfers, minting, demurrage |
+| Trust System | ✅ | Register/join/leave trusts |
+| Work Verification | ✅ | Multi-verifier claims |
+| Reputation | ✅ | Role-based scoring (0-1000) |
+| Governance | ✅ | Proposals, voting, quorum |
+| Grace Periods | ✅ | Emergency, illness, community |
+| Migration | ✅ | Contract upgrade support (v5) |
 
 ---
 

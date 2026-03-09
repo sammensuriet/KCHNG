@@ -370,3 +370,37 @@ export enum Network {
   Futurenet = "futurenet",
   Standalone = "standalone",
 }
+
+// ============================================================================
+// MIGRATION TYPES
+// ============================================================================
+
+/**
+ * Migration status tracking for contract upgrades
+ */
+export interface MigrationStatus {
+  instance_migrated: boolean;
+  admin_migrated: boolean;
+  protocol_version_migrated: boolean;
+  total_supply_migrated: boolean;
+  counters_migrated: boolean;
+  persistent_validated: boolean;
+  migrated_at: Timestamp;
+  source_contract: AccountId;
+}
+
+/**
+ * Result of a migration operation
+ */
+export interface MigrationResult {
+  success: boolean;
+  accounts_validated: number;
+  trusts_validated: number;
+  verifiers_validated: number;
+  oracles_validated: number;
+  work_claims_validated: number;
+  proposals_validated: number;
+  grace_periods_validated: number;
+  reputations_validated: number;
+  errors: string[];
+}

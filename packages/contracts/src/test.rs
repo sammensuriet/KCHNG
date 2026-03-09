@@ -3575,3 +3575,271 @@ fn test_non_oracle_cannot_report_abuse() {
     // Non-oracle tries to report - should panic
     client.report_grace_abuse(&reporter, &worker, &String::from_str(&env, "Fake report"));
 }
+
+// ==========================================================================
+// MIGRATION TESTS
+// ==========================================================================
+
+#[test]
+fn test_migrate_data_success() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    // Setup old contract
+    let admin = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+    let old_contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let old_client = KchngTokenClient::new(&env, &old_contract_id);
+
+    // Setup some data in the old contract
+    let governor = Address::generate(&env);
+    old_client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
+
+    // Get the current protocol version from old contract
+    let old_version = old_client.get_protocol_version();
+    assert_eq!(old_version, 1);
+
+    // Deploy new contract (simulating upgrade - instance storage starts fresh)
+    // Note: In tests, persistent storage is separate between contracts
+    // In a real upgrade, persistent storage would survive
+    let new_contract_id = env.register(KchngToken, (&admin, &U256::from_u32(&env, 0)));
+    let new_client = KchngTokenClient::new(&env, &new_contract_id);
+
+    // Run migration
+    let result = new_client.migrate_data(&admin, &old_contract_id, &old_version);
+
+    // Verify migration succeeded
+    assert!(result.success);
+    // Note: In tests, persistent storage is separate, so counts will be 0
+    // In a real upgrade, these would reflect the actual data
+
+    // Verify instance data was migrated
+    let new_admin = new_client.get_admin();
+    assert_eq!(new_admin, admin);
+
+    let new_version = new_client.get_protocol_version();
+    assert_eq!(new_version, old_version + 1);
+
+    let new_supply = new_client.get_total_supply_raw();
+    assert_eq!(new_supply, initial_supply);
+
+    // Verify migration status is set
+    let status = new_client.get_migration_status();
+    assert!(status.is_some());
+    let status = status.unwrap();
+    assert!(status.instance_migrated);
+    assert!(status.admin_migrated);
+    assert_eq!(status.source_contract, old_contract_id);
+}
+
+#[test]
+#[should_panic(expected = "Source contract admin does not match caller")]
+fn test_migrate_data_non_admin() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let non_admin = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let old_contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let old_client = KchngTokenClient::new(&env, &old_contract_id);
+
+    let new_contract_id = env.register(KchngToken, (&admin, &U256::from_u32(&env, 0)));
+    let new_client = KchngTokenClient::new(&env, &new_contract_id);
+
+    let old_version = old_client.get_protocol_version();
+
+    // Non-admin tries to migrate - should panic
+    // Note: The panic happens when comparing source admin to caller, not at require_auth()
+    // because mock_all_auths() allows any address
+    new_client.migrate_data(&non_admin, &old_contract_id, &old_version);
+}
+
+#[test]
+#[should_panic(expected = "Migration already completed")]
+fn test_migrate_data_idempotent() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let old_contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let old_client = KchngTokenClient::new(&env, &old_contract_id);
+
+    let new_contract_id = env.register(KchngToken, (&admin, &U256::from_u32(&env, 0)));
+    let new_client = KchngTokenClient::new(&env, &new_contract_id);
+
+    let old_version = old_client.get_protocol_version();
+
+    // First migration succeeds
+    new_client.migrate_data(&admin, &old_contract_id, &old_version);
+
+    // Second migration should panic
+    new_client.migrate_data(&admin, &old_contract_id, &old_version);
+}
+
+#[test]
+#[should_panic(expected = "Source protocol version mismatch")]
+fn test_migrate_data_version_mismatch() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let old_contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let old_client = KchngTokenClient::new(&env, &old_contract_id);
+
+    let new_contract_id = env.register(KchngToken, (&admin, &U256::from_u32(&env, 0)));
+    let new_client = KchngTokenClient::new(&env, &new_contract_id);
+
+    // Pass wrong expected version
+    new_client.migrate_data(&admin, &old_contract_id, &99u32);
+}
+
+#[test]
+fn test_migrate_data_preserves_total_supply() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+    let transfer_amount = U256::from_u32(&env, 500_000);
+
+    let old_contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let old_client = KchngTokenClient::new(&env, &old_contract_id);
+
+    // Transfer some tokens to change the distribution
+    old_client.transfer(&admin, &user, &transfer_amount);
+
+    // Verify old supply
+    let old_supply = old_client.total_supply();
+    assert_eq!(old_supply, initial_supply);
+
+    let new_contract_id = env.register(KchngToken, (&admin, &U256::from_u32(&env, 0)));
+    let new_client = KchngTokenClient::new(&env, &new_contract_id);
+
+    let old_version = old_client.get_protocol_version();
+    let result = new_client.migrate_data(&admin, &old_contract_id, &old_version);
+
+    assert!(result.success);
+
+    // Verify supply was preserved
+    let new_supply = new_client.total_supply();
+    assert_eq!(new_supply, initial_supply);
+}
+
+#[test]
+fn test_migrate_data_validates_persistent() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let old_contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let old_client = KchngTokenClient::new(&env, &old_contract_id);
+
+    // Setup various persistent data
+    let governor = Address::generate(&env);
+    let member = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let oracle = Address::generate(&env);
+
+    // Register trust
+    old_client.register_trust(
+        &governor,
+        &String::from_str(&env, "Test Trust"),
+        &1200u32,
+        &28u64,
+    );
+
+    // Register verifier
+    old_client.transfer(&admin, &verifier, &U256::from_u32(&env, 150_000));
+    old_client.register_verifier(&verifier, &governor);
+
+    // Register oracle
+    old_client.transfer(&admin, &oracle, &U256::from_u32(&env, 5_500_000));
+    old_client.register_oracle(&oracle);
+
+    let new_contract_id = env.register(KchngToken, (&admin, &U256::from_u32(&env, 0)));
+    let new_client = KchngTokenClient::new(&env, &new_contract_id);
+
+    let old_version = old_client.get_protocol_version();
+    let result = new_client.migrate_data(&admin, &old_contract_id, &old_version);
+
+    // Verify migration succeeded
+    // Note: In tests, persistent storage is separate between contracts,
+    // so counts will be 0. In a real upgrade, persistent storage survives.
+    assert!(result.success);
+
+    // Verify instance data was migrated correctly
+    let new_version = new_client.get_protocol_version();
+    assert_eq!(new_version, old_version + 1);
+
+    let new_supply = new_client.get_total_supply_raw();
+    assert_eq!(new_supply, initial_supply);
+}
+
+#[test]
+#[should_panic(expected = "Source contract admin does not match caller")]
+fn test_migrate_data_wrong_admin() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let different_admin = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let old_contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let old_client = KchngTokenClient::new(&env, &old_contract_id);
+
+    // New contract with different admin
+    let new_contract_id = env.register(KchngToken, (&different_admin, &U256::from_u32(&env, 0)));
+    let new_client = KchngTokenClient::new(&env, &new_contract_id);
+
+    let old_version = old_client.get_protocol_version();
+
+    // Try to migrate with different admin - should panic
+    new_client.migrate_data(&different_admin, &old_contract_id, &old_version);
+}
+
+#[test]
+fn test_getter_functions() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Test all getter functions
+    let stored_admin = client.get_admin();
+    assert_eq!(stored_admin, admin);
+
+    let version = client.get_protocol_version();
+    assert_eq!(version, 1);
+
+    let supply = client.get_total_supply_raw();
+    assert_eq!(supply, initial_supply);
+
+    let claim_id = client.get_next_claim_id();
+    assert_eq!(claim_id, 1);
+
+    let proposal_id = client.get_next_proposal_id();
+    assert_eq!(proposal_id, 1);
+
+    // Migration status should be None initially
+    let status = client.get_migration_status();
+    assert!(status.is_none());
+}

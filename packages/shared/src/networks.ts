@@ -12,13 +12,13 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     networkUrl: "https://horizon.stellar.org",
     rpcUrl: "https://mainnet.soroban.rpc.stellar.org",
     networkPassphrase: "Public Global Stellar Network ; September 2015",
-    contractId: "CCPZSMXRKN3FM7WDIA3NZMJMZ6E577YDXFBUKACFQKTLBP7HZH63A5OK", // Deployed 2026-02-19 (v2 with anti-gaming, reputation, events)
+    contractId: "CCPLCPQDXFQOXCKWXX6U4RBZERGYDLWH5QP2I2XSKO6JDRJ4MTMVPTGN", // Deployed 2026-03-09 (v5 with migration support)
   },
   testnet: {
     networkUrl: "https://horizon-testnet.stellar.org",
     rpcUrl: "https://soroban-testnet.stellar.org",
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CDMSMELWB6ERPXOSD7L3DXXJIG5A6PMBT6R6VFV6FOENKYYN7QNQPBFH", // Deployed 2026-03-01 (v3 with succession, TF2T, cross-trust fix)
+    contractId: "CCKS2V6RGWI3TVPPMARHNTN22WIXAYOD423NKME6HAKBWKTAKGLRQLVO", // Deployed 2026-03-08 (v5 with migration support)
   },
   futurenet: {
     networkUrl: "https://horizon-futurenet.stellar.org",

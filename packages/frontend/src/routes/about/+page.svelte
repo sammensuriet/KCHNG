@@ -1,5 +1,10 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
+  import { NETWORKS } from "@kchng/shared";
+
+  // Contract IDs loaded dynamically from shared config (single source of truth)
+  const testnetContractId = NETWORKS.testnet.contractId;
+  const mainnetContractId = NETWORKS.mainnet.contractId;
 </script>
 
 <svelte:head>
@@ -185,14 +190,14 @@
   <div class="contract-list">
     <div class="contract-item">
       <span class="network-label">{t('header.testnet')}</span>
-      <a href="https://stellar.expert/explorer/testnet/contract/CDMSMELWB6ERPXOSD7L3DXXJIG5A6PMBT6R6VFV6FOENKYYN7QNQPBFH" target="_blank" rel="noopener" class="contract-link">
-        CDMSMELWB6ERPXOSD7L3DXXJIG5A6PMBT6R6VFV6FOENKYYN7QNQPBFH
+      <a href="https://stellar.expert/explorer/testnet/contract/{testnetContractId}" target="_blank" rel="noopener" class="contract-link">
+        {testnetContractId}
       </a>
     </div>
     <div class="contract-item">
       <span class="network-label">{t('header.mainnet')}</span>
-      <a href="https://stellar.expert/explorer/public/contract/CAKJ4KXWR57TPAPBKM3KTK4RCAJNBT3TVOBXTXDZVVBNLBAL7UQKHLRO" target="_blank" rel="noopener" class="contract-link">
-        CAKJ4KXWR57TPAPBKM3KTK4RCAJNBT3TVOBXTXDZVVBNLBAL7UQKHLRO
+      <a href="https://stellar.expert/explorer/public/contract/{mainnetContractId}" target="_blank" rel="noopener" class="contract-link">
+        {mainnetContractId}
       </a>
     </div>
   </div>

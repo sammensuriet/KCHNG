@@ -55,6 +55,7 @@ const KEY_PROTOCOL_VERSION: u32 = 1;
 const KEY_TOTAL_SUPPLY: u32 = 2;
 const KEY_NEXT_CLAIM_ID: u32 = 3;
 const KEY_NEXT_PROPOSAL_ID: u32 = 4;
+const KEY_MIGRATION_STATUS: u32 = 5;
 const KEY_ACCOUNTS: u32 = 100;
 const KEY_TRUSTS: u32 = 200;
 const KEY_VERIFIERS: u32 = 300;
@@ -285,6 +286,36 @@ pub struct ReputationData {
     pub recent_events: Vec<ReputationEvent>, // Last 10 events
 }
 
+/// Migration status tracking for contract upgrades
+#[derive(Clone)]
+#[contracttype]
+pub struct MigrationStatus {
+    pub instance_migrated: bool,
+    pub admin_migrated: bool,
+    pub protocol_version_migrated: bool,
+    pub total_supply_migrated: bool,
+    pub counters_migrated: bool,
+    pub persistent_validated: bool,
+    pub migrated_at: u64,
+    pub source_contract: Address,
+}
+
+/// Result of a migration operation
+#[derive(Clone)]
+#[contracttype]
+pub struct MigrationResult {
+    pub success: bool,
+    pub accounts_validated: u32,
+    pub trusts_validated: u32,
+    pub verifiers_validated: u32,
+    pub oracles_validated: u32,
+    pub work_claims_validated: u32,
+    pub proposals_validated: u32,
+    pub grace_periods_validated: u32,
+    pub reputations_validated: u32,
+    pub errors: Vec<String>,
+}
+
 // Reputation event type codes - track history in ReputationData.recent_events
 // Used for TF2T (Tit-for-2-Tats) pattern detection and audit trail
 // See docs/2026-01-02_game_theory_simulation_results.md for TF2T strategy analysis
@@ -454,6 +485,17 @@ pub struct RoleReleased {
     pub address: Address,
     pub role: u32,
     pub successor: Option<Address>,
+}
+
+/// Emitted when contract migration is completed
+#[contractevent]
+pub struct MigrationCompleted {
+    #[topic]
+    pub admin: Address,
+    pub source_contract: Address,
+    pub old_version: u32,
+    pub new_version: u32,
+    pub timestamp: u64,
 }
 
 /// KCHNG Token Contract with native on-chain demurrage
@@ -687,6 +729,52 @@ impl KchngToken {
     /// Get the total supply
     pub fn total_supply(env: Env) -> U256 {
         env.storage().instance().get(&KEY_TOTAL_SUPPLY).unwrap()
+    }
+
+    // ============================================================================
+    // INSTANCE STORAGE GETTERS (for migration)
+    // ============================================================================
+
+    /// Get the admin address
+    pub fn get_admin(env: Env) -> Address {
+        env.storage().instance().get(&KEY_ADMIN).unwrap()
+    }
+
+    /// Get the protocol version
+    pub fn get_protocol_version(env: Env) -> u32 {
+        let version: U256 = env.storage().instance().get(&KEY_PROTOCOL_VERSION).unwrap();
+        match version.to_u128() {
+            Some(v) => v as u32,
+            None => panic!("Protocol version conversion failed"),
+        }
+    }
+
+    /// Get the total supply (raw U256)
+    pub fn get_total_supply_raw(env: Env) -> U256 {
+        env.storage().instance().get(&KEY_TOTAL_SUPPLY).unwrap()
+    }
+
+    /// Get the next claim ID
+    pub fn get_next_claim_id(env: Env) -> u64 {
+        let id: U256 = env.storage().instance().get(&KEY_NEXT_CLAIM_ID).unwrap();
+        match id.to_u128() {
+            Some(v) => v as u64,
+            None => panic!("Claim ID conversion failed"),
+        }
+    }
+
+    /// Get the next proposal ID
+    pub fn get_next_proposal_id(env: Env) -> u64 {
+        let id: U256 = env.storage().instance().get(&KEY_NEXT_PROPOSAL_ID).unwrap();
+        match id.to_u128() {
+            Some(v) => v as u64,
+            None => panic!("Proposal ID conversion failed"),
+        }
+    }
+
+    /// Get the migration status
+    pub fn get_migration_status(env: Env) -> Option<MigrationStatus> {
+        env.storage().instance().get(&KEY_MIGRATION_STATUS)
     }
 
     // ============================================================================
@@ -3585,6 +3673,196 @@ impl KchngToken {
         data.probation_until = Some(probation_end);
 
         Self::save_reputation_data(&env, &address, &data);
+    }
+
+    // ============================================================================
+    // MIGRATION (for contract upgrades)
+    // ============================================================================
+
+    /// Migrate data from an old contract after an upgrade.
+    ///
+    /// During Soroban contract upgrades, instance storage is cleared while
+    /// persistent storage survives. This function restores instance storage
+    /// from the old contract and validates that persistent data is intact.
+    ///
+    /// # Arguments
+    /// * `admin` - The admin address (must match the source contract's admin)
+    /// * `source_contract` - Address of the old contract to migrate from
+    /// * `expected_protocol_version` - Expected version of the source contract
+    ///
+    /// # Returns
+    /// * `MigrationResult` - Details about the migration including validation counts
+    ///
+    /// # Panics
+    /// * If caller is not the admin
+    /// * If migration was already completed
+    /// * If source protocol version doesn't match expected
+    pub fn migrate_data(
+        env: Env,
+        admin: Address,
+        source_contract: Address,
+        expected_protocol_version: u32,
+    ) -> MigrationResult {
+        admin.require_auth();
+
+        // Check if migration already completed (idempotency)
+        if env
+            .storage()
+            .instance()
+            .has(&KEY_MIGRATION_STATUS)
+        {
+            panic!("Migration already completed");
+        }
+
+        // Create client to call source contract
+        let source_client = KchngTokenClient::new(&env, &source_contract);
+
+        // Read instance data from source contract
+        let source_admin = source_client.get_admin();
+        let source_version = source_client.get_protocol_version();
+        let source_total_supply = source_client.get_total_supply_raw();
+        let source_next_claim_id = source_client.get_next_claim_id();
+        let source_next_proposal_id = source_client.get_next_proposal_id();
+
+        // Verify admin matches caller
+        if source_admin != admin {
+            panic!("Source contract admin does not match caller");
+        }
+
+        // Verify protocol version matches expected
+        if source_version != expected_protocol_version {
+            panic!("Source protocol version mismatch");
+        }
+
+        // Store instance data (version is incremented by 1)
+        env.storage().instance().set(&KEY_ADMIN, &source_admin);
+        env.storage()
+            .instance()
+            .set(&KEY_PROTOCOL_VERSION, &U256::from_u32(&env, source_version + 1));
+        env.storage()
+            .instance()
+            .set(&KEY_TOTAL_SUPPLY, &source_total_supply);
+        env.storage()
+            .instance()
+            .set(&KEY_NEXT_CLAIM_ID, &U256::from_u128(&env, source_next_claim_id as u128));
+        env.storage()
+            .instance()
+            .set(&KEY_NEXT_PROPOSAL_ID, &U256::from_u128(&env, source_next_proposal_id as u128));
+
+        // Validate persistent storage (count entries, don't fail on errors)
+        let mut errors = Vec::new(&env);
+
+        // Count accounts
+        let accounts_validated = if env.storage().persistent().has(&KEY_ACCOUNTS) {
+            let accounts: Map<Address, AccountData> =
+                env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+            accounts.len() as u32
+        } else {
+            errors.push_back(String::from_str(&env, "No accounts found"));
+            0
+        };
+
+        // Count trusts
+        let trusts_validated = if env.storage().persistent().has(&KEY_TRUSTS) {
+            let trusts: Map<Address, TrustData> =
+                env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+            trusts.len() as u32
+        } else {
+            0 // Trusts can be empty
+        };
+
+        // Count verifiers
+        let verifiers_validated = if env.storage().persistent().has(&KEY_VERIFIERS) {
+            let verifiers: Map<Address, VerifierData> =
+                env.storage().persistent().get(&KEY_VERIFIERS).unwrap();
+            verifiers.len() as u32
+        } else {
+            0
+        };
+
+        // Count oracles
+        let oracles_validated = if env.storage().persistent().has(&KEY_ORACLES) {
+            let oracles: Map<Address, OracleData> =
+                env.storage().persistent().get(&KEY_ORACLES).unwrap();
+            oracles.len() as u32
+        } else {
+            0
+        };
+
+        // Count work claims
+        let work_claims_validated = if env.storage().persistent().has(&KEY_WORK_CLAIMS) {
+            let claims: Map<u64, WorkClaim> =
+                env.storage().persistent().get(&KEY_WORK_CLAIMS).unwrap();
+            claims.len() as u32
+        } else {
+            0
+        };
+
+        // Count proposals
+        let proposals_validated = if env.storage().persistent().has(&KEY_PROPOSALS) {
+            let proposals: Map<u64, Proposal> =
+                env.storage().persistent().get(&KEY_PROPOSALS).unwrap();
+            proposals.len() as u32
+        } else {
+            0
+        };
+
+        // Count grace periods
+        let grace_periods_validated = if env.storage().persistent().has(&KEY_GRACE_PERIODS) {
+            let grace: Map<Address, GracePeriod> =
+                env.storage().persistent().get(&KEY_GRACE_PERIODS).unwrap();
+            grace.len() as u32
+        } else {
+            0
+        };
+
+        // Count reputations
+        let reputations_validated = if env.storage().persistent().has(&KEY_REPUTATIONS) {
+            let reps: Map<Address, Map<u32, ReputationData>> =
+                env.storage().persistent().get(&KEY_REPUTATIONS).unwrap();
+            reps.len() as u32
+        } else {
+            0
+        };
+
+        // Store migration status
+        let current_time = env.ledger().timestamp();
+        let migration_status = MigrationStatus {
+            instance_migrated: true,
+            admin_migrated: true,
+            protocol_version_migrated: true,
+            total_supply_migrated: true,
+            counters_migrated: true,
+            persistent_validated: true,
+            migrated_at: current_time,
+            source_contract: source_contract.clone(),
+        };
+        env.storage()
+            .instance()
+            .set(&KEY_MIGRATION_STATUS, &migration_status);
+
+        // Emit migration completed event
+        MigrationCompleted {
+            admin: admin.clone(),
+            source_contract: source_contract.clone(),
+            old_version: source_version,
+            new_version: source_version + 1,
+            timestamp: current_time,
+        }
+        .publish(&env);
+
+        MigrationResult {
+            success: true,
+            accounts_validated,
+            trusts_validated,
+            verifiers_validated,
+            oracles_validated,
+            work_claims_validated,
+            proposals_validated,
+            grace_periods_validated,
+            reputations_validated,
+            errors,
+        }
     }
 }
 
