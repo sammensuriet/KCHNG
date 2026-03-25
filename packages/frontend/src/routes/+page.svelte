@@ -70,14 +70,14 @@
     <div class="value-card">
       <div class="value-icon">30</div>
       <div class="value-label">{translatedText('home.minutesWork')}</div>
-      <div class="value-equals">=</div>
-      <div class="value-icon">1</div>
-      <div class="value-label">{translatedText('home.meal')}</div>
+      <div class="value-equals">→</div>
+      <div class="value-icon">1,000</div>
+      <div class="value-label">KCHNG</div>
     </div>
     <div class="value-card">
       <div class="value-icon">1,000</div>
       <div class="value-label">KCHNG</div>
-      <div class="value-equals">=</div>
+      <div class="value-equals">≈</div>
       <div class="value-icon">1</div>
       <div class="value-label">{translatedText('home.meal')}</div>
     </div>

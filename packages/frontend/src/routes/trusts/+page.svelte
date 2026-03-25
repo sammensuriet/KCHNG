@@ -306,7 +306,7 @@
     </ul>
   </div>
 
-  <p class="value-footer">30 min verified work = 1000 KCHNG = 1 community meal</p>
+  <p class="value-footer">Protocol: 30 min verified work → 1,000 KCHNG minted. Social peg: 1,000 KCHNG ≈ 1 meal.</p>
 </div>
 
 <style>

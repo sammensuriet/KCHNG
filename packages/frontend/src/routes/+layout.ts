@@ -1,11 +1,11 @@
 import type { LayoutLoad } from './$types';
 import { defaultLanguage, type Language, type Messages, getStoredLanguage, detectBrowserLanguage } from '$lib/i18n';
-import enMessages from '../../static/messages/en.json';
-import esMessages from '../../static/messages/es.json';
-import ruMessages from '../../static/messages/ru.json';
-import zhMessages from '../../static/messages/zh.json';
-import deMessages from '../../static/messages/de.json';
-import arMessages from '../../static/messages/ar.json';
+import enMessages from '$lib/i18n/messages/en.json';
+import esMessages from '$lib/i18n/messages/es.json';
+import ruMessages from '$lib/i18n/messages/ru.json';
+import zhMessages from '$lib/i18n/messages/zh.json';
+import deMessages from '$lib/i18n/messages/de.json';
+import arMessages from '$lib/i18n/messages/ar.json';
 
 const allMessages: Record<Language, Messages> = {
   en: enMessages,

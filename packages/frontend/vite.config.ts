@@ -3,6 +3,13 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [sveltekit()],
+  // Allow importing from static folder
+  assetsInclude: ["**/static/**/*.json"],
+  server: {
+    fs: {
+      allow: [".."],
+    },
+  },
   // Polyfill for Node.js globals in browser (needed by wallet SDK)
   define: {
     global: "globalThis",

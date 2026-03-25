@@ -54,9 +54,9 @@
           nodejs
           pnpm
 
-          # Rust (for Soroban contract if needed)
-          rustc
-          cargo
+          # Rust is managed via rustup (not from nixpkgs)
+          # Install via: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+          # Then: rustup target add wasm32-unknown-unknown
 
           # Stellar CLI tools
           soroban-env-cli

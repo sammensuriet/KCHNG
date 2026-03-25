@@ -25,6 +25,302 @@
   <p>
     {@html t('about.whatIsP2')}
   </p>
+  <p>
+    {@html t('about.whatIsP3')}
+  </p>
+  <p>
+    {@html t('about.whatIsP4')}
+  </p>
+</section>
+
+<section class="section">
+  <h2>{t('about.comparisonTitle')}</h2>
+  <p>{t('about.comparisonIntro')}</p>
+
+  <h3>{t('about.comparisonVsTitle')}</h3>
+  <div class="comparison-table">
+    <table>
+      <thead>
+        <tr>
+          <th>{t('about.comparisonQuestion')}</th>
+          <th>{t('about.comparisonFiat')}</th>
+          <th>{t('about.comparisonCrypto')}</th>
+          <th>{t('about.comparisonGold')}</th>
+          <th>KCHNG</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{@html t('about.comparisonQ1')}</td>
+          <td>{t('about.comparisonFiatA1')}</td>
+          <td>{t('about.comparisonCryptoA1')}</td>
+          <td>{t('about.comparisonGoldA1')}</td>
+          <td>{@html t('about.comparisonKchngA1')}</td>
+        </tr>
+        <tr>
+          <td>{@html t('about.comparisonQ2')}</td>
+          <td>{t('about.comparisonFiatA2')}</td>
+          <td>{t('about.comparisonCryptoA2')}</td>
+          <td>{t('about.comparisonGoldA2')}</td>
+          <td>{@html t('about.comparisonKchngA2')}</td>
+        </tr>
+        <tr>
+          <td>{@html t('about.comparisonQ3')}</td>
+          <td>{t('about.comparisonFiatA3')}</td>
+          <td>{t('about.comparisonCryptoA3')}</td>
+          <td>{t('about.comparisonGoldA3')}</td>
+          <td>{@html t('about.comparisonKchngA3')}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>{t('about.mintVsTransferTitle')}</h3>
+  <p>{t('about.mintVsTransferIntro')}</p>
+  <div class="comparison-table">
+    <table>
+      <thead>
+        <tr>
+          <th>{t('about.mintVsTransferOp')}</th>
+          <th>{t('about.mintVsTransferDebit')}</th>
+          <th>{t('about.mintVsTransferCredit')}</th>
+          <th>{t('about.mintVsTransferSupply')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>{t('about.mintVsTransferTransfer')}</strong></td>
+          <td>{t('about.mintVsTransferTransferDebit')}</td>
+          <td>{t('about.mintVsTransferTransferCredit')}</td>
+          <td>{t('about.mintVsTransferTransferSupply')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.mintVsTransferMint')}</strong></td>
+          <td>{@html t('about.mintVsTransferMintDebit')}</td>
+          <td>{t('about.mintVsTransferMintCredit')}</td>
+          <td>{t('about.mintVsTransferMintSupply')}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="highlight">
+    <p>{@html t('about.mintVsTransferKey')}</p>
+  </div>
+
+  <h3>{t('about.barterVsKchngTitle')}</h3>
+  <p>{t('about.barterVsKchngIntro')}</p>
+  <div class="comparison-table">
+    <table>
+      <thead>
+        <tr>
+          <th>{t('about.barterVsKchngAspect')}</th>
+          <th>{t('about.barterVsKchngDirect')}</th>
+          <th>KCHNG</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>{t('about.barterVsKchngQ1')}</strong></td>
+          <td>{t('about.barterVsKchngDirectA1')}</td>
+          <td>{t('about.barterVsKchngKchngA1')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.barterVsKchngQ2')}</strong></td>
+          <td>{t('about.barterVsKchngDirectA2')}</td>
+          <td>{t('about.barterVsKchngKchngA2')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.barterVsKchngQ3')}</strong></td>
+          <td>{t('about.barterVsKchngDirectA3')}</td>
+          <td>{t('about.barterVsKchngKchngA3')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.barterVsKchngQ4')}</strong></td>
+          <td>{t('about.barterVsKchngDirectA4')}</td>
+          <td>{t('about.barterVsKchngKchngA4')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.barterVsKchngQ5')}</strong></td>
+          <td>{t('about.barterVsKchngDirectA5')}</td>
+          <td>{@html t('about.barterVsKchngKchngA5')}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="highlight">
+    <p>{@html t('about.barterVsKchngKey')}</p>
+  </div>
+</section>
+
+<section class="section">
+  <h2>{t('about.protocolTitle')}</h2>
+  <p>{@html t('about.protocolIntro')}</p>
+
+  <h3>{t('about.protocolMintingTitle')}</h3>
+  <div class="comparison-table">
+    <table>
+      <thead>
+        <tr>
+          <th>{t('about.protocolParam')}</th>
+          <th>{t('about.protocolValue')}</th>
+          <th>{t('about.protocolNote')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>{t('about.protocolMintRate')}</strong></td>
+          <td>1,000 KCHNG</td>
+          <td>{t('about.protocolMintRateNote')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolMinWork')}</strong></td>
+          <td>15 min</td>
+          <td>{t('about.protocolMinWorkNote')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolMultipliers')}</strong></td>
+          <td>1.0× / 1.3× / 1.5× / 2.0×</td>
+          <td>{@html t('about.protocolMultipliersNote')}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>{t('about.protocolVerificationTitle')}</h3>
+  <div class="comparison-table">
+    <table>
+      <thead>
+        <tr>
+          <th>{t('about.protocolParam')}</th>
+          <th>{t('about.protocolValue')}</th>
+          <th>{t('about.protocolNote')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>{t('about.protocolMinVerifiers')}</strong></td>
+          <td>2</td>
+          <td>{t('about.protocolMinVerifiersNote')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolApproval')}</strong></td>
+          <td>{t('about.protocolApprovalValue')}</td>
+          <td>{t('about.protocolApprovalNote')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolVerifierStake')}</strong></td>
+          <td>100,000 KCHNG</td>
+          <td>{@html t('about.protocolVerifierStakeNote')}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>{t('about.protocolRolesTitle')}</h3>
+  <div class="comparison-table">
+    <table>
+      <thead>
+        <tr>
+          <th>{t('about.protocolRole')}</th>
+          <th>{t('about.protocolStake')}</th>
+          <th>{t('about.protocolPowers')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>{t('about.protocolGovernor')}</strong></td>
+          <td>{t('about.protocolNone')}</td>
+          <td>{@html t('about.protocolGovernorPowers')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolVerifier')}</strong></td>
+          <td>100,000 KCHNG</td>
+          <td>{t('about.protocolVerifierPowers')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolOracle')}</strong></td>
+          <td>5,000,000 KCHNG</td>
+          <td>{@html t('about.protocolOraclePowers')}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>{t('about.protocolCommunityTitle')}</h3>
+  <div class="comparison-table">
+    <table>
+      <thead>
+        <tr>
+          <th>{t('about.protocolParam')}</th>
+          <th>{t('about.protocolValue')}</th>
+          <th>{t('about.protocolNote')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>{t('about.protocolMembership')}</strong></td>
+          <td>{t('about.protocolMembershipValue')}</td>
+          <td>{@html t('about.protocolMembershipNote')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolDemurrage')}</strong></td>
+          <td>5–15% / year</td>
+          <td>{t('about.protocolDemurrageNote')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolCrossTrust')}</strong></td>
+          <td>{@html t('about.protocolCrossTrustValue')}</td>
+          <td>{t('about.protocolCrossTrustNote')}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>{t('about.protocolReputationTitle')}</h3>
+  <div class="comparison-table">
+    <table>
+      <thead>
+        <tr>
+          <th>{t('about.protocolParam')}</th>
+          <th>{t('about.protocolValue')}</th>
+          <th>{t('about.protocolNote')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>{t('about.protocolRange')}</strong></td>
+          <td>0–1000</td>
+          <td>{t('about.protocolRangeNote')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolRoles')}</strong></td>
+          <td>5</td>
+          <td>{t('about.protocolRolesNote')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolProbation')}</strong></td>
+          <td>&lt; 200</td>
+          <td>{@html t('about.protocolProbationNote')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolTf2t')}</strong></td>
+          <td>{t('about.protocolTf2tValue')}</td>
+          <td>{t('about.protocolTf2tNote')}</td>
+        </tr>
+        <tr>
+          <td><strong>{t('about.protocolSlashing')}</strong></td>
+          <td>10% / 25%</td>
+          <td>{@html t('about.protocolSlashingNote')}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="highlight">
+    <p>{@html t('about.protocolKey')}</p>
+  </div>
 </section>
 
 <section class="section">
@@ -400,6 +696,50 @@
   .history-table td {
     color: var(--color-text);
     vertical-align: top;
+  }
+
+  /* Comparison Tables */
+  .comparison-table {
+    overflow-x: auto;
+    margin: var(--space-lg) 0;
+  }
+
+  .comparison-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+  }
+
+  .comparison-table th,
+  .comparison-table td {
+    padding: var(--space-sm) var(--space-md);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+  }
+
+  .comparison-table th {
+    font-weight: 600;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--color-bg-subtle);
+  }
+
+  .comparison-table td {
+    color: var(--color-text);
+  }
+
+  .comparison-table td:first-child {
+    font-weight: 500;
+    color: var(--color-text);
+  }
+
+  section h3 {
+    font-size: var(--font-size-lg);
+    margin: var(--space-lg) 0 var(--space-md) 0;
+    color: var(--color-text);
   }
 
   blockquote {

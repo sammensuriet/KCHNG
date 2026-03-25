@@ -1,6 +1,9 @@
 #!/usr/bin/env sh
 echo "🔍 Running pre-commit checks..."
 
+# Ensure rustup cargo comes before nix in PATH
+export PATH="$HOME/.cargo/bin:$PATH"
+
 # Run contract clippy (soft fail)
 echo "📋 Running contract clippy..."
 cd packages/contracts && cargo clippy -- -W clippy::all --allow=clippy::bool_comparison
