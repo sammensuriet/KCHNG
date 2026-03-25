@@ -428,8 +428,7 @@
     "contractTitle": "إصدار العقد",
     "contractNote": "عناوين العقد المنشورة حاليًا على Stellar:",
     "questionsTitle": "أسئلة؟",
-    "chatWithUs": "تحدث معنا ←",
-    "orFaq": "أو تحقق من <a href=\"/faq\">الأسئلة الشائعة</a>"
+    "chatWithUs": "تحدث معنا ←"
   },
   "faq": {
     "title": "الأسئلة الشائعة",

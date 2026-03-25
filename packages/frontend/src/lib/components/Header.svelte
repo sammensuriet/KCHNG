@@ -151,7 +151,6 @@
 
   <nav class="header-nav">
     <a href="/about" class="nav-link" class:active={$page.url.pathname === "/about"}>{t('nav.about')}</a>
-    <a href="/faq" class="nav-link" class:active={$page.url.pathname === "/faq"}>{t('nav.faq')}</a>
     <a href="/dashboard" class="nav-link" class:active={$page.url.pathname === "/dashboard"}>{t('nav.dashboard')}</a>
     <a href="/work" class="nav-link" class:active={$page.url.pathname.startsWith("/work")}>{t('nav.work')}</a>
     <a href="/trusts" class="nav-link" class:active={$page.url.pathname === "/trusts"}>{t('nav.communities')}</a>

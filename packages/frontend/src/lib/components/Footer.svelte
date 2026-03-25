@@ -14,7 +14,6 @@
       <div class="footer-section">
         <h4>{t('footer.learn')}</h4>
         <a href="/about">{t('nav.about')}</a>
-        <a href="/faq">{t('nav.faq')}</a>
       </div>
 
       <div class="footer-section">

@@ -328,8 +328,7 @@
     "contractTitle": "Versión del contrato",
     "contractNote": "Direcciones de contrato desplegadas actualmente en Stellar:",
     "questionsTitle": "¿Preguntas?",
-    "chatWithUs": "Chatea con nosotros →",
-    "orFaq": "O consulta las <a href=\"/faq\">Preguntas Frecuentes</a>"
+    "chatWithUs": "Chatea con nosotros →"
   },
   "faq": {
     "title": "Preguntas Frecuentes",

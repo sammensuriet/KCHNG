@@ -428,8 +428,7 @@
     "contractTitle": "Contract Version",
     "contractNote": "Currently deployed contract addresses on Stellar:",
     "questionsTitle": "Questions?",
-    "chatWithUs": "Chat with us →",
-    "orFaq": "Or check the <a href=\"/faq\">FAQ</a>"
+    "chatWithUs": "Chat with us →"
   },
   "faq": {
     "title": "Frequently Asked Questions",

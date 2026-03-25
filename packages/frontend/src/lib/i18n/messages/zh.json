@@ -328,8 +328,7 @@
     "contractTitle": "合约版本",
     "contractNote": "当前在Stellar上部署的合约地址：",
     "questionsTitle": "有问题？",
-    "chatWithUs": "与我们聊天 →",
-    "orFaq": "或查看<a href=\"/faq\">常见问题</a>"
+    "chatWithUs": "与我们聊天 →"
   },
   "faq": {
     "title": "常见问题",

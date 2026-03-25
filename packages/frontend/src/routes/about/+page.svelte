@@ -499,13 +499,153 @@
   </div>
 </section>
 
+<section class="section faq-section">
+  <h2>{t('faq.title')}</h2>
+
+  <div class="faq-list">
+    <details class="faq-item">
+      <summary class="faq-question">{t('faq.q1Q')}</summary>
+      <div class="faq-answer">
+        <p>{t('faq.q1Intro')}</p>
+        <ul>
+          <li>{t('faq.q1a1')}</li>
+          <li>{t('faq.q1a2')}</li>
+          <li>{t('faq.q1a3')}</li>
+          <li>{t('faq.q1a4')}</li>
+        </ul>
+        <p>{t('faq.q1outro')}</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-question">{t('faq.q2Q')}</summary>
+      <div class="faq-answer">
+        <p>{t('faq.q2Intro')}</p>
+        <ol>
+          <li>{@html t('faq.q2s1')}</li>
+          <li>{@html t('faq.q2s2')}</li>
+          <li>{@html t('faq.q2s3')}</li>
+          <li>{@html t('faq.q2s4')}</li>
+        </ol>
+        <p>{@html t('faq.q2outro')}</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-question">{t('faq.q3Q')}</summary>
+      <div class="faq-answer">
+        <p>{@html t('faq.q3p1')}</p>
+        <p>{t('faq.q3p2')}</p>
+        <p>{@html t('faq.q3Why')}</p>
+        <ul>
+          <li>{t('faq.q3a1')}</li>
+          <li>{t('faq.q3a2')}</li>
+          <li>{t('faq.q3a3')}</li>
+          <li>{t('faq.q3a4')}</li>
+        </ul>
+        <p>{t('faq.q3history')}</p>
+        <p>{@html t('faq.q3good')}</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-question">{t('faq.q5Q')}</summary>
+      <div class="faq-answer">
+        <p>{@html t('faq.q5p1')}</p>
+        <p>{@html t('faq.q5process')}</p>
+        <ul>
+          <li>{t('faq.q5a1')}</li>
+          <li>{t('faq.q5a2')}</li>
+          <li>{t('faq.q5a3')}</li>
+          <li>{t('faq.q5a4')}</li>
+        </ul>
+        <p>{t('faq.q5outro')}</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-question">{t('faq.q6Q')}</summary>
+      <div class="faq-answer">
+        <p>{t('faq.q6p1')}</p>
+        <ul>
+          <li>{@html t('faq.q6a1')}</li>
+          <li>{@html t('faq.q6a2')}</li>
+          <li>{@html t('faq.q6a3')}</li>
+          <li>{@html t('faq.q6a4')}</li>
+        </ul>
+        <p>{t('faq.q6outro')}</p>
+        <p>{@html t('faq.q6note')}</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-question">{t('faq.q7Q')}</summary>
+      <div class="faq-answer">
+        <p>{@html t('faq.q7YesNo')}</p>
+        <p>{t('faq.q7p1')}</p>
+        <p>{t('faq.q7p2')}</p>
+        <ul>
+          <li>{@html t('faq.q7a1')}</li>
+          <li>{@html t('faq.q7a2')}</li>
+          <li>{@html t('faq.q7a3')}</li>
+          <li>{@html t('faq.q7a4')}</li>
+        </ul>
+        <p>{t('faq.q7outro')}</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-question">{t('faq.q8Q')}</summary>
+      <div class="faq-answer">
+        <p>{@html t('faq.q8s1t')}</p>
+        <ul>
+          <li>{t('faq.q8s1a1')}</li>
+          <li>{t('faq.q8s1a2')}</li>
+        </ul>
+        <p>{@html t('faq.q8s2t')}</p>
+        <ul>
+          <li>{@html t('faq.q8s2a1')}</li>
+          <li>{t('faq.q8s2a2')}</li>
+        </ul>
+        <p>{@html t('faq.q8s3t')}</p>
+        <ul>
+          <li>{t('faq.q8s3a1')}</li>
+          <li>{t('faq.q8s3a2')}</li>
+          <li>{t('faq.q8s3a3')}</li>
+        </ul>
+        <p>{@html t('faq.q8outro')}</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-question">{t('faq.q9Q')}</summary>
+      <div class="faq-answer">
+        <p>{@html t('faq.q9p1')}</p>
+        <p>{t('faq.q9p2')}</p>
+        <ul>
+          <li>{@html t('faq.q9a1')}</li>
+          <li>{@html t('faq.q9a2')}</li>
+        </ul>
+        <p>{t('faq.q9p3')}</p>
+        <p>{@html t('faq.q9best')}</p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary class="faq-question">{t('faq.q10Q')}</summary>
+      <div class="faq-answer">
+        <p>{t('faq.q10p1')}</p>
+        <p>{t('faq.q10p2')}</p>
+        <p>{@html t('faq.q10outro')}</p>
+      </div>
+    </details>
+  </div>
+</section>
+
 <section class="section cta-section">
   <h2>{t('about.questionsTitle')}</h2>
   <p>
     <a href="/communicate" class="cta-button">{t('about.chatWithUs')}</a>
-  </p>
-  <p class="cta-note">
-    {@html t('about.orFaq')}
   </p>
 </section>
 
@@ -847,6 +987,80 @@
 
   .contract-link:hover {
     color: var(--color-primary);
+  }
+
+  /* FAQ Section */
+  .faq-section {
+    max-width: 800px;
+  }
+
+  .faq-list {
+    margin-top: var(--space-lg);
+  }
+
+  .faq-item {
+    margin-bottom: var(--space-sm);
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .faq-question {
+    display: flex;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-text);
+    list-style: none;
+  }
+
+  .faq-question::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-question::after {
+    content: '+';
+    margin-left: auto;
+    font-size: var(--font-size-xl);
+    color: var(--color-text-muted);
+    transition: transform 0.2s;
+  }
+
+  .faq-item[open] .faq-question::after {
+    transform: rotate(45deg);
+  }
+
+  .faq-answer {
+    padding: 0 var(--space-lg) var(--space-lg);
+  }
+
+  .faq-answer p {
+    margin: 0 0 var(--space-md) 0;
+    line-height: 1.7;
+    color: var(--color-text);
+  }
+
+  .faq-answer ul,
+  .faq-answer ol {
+    margin: 0 0 var(--space-md) 0;
+    padding-left: var(--space-lg);
+    line-height: 1.8;
+    color: var(--color-text);
+  }
+
+  .faq-answer li {
+    margin-bottom: var(--space-sm);
+  }
+
+  .faq-answer a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .faq-answer a:hover {
+    text-decoration: underline;
   }
 
   @media (max-width: 768px) {
