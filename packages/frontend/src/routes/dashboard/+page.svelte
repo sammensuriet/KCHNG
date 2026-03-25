@@ -391,6 +391,7 @@
   @media (max-width: 640px) {
     .container {
       padding: var(--space-md);
+      padding-bottom: calc(var(--space-xl) + 72px); /* Account for bottom nav */
     }
 
     .dashboard-grid {
@@ -399,6 +400,45 @@
 
     .balance-amount {
       font-size: var(--font-size-3xl);
+    }
+
+    /* Horizontal scrolling actions on mobile */
+    .actions-grid {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      gap: var(--space-md);
+      padding: var(--space-xs) 0;
+      margin: 0 calc(-1 * var(--space-md));
+      padding: 0 var(--space-md);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .actions-grid::-webkit-scrollbar {
+      display: none;
+    }
+
+    .action-card {
+      min-width: 160px;
+      scroll-snap-align: start;
+      flex-shrink: 0;
+      min-height: 120px;
+    }
+
+    .action-card h3 {
+      font-size: var(--font-size-sm);
+    }
+
+    .action-card p {
+      font-size: var(--font-size-xs);
+    }
+
+    /* Larger touch targets for buttons */
+    .btn-view, .btn-join {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
   }
 </style>

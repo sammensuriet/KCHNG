@@ -2,6 +2,7 @@
   import "../app.css";
   import Header from "$lib/components/Header.svelte";
   import Footer from "$lib/components/Footer.svelte";
+  import MobileNav from "$lib/components/MobileNav.svelte";
   import { initFromServer, currentLanguage, type Language, type Messages } from "$lib/i18n";
 
   // Receive server-loaded data
@@ -28,6 +29,7 @@
     <slot />
   </main>
   <Footer />
+  <MobileNav />
 </div>
 
 <style>

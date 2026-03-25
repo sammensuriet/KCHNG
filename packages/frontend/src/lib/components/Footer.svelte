@@ -143,6 +143,32 @@
     }
   }
 
+  @media (max-width: 640px) {
+    /* Simplify footer on mobile - navigation is in bottom nav bar */
+    .footer {
+      padding: 1rem;
+    }
+
+    .footer-nav {
+      display: none;
+    }
+
+    .footer-content {
+      justify-content: center;
+    }
+
+    .footer-brand {
+      text-align: center;
+      max-width: 100%;
+    }
+
+    .footer-bottom {
+      margin-top: 0;
+      padding-top: 0.5rem;
+      border-top: none;
+    }
+  }
+
   @media (max-width: 480px) {
     .footer-nav {
       flex-direction: column;

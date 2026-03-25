@@ -177,7 +177,7 @@
 
         <div class="form-group">
           <label>{t('work.minutesWorked')} ({t('work.minimum')} 15)</label>
-          <input type="number" bind:value={minutesWorked} min="15" />
+          <input type="number" bind:value={minutesWorked} min="15" inputmode="numeric" pattern="[0-9]*" />
           <small>{t('work.minutesHint')}</small>
         </div>
 

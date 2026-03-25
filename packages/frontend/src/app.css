@@ -58,6 +58,19 @@ html {
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+
+  /* Mobile-specific tokens */
+  --touch-target-min: 44px;
+  --mobile-gutter: 1rem;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 640px) {
+  :root {
+    --font-size-base: 1rem;
+    --space-md: 1rem;
+  }
 }
 
 * {
@@ -182,4 +195,35 @@ button {
 .empty-state-desc {
   font-size: var(--font-size-sm);
   margin-bottom: var(--space-lg);
+}
+
+/* Mobile Touch Improvements */
+@media (max-width: 640px) {
+  /* Prevent iOS zoom on form inputs */
+  input, select, textarea {
+    font-size: 16px;
+  }
+
+  /* Touch feedback for interactive elements */
+  button, a, .btn, [role="button"] {
+    -webkit-tap-highlight-color: rgba(102, 126, 234, 0.15);
+    touch-action: manipulation;
+  }
+
+  button:active, a:active, .btn:active {
+    transform: scale(0.98);
+  }
+
+  /* Minimum touch targets */
+  button, .btn, a.nav-link, input[type="submit"] {
+    min-height: 44px;
+    padding-top: max(var(--space-sm), 0.75rem);
+    padding-bottom: max(var(--space-sm), 0.75rem);
+  }
+
+  /* Focus indicators for accessibility */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
 }

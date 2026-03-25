@@ -236,7 +236,7 @@
             </span>
             (%)
           </label>
-          <input type="number" bind:value={newTrustRatePercent} min="5" max="15" step="0.5" disabled={txPending} />
+          <input type="number" bind:value={newTrustRatePercent} min="5" max="15" step="0.5" inputmode="decimal" disabled={txPending} />
           <small>Protocol limits: 5% - 15% annually (default: 12%)</small>
         </div>
         <div class="form-group">
@@ -247,7 +247,7 @@
             </span>
             (days)
           </label>
-          <input type="number" bind:value={newTrustPeriod} min="7" max="365" disabled={txPending} />
+          <input type="number" bind:value={newTrustPeriod} min="7" max="365" inputmode="numeric" pattern="[0-9]*" disabled={txPending} />
           <small>7 - 365 days (default: 28)</small>
         </div>
       </div>

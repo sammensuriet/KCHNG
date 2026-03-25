@@ -688,7 +688,7 @@
 
   @media (max-width: 640px) {
     .header {
-      padding: 1rem;
+      padding: 0.75rem 1rem;
     }
 
     .logo {
@@ -699,9 +699,40 @@
       display: none;
     }
 
+    /* Simplify header-right on mobile */
+    .header-right {
+      gap: 0.5rem;
+    }
+
+    /* Hide network selector on mobile (use default) */
+    .network-selector {
+      display: none;
+    }
+
+    /* Hide feedback button text and reduce size */
+    .btn-feedback {
+      padding: 0.5rem;
+      border: none;
+      background: transparent;
+    }
+
+    /* Ensure wallet button is tappable */
+    .btn-wallet {
+      min-height: 44px;
+      padding: 0.625rem 1rem;
+    }
+
     .wallet-dropdown {
-      width: 260px;
-      right: -0.5rem;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      top: auto;
+      width: 100%;
+      border-radius: 16px 16px 0 0;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
     }
   }
 
