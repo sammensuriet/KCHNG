@@ -216,7 +216,9 @@ export class KchngClient {
     annualRateBps: number,
     demurragePeriodDays: number
   ): Promise<string> {
+    const governorAddress = new Address(sourceAddress);
     const args = [
+      governorAddress.toScVal(),
       xdr.ScVal.scvString(name),
       xdr.ScVal.scvU32(annualRateBps),
       xdr.ScVal.scvU64(new xdr.Uint64(demurragePeriodDays.toString())),
@@ -831,11 +833,11 @@ export class KchngClient {
     }
 
     // Find the field with the matching index key
-    // Use bracket notation and unknown cast to avoid TypeScript conflict with .key() method
+    // ScMapEntry has .key() and .val() methods in stellar-sdk v14+
     for (const entry of map) {
-      const key = (entry as unknown as { key: xdr.ScVal }).key;
+      const key = entry.key();
       if (key && key.u32() === index) {
-        return (entry as unknown as { val: xdr.ScVal }).val;
+        return entry.val();
       }
     }
 

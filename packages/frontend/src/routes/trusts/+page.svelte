@@ -2,6 +2,23 @@
   import { onMount } from "svelte";
   import { wallet } from "$lib/stores/wallet";
 
+  // Term definitions for tooltips
+  const TERM_DEFINITIONS: Record<string, string> = {
+    trust: "A community organization that manages its own demurrage settings. Members share the same rate and period configuration.",
+    demurrage: "A holding cost that gradually reduces inactive balances. Designed to encourage active participation and circulation of KCHNG.",
+    "annual rate": "The percentage of balance that would be burned over one year if the account remained completely inactive.",
+    "basis points": "1 basis point = 0.01%. So 1200 basis points = 12%. Used for precise rate calculations.",
+    federated: "Independent organizations that share a common protocol. Trusts can exchange tokens with each other at calculated rates.",
+    period: "How often demurrage is calculated and applied. Shorter periods = more frequent, smaller burns. Longer periods = less frequent, larger burns."
+  };
+
+  // Reusable tooltip component inline
+  function TermTooltip(term: string) {
+    const def = TERM_DEFINITIONS[term.toLowerCase()];
+    if (!def) return term;
+    return `<span class="term-with-tooltip">${term}<sup class="tooltip-trigger">?</sup><span class="tooltip-content">${def}</span></span>`;
+  }
+
   let trusts = $state<Array<{
     id: string;
     name: string;
@@ -17,10 +34,10 @@
   let loading = $state(true);
   let showCreateForm = $state(false);
 
-  // New trust form
+  // New trust form - defaults: 12% annual rate, 28 day period
   let newTrustName = $state("");
-  let newTrustRate = $state(1200); // 12%
-  let newTrustPeriod = $state(30);
+  let newTrustRatePercent = $state(12); // User enters percentage (5-15)
+  let newTrustPeriod = $state(28); // Default 28 days
 
   // Transaction state
   let txPending = $state(false);
@@ -89,11 +106,14 @@
       // Set up the signing callback
       kchngClient.setSignTransactionCallback(wallet.signTransaction);
 
+      // Convert percentage to basis points (e.g., 12% = 1200 bps)
+      const annualRateBps = newTrustRatePercent * 100;
+
       // Create the trust
       const txHash = await kchngClient.registerTrust(
         $wallet.address!,
         newTrustName,
-        newTrustRate,
+        annualRateBps,
         newTrustPeriod
       );
 
@@ -104,6 +124,8 @@
 
       showCreateForm = false;
       newTrustName = "";
+      newTrustRatePercent = 12;
+      newTrustPeriod = 28;
 
       // Refresh data
       await loadData();
@@ -160,13 +182,34 @@
   function rateToPercentage(bps: number): string {
     return (bps / 100).toFixed(1) + "%";
   }
+
+  // Calculate per-period rate for display
+  function periodRatePercent(annualBps: number, periodDays: number): string {
+    const periodRate = (annualBps * periodDays) / 365 / 100;
+    return periodRate.toFixed(2) + "%";
+  }
 </script>
+
+<svelte:head>
+  <title>Community Trusts | KCHNG</title>
+</svelte:head>
 
 <div class="container">
   <h1>Community Trusts</h1>
 
   <div class="header-actions">
-    <p class="subtitle">Federated community organizations with custom demurrage rates</p>
+    <p class="subtitle">
+      <span class="term-with-tooltip">
+        Federated<sup class="tooltip-trigger">?</sup>
+        <span class="tooltip-content">{TERM_DEFINITIONS['federated']}</span>
+      </span>
+      community organizations with custom
+      <span class="term-with-tooltip">
+        demurrage<sup class="tooltip-trigger">?</sup>
+        <span class="tooltip-content">{TERM_DEFINITIONS['demurrage']}</span>
+      </span>
+      rates
+    </p>
     {#if !showCreateForm}
       <button class="btn-create" onclick={() => showCreateForm = true}>
         + Create New Trust
@@ -176,21 +219,42 @@
 
   {#if showCreateForm}
     <div class="create-form">
-      <h2>Create New Trust</h2>
+      <h2>Create New <span class="term-with-tooltip">
+        Trust<sup class="tooltip-trigger">?</sup>
+        <span class="tooltip-content">{TERM_DEFINITIONS['trust']}</span>
+      </span></h2>
       <div class="form-group">
         <label>Trust Name</label>
         <input type="text" bind:value={newTrustName} placeholder="e.g., Urban Elder Care Trust" disabled={txPending} />
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Annual Rate (%)</label>
-          <input type="number" bind:value={newTrustRate} min="500" max="1500" step="100" disabled={txPending} />
-          <small>Protocol limits: 5% - 15%</small>
+          <label>
+            <span class="term-with-tooltip">
+              Annual Rate<sup class="tooltip-trigger">?</sup>
+              <span class="tooltip-content">{TERM_DEFINITIONS['annual rate']}</span>
+            </span>
+            (%)
+          </label>
+          <input type="number" bind:value={newTrustRatePercent} min="5" max="15" step="0.5" disabled={txPending} />
+          <small>Protocol limits: 5% - 15% annually (default: 12%)</small>
         </div>
         <div class="form-group">
-          <label>Demurrage Period (days)</label>
-          <input type="number" bind:value={newTrustPeriod} min="1" max="365" disabled={txPending} />
+          <label>
+            <span class="term-with-tooltip">
+              Period<sup class="tooltip-trigger">?</sup>
+              <span class="tooltip-content">{TERM_DEFINITIONS['period']}</span>
+            </span>
+            (days)
+          </label>
+          <input type="number" bind:value={newTrustPeriod} min="7" max="365" disabled={txPending} />
+          <small>7 - 365 days (default: 28)</small>
         </div>
+      </div>
+
+      <div class="rate-preview">
+        <span class="preview-label">Per-period demurrage:</span>
+        <span class="preview-value">{periodRatePercent(newTrustRatePercent * 100, newTrustPeriod)} every {newTrustPeriod} days</span>
       </div>
 
       {#if txMessage}
@@ -259,8 +323,15 @@
               <span class="stat-value stat-address">{trust.governor.slice(0, 8)}...</span>
             </div>
             <div class="trust-stat">
-              <span class="stat-label">Demurrage Rate</span>
-              <span class="stat-value rate-badge">{rateToPercentage(trust.annual_rate_bps)}</span>
+              <span class="stat-label">
+                <span class="term-with-tooltip-inline">
+                  Demurrage<sup class="tooltip-trigger-sm">?</sup>
+                  <span class="tooltip-content">{TERM_DEFINITIONS['demurrage']}</span>
+                </span>
+                Rate
+              </span>
+              <span class="stat-value rate-badge">{rateToPercentage(trust.annual_rate_bps)}/year</span>
+              <span class="stat-sub">({periodRatePercent(trust.annual_rate_bps, trust.demurrage_period_days)}/{trust.demurrage_period_days}d)</span>
             </div>
             <div class="trust-stat">
               <span class="stat-label">Period</span>
@@ -297,7 +368,23 @@
 
   <div class="info-box">
     <h3>About Trusts</h3>
-    <p>Trusts are federated community organizations that set their own demurrage rates within protocol bounds (5-15% annually). Each trust is governed by a designated governor who manages membership and can propose rate changes.</p>
+    <p>
+      <span class="term-with-tooltip">
+        Trusts<sup class="tooltip-trigger">?</sup>
+        <span class="tooltip-content">{TERM_DEFINITIONS['trust']}</span>
+      </span>
+      are
+      <span class="term-with-tooltip">
+        federated<sup class="tooltip-trigger">?</sup>
+        <span class="tooltip-content">{TERM_DEFINITIONS['federated']}</span>
+      </span>
+      community organizations that set their own
+      <span class="term-with-tooltip">
+        demurrage<sup class="tooltip-trigger">?</sup>
+        <span class="tooltip-content">{TERM_DEFINITIONS['demurrage']}</span>
+      </span>
+      rates within protocol bounds (5-15% annually). Each trust is governed by a designated governor who manages membership and can propose rate changes.
+    </p>
     <ul>
       <li><strong>Rate Range:</strong> 5% - 15% annual (protocol enforced)</li>
       <li><strong>Membership:</strong> Open to anyone, join via trust interface</li>
@@ -343,6 +430,71 @@
     cursor: pointer;
   }
 
+  /* Tooltip styles */
+  .term-with-tooltip {
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dotted var(--color-text-muted);
+  }
+
+  .term-with-tooltip-inline {
+    position: relative;
+    cursor: help;
+  }
+
+  .tooltip-trigger {
+    font-size: 0.7em;
+    color: var(--color-primary);
+    margin-left: 1px;
+    font-weight: bold;
+  }
+
+  .tooltip-trigger-sm {
+    font-size: 0.65em;
+    color: var(--color-text-muted);
+    margin-left: 1px;
+    font-weight: bold;
+  }
+
+  .tooltip-content {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: white;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: normal;
+    line-height: 1.4;
+    white-space: normal;
+    width: max-content;
+    max-width: 280px;
+    z-index: 100;
+    transition: opacity 0.2s, visibility 0.2s;
+    box-shadow: var(--shadow-lg);
+    pointer-events: none;
+  }
+
+  .tooltip-content::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #1f2937;
+  }
+
+  .term-with-tooltip:hover .tooltip-content,
+  .term-with-tooltip-inline:hover .tooltip-content {
+    visibility: visible;
+    opacity: 1;
+  }
+
   .create-form {
     background: var(--color-bg);
     border: 1px solid var(--color-border);
@@ -385,6 +537,26 @@
     color: var(--color-text-muted);
     font-size: var(--font-size-sm);
     margin-top: var(--space-xs);
+  }
+
+  .rate-preview {
+    background: var(--color-bg-subtle);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .preview-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .preview-value {
+    font-weight: 500;
+    color: var(--color-primary);
   }
 
   .form-actions {
@@ -492,6 +664,11 @@
     font-weight: 500;
   }
 
+  .stat-sub {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+  }
+
   .stat-address {
     font-family: monospace;
     font-size: var(--font-size-sm);
@@ -528,6 +705,35 @@
     background: #d1fae5;
     color: #065f46;
     cursor: not-allowed;
+  }
+
+  .info-box {
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+  }
+
+  .info-box h3 {
+    margin-top: 0;
+    margin-bottom: var(--space-sm);
+  }
+
+  .info-box p {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-md);
+    line-height: 1.6;
+  }
+
+  .info-box ul {
+    margin: 0;
+    padding-left: var(--space-lg);
+    color: var(--color-text-muted);
+  }
+
+  .info-box li {
+    margin-bottom: var(--space-xs);
   }
 
   .value-footer {
@@ -629,6 +835,17 @@
 
     .form-row {
       grid-template-columns: 1fr;
+    }
+
+    .tooltip-content {
+      max-width: 200px;
+      font-size: 0.75rem;
+    }
+
+    .rate-preview {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-xs);
     }
   }
 </style>
