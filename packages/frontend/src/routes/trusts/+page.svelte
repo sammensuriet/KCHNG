@@ -9,7 +9,8 @@
     "annual rate": "The percentage of balance that would be burned over one year if the account remained completely inactive.",
     "basis points": "1 basis point = 0.01%. So 1200 basis points = 12%. Used for precise rate calculations.",
     federated: "Independent organizations that share a common protocol. Trusts can exchange tokens with each other at calculated rates.",
-    period: "How often demurrage is calculated and applied. Shorter periods = more frequent, smaller burns. Longer periods = less frequent, larger burns."
+    period: "How often demurrage is calculated and applied. Shorter periods = more frequent, smaller burns. Longer periods = less frequent, larger burns.",
+    oracle: "A trusted community member who can activate community protection periods for members facing hardship."
   };
 
   // Reusable tooltip component inline
@@ -43,9 +44,69 @@
   let txPending = $state(false);
   let txMessage = $state<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
+  // Oracle state
+  let isOracle = $state(false);
+  let oracleLoading = $state(false);
+  let showOracleModal = $state(false);
+
   onMount(async () => {
     await loadData();
+    await checkOracleStatus();
   });
+
+  async function checkOracleStatus() {
+    if (!$wallet.connected || !$wallet.address) {
+      isOracle = false;
+      return;
+    }
+
+    oracleLoading = true;
+    try {
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+      const oracleData = await kchngClient.getOracle($wallet.address);
+      isOracle = oracleData && oracleData.oracle_address === $wallet.address;
+    } catch {
+      // Not an oracle or error - that's fine
+      isOracle = false;
+    } finally {
+      oracleLoading = false;
+    }
+  }
+
+  async function registerAsOracle() {
+    if (!$wallet.connected || !$wallet.address) {
+      txMessage = { type: "error", text: "Please connect your wallet first" };
+      return;
+    }
+
+    txPending = true;
+    txMessage = { type: "info", text: "Registering as Community Oracle..." };
+
+    try {
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      const txHash = await kchngClient.registerOracle($wallet.address);
+
+      txMessage = {
+        type: "success",
+        text: `You are now a Community Oracle! Transaction: ${txHash.slice(0, 8)}...`
+      };
+
+      isOracle = true;
+      showOracleModal = false;
+
+    } catch (e) {
+      txMessage = {
+        type: "error",
+        text: e instanceof Error ? e.message : "Failed to register as oracle"
+      };
+    } finally {
+      txPending = false;
+    }
+  }
 
   async function loadData() {
     try {
@@ -393,8 +454,113 @@
     </ul>
   </div>
 
+  <!-- Community Oracle Section -->
+  <div class="oracle-section">
+    <h2>🛡️ Community Oracles</h2>
+    <p class="oracle-description">
+      Community Oracles help protect members in need by activating community protection periods during emergencies,
+      illness, or other hardship situations.
+    </p>
+
+    <div class="oracle-card">
+      <div class="oracle-info">
+        <h4>Oracle Responsibilities:</h4>
+        <ul>
+          <li>Verify member hardship claims (emergency, illness, etc.)</li>
+          <li>Activate community protection periods for verified members</li>
+          <li>Help maintain trust in the system</li>
+          <li>Contribute to community wellbeing and mutual aid</li>
+        </ul>
+      </div>
+
+      {#if oracleLoading}
+        <div class="oracle-loading">Checking oracle status...</div>
+      {:else if isOracle}
+        <div class="oracle-status registered">
+          <span class="status-icon">✓</span>
+          <span class="status-text">You are a registered Community Oracle</span>
+        </div>
+        <p class="oracle-hint">
+          You can activate community protection for members from your <a href="/dashboard">dashboard</a>.
+        </p>
+      {:else if $wallet.connected}
+        <div class="oracle-actions">
+          <button
+            class="btn-register-oracle"
+            onclick={() => showOracleModal = true}
+          >
+            Become a Community Oracle
+          </button>
+          <p class="oracle-note">
+            Requires a stake commitment to ensure oracle accountability.
+          </p>
+        </div>
+      {:else}
+        <div class="connect-prompt">
+          <p>Connect your wallet to register as a Community Oracle</p>
+        </div>
+      {/if}
+
+      {#if txMessage && !showOracleModal}
+        <div class="tx-message {txMessage.type}">{txMessage.text}</div>
+      {/if}
+    </div>
+  </div>
+
   <p class="value-footer">Protocol: 30 min verified work → 1,000 KCHNG minted. Social peg: 1,000 KCHNG ≈ 1 meal.</p>
 </div>
+
+<!-- Oracle Registration Modal -->
+{#if showOracleModal}
+  <div class="modal-overlay" onclick={() => showOracleModal = false}>
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      <button class="modal-close" onclick={() => showOracleModal = false}>&times;</button>
+      <h2>Become a Community Oracle</h2>
+      <p class="modal-subtitle">
+        Help protect community members in need by activating grace periods during hardship.
+      </p>
+
+      <div class="oracle-info-box">
+        <h4>What you'll do:</h4>
+        <ul>
+          <li>Verify member hardship claims (emergency, illness, etc.)</li>
+          <li>Activate community protection periods</li>
+          <li>Help maintain trust in the system</li>
+        </ul>
+      </div>
+
+      <div class="oracle-stake-info">
+        <strong>Stake Required:</strong> 50,000 KCHNG
+        <span class="stake-note">(≈ 50 meals - returned when you step down)</span>
+      </div>
+
+      {#if txMessage}
+        <div class="tx-message {txMessage.type}">{txMessage.text}</div>
+      {/if}
+
+      <div class="modal-actions">
+        <button
+          class="btn-cancel"
+          onclick={() => showOracleModal = false}
+          disabled={txPending}
+        >
+          Cancel
+        </button>
+        <button
+          class="btn-submit"
+          onclick={registerAsOracle}
+          disabled={txPending}
+        >
+          {#if txPending}
+            Registering...
+          {:else}
+            Step Up for Your Community
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .container {
@@ -847,5 +1013,237 @@
       align-items: flex-start;
       gap: var(--space-xs);
     }
+  }
+
+  /* Oracle Section Styles */
+  .oracle-section {
+    margin-top: var(--space-xl);
+    padding: var(--space-lg);
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .oracle-section h2 {
+    margin: 0 0 var(--space-md) 0;
+    font-size: var(--font-size-xl);
+  }
+
+  .oracle-description {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-lg);
+    line-height: 1.6;
+  }
+
+  .oracle-card {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+  }
+
+  .oracle-info h4 {
+    margin: 0 0 var(--space-sm) 0;
+    color: #92400e;
+  }
+
+  .oracle-info ul {
+    margin: 0;
+    padding-left: var(--space-lg);
+    color: #78350f;
+  }
+
+  .oracle-info li {
+    margin-bottom: var(--space-xs);
+  }
+
+  .oracle-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .oracle-status.registered {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .oracle-hint {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+  }
+
+  .oracle-hint a {
+    color: #667eea;
+  }
+
+  .oracle-actions {
+    text-align: center;
+  }
+
+  .btn-register-oracle {
+    padding: var(--space-md) var(--space-lg);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    width: auto;
+  }
+
+  .btn-register-oracle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+
+  .oracle-note {
+    margin-top: var(--space-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .connect-prompt {
+    text-align: center;
+    padding: var(--space-lg);
+    background: #f9fafb;
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+  }
+
+  /* Modal styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-md);
+  }
+
+  .modal {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    max-width: 500px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    width: auto;
+    padding: 0;
+  }
+
+  .modal-close:hover {
+    color: var(--color-text);
+  }
+
+  .modal h2 {
+    margin: 0 0 var(--space-xs) 0;
+    color: var(--color-text);
+  }
+
+  .modal-subtitle {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-lg);
+  }
+
+  .oracle-info-box {
+    background: #dbeafe;
+    border: 1px solid #93c5fd;
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .oracle-info-box h4 {
+    margin: 0 0 var(--space-sm) 0;
+    color: #1e40af;
+  }
+
+  .oracle-info-box ul {
+    margin: 0;
+    padding-left: var(--space-lg);
+    color: #1e40af;
+  }
+
+  .oracle-stake-info {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
+    text-align: center;
+  }
+
+  .stake-note {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: #92400e;
+    margin-top: var(--space-xs);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: flex-end;
+    margin-top: var(--space-lg);
+  }
+
+  .btn-cancel {
+    padding: var(--space-sm) var(--space-lg);
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    cursor: pointer;
+    width: auto;
+  }
+
+  .btn-cancel:hover:not(:disabled) {
+    background: #e5e7eb;
+  }
+
+  .btn-submit {
+    padding: var(--space-sm) var(--space-lg);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    cursor: pointer;
+    width: auto;
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-submit:hover:not(:disabled) {
+    opacity: 0.9;
   }
 </style>

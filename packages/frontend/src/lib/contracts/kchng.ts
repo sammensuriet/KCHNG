@@ -385,6 +385,26 @@ export class KchngClient {
   }
 
   /**
+   * Get oracle data for an address
+   */
+  async getOracle(oracleAddress: string): Promise<OracleData> {
+    try {
+      const address = new Address(oracleAddress);
+      const result = await this.simulateContractCall(this.contractId, "get_oracle", [
+        address.toScVal(),
+      ]);
+
+      if (result) {
+        return this.oracleDataFromScVal(result);
+      }
+      throw new Error("Oracle not found");
+    } catch (error) {
+      console.error("Error fetching oracle data:", error);
+      throw new Error("Failed to fetch oracle data from contract");
+    }
+  }
+
+  /**
    * Activate a grace period for an account
    */
   async activateGracePeriod(
@@ -1096,6 +1116,34 @@ export class KchngClient {
         votes_for: 0,
         votes_against: 0,
         voters: [],
+      };
+    }
+  }
+
+  /**
+   * Convert OracleData ScVal to OracleData
+   * Fields: oracle_address (Address), stake (U256), reputation_score (u32),
+   *         grace_periods_granted (u64), grants_this_year (u32), last_grant_year (u32)
+   */
+  private oracleDataFromScVal(val: xdr.ScVal): OracleData {
+    try {
+      return {
+        oracle_address: this.getStructField(val, 0) ? this.addressFromScVal(this.getStructField(val, 0)!) : "",
+        stake: this.getStructField(val, 1) ? this.u256FromScVal(this.getStructField(val, 1)!) : 0n,
+        reputation_score: this.getStructField(val, 2) ? this.u32FromScVal(this.getStructField(val, 2)!) : 0,
+        grace_periods_granted: this.getStructField(val, 3) ? this.u64FromScVal(this.getStructField(val, 3)!) : 0,
+        grants_this_year: this.getStructField(val, 4) ? this.u32FromScVal(this.getStructField(val, 4)!) : 0,
+        last_grant_year: this.getStructField(val, 5) ? this.u32FromScVal(this.getStructField(val, 5)!) : 0,
+      };
+    } catch (error) {
+      console.error("[KchngClient] Failed to parse OracleData:", error);
+      return {
+        oracle_address: "",
+        stake: 0n,
+        reputation_score: 0,
+        grace_periods_granted: 0,
+        grants_this_year: 0,
+        last_grant_year: 0,
       };
     }
   }

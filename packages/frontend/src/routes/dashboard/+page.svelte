@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { wallet } from "$lib/stores/wallet";
   import { t } from "$lib/i18n";
+  import { GraceType } from "@kchng/shared";
 
   let accountData = $state<{
     balance: bigint;
@@ -13,6 +14,16 @@
     last_grace_year: number;
   } | null>(null);
 
+  let gracePeriodData = $state<{
+    account: string;
+    grace_type: GraceType;
+    start_time: number;
+    end_time: number;
+    oracle_verified: boolean;
+    extension_votes: number;
+  } | null>(null);
+
+  let isInCommunityProtection = $state(false);
   let loading = $state(true);
   let error = $state<string | null>(null);
 
@@ -31,6 +42,18 @@
       const { createKchngClient } = await import("$lib/contracts/kchng");
       const kchngClient = createKchngClient($wallet.network);
       accountData = await kchngClient.getAccountData($wallet.address);
+
+      // Check community protection status
+      isInCommunityProtection = await kchngClient.isInGracePeriod($wallet.address);
+      if (isInCommunityProtection) {
+        try {
+          gracePeriodData = await kchngClient.getGracePeriod($wallet.address);
+        } catch {
+          // Grace period data not available
+          gracePeriodData = null;
+        }
+      }
+
       loading = false;
     } catch (e) {
       error = e instanceof Error ? e.message : "Failed to load account data";
@@ -51,6 +74,20 @@
     if (!lastActivity) return 0;
     const now = Math.floor(Date.now() / 1000);
     return Math.floor((now - lastActivity) / 86400);
+  }
+
+  function daysRemaining(endTime: number): number {
+    const now = Math.floor(Date.now() / 1000);
+    return Math.max(0, Math.floor((endTime - now) / 86400));
+  }
+
+  function getProtectionTypeName(type: GraceType): string {
+    switch (type) {
+      case GraceType.Emergency: return "Emergency";
+      case GraceType.Illness: return "Illness";
+      case GraceType.Community: return "Community Voted";
+      default: return "Protection";
+    }
   }
 </script>
 
@@ -95,13 +132,39 @@
         {#if daysSinceActivity(accountData.last_activity) >= 7}
           <p class="circulation-hint">{t('dashboard.circulationHint')}</p>
         {/if}
-        {#if accountData.grace_period_end > 0}
-          <div class="grace-period">
-            <span class="grace-badge">{t('dashboard.gracePeriodActive')}</span>
-            <span>{t('dashboard.until')} {formatDate(accountData.grace_period_end)}</span>
-          </div>
-        {/if}
       </div>
+
+      <!-- Community Protection Card (if active) -->
+      {#if isInCommunityProtection && gracePeriodData}
+        <div class="card community-protection-card">
+          <h2>🛡️ Community Protection</h2>
+          <div class="protection-type">
+            <span class="protection-label">Type:</span>
+            <span class="protection-value">{getProtectionTypeName(gracePeriodData.grace_type)}</span>
+          </div>
+          <div class="protection-stats">
+            <div class="protection-stat">
+              <span class="stat-label">Days Remaining</span>
+              <span class="stat-value protection-days">{daysRemaining(gracePeriodData.end_time)}</span>
+            </div>
+            <div class="protection-stat">
+              <span class="stat-label">Oracle Verified</span>
+              <span class="stat-value {gracePeriodData.oracle_verified ? 'verified' : 'pending'}">
+                {gracePeriodData.oracle_verified ? '✓ Yes' : '⏳ Pending'}
+              </span>
+            </div>
+          </div>
+          {#if gracePeriodData.extension_votes > 0}
+            <div class="extension-info">
+              <span class="extension-label">Extension Votes:</span>
+              <span class="extension-value">{gracePeriodData.extension_votes}</span>
+            </div>
+          {/if}
+          <p class="protection-note">
+            Your demurrage is temporarily paused. This protection ends on {formatDate(gracePeriodData.end_time)}.
+          </p>
+        </div>
+      {/if}
 
       <!-- Trust Card -->
       <div class="card">
@@ -294,6 +357,92 @@
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--radius-sm);
     font-weight: 500;
+  }
+
+  /* Community Protection Card */
+  .community-protection-card {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border: 2px solid #10b981;
+  }
+
+  .community-protection-card h2 {
+    color: #065f46;
+    margin-bottom: var(--space-md);
+  }
+
+  .protection-type {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  .protection-label {
+    color: #047857;
+    font-weight: 500;
+  }
+
+  .protection-value {
+    color: #065f46;
+    font-weight: 600;
+  }
+
+  .protection-stats {
+    display: flex;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-md);
+  }
+
+  .protection-stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .protection-stat .stat-label {
+    font-size: var(--font-size-xs);
+    color: #047857;
+  }
+
+  .protection-stat .stat-value {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: #065f46;
+  }
+
+  .protection-days {
+    font-size: var(--font-size-2xl) !important;
+  }
+
+  .stat-value.verified {
+    color: #059669;
+  }
+
+  .stat-value.pending {
+    color: #d97706;
+  }
+
+  .extension-info {
+    background: rgba(255, 255, 255, 0.5);
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .extension-label {
+    color: #047857;
+  }
+
+  .extension-value {
+    color: #065f46;
+    font-weight: 600;
+  }
+
+  .protection-note {
+    font-size: var(--font-size-sm);
+    color: #047857;
+    font-style: italic;
+    margin: 0;
   }
 
   .trust-info, .no-trust {

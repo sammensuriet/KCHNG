@@ -20,6 +20,7 @@
     status: number;
     votes_for: number;
     votes_against: number;
+    voters: string[];
   }>>([]);
 
   let loading = $state(false);
@@ -29,6 +30,12 @@
   let proposalTitle = $state("");
   let proposalDescription = $state("");
   let newRateBps = $state(1000);
+
+  // Voting state
+  let votingProposalId = $state<number | null>(null);
+  let votingSupport = $state<boolean | null>(null);
+  let txPending = $state(false);
+  let txMessage = $state<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
   const proposalTypes = [
     { value: 0, label: "Rate Change" },
@@ -67,6 +74,7 @@
             status: Number(info.status),
             votes_for: Number(info.votes_for),
             votes_against: Number(info.votes_against),
+            voters: info.voters || [],
           };
         })
       );
@@ -95,6 +103,79 @@
     } catch (e) {
       alert("Failed to create proposal: " + (e instanceof Error ? e.message : "Unknown error"));
     }
+  }
+
+  function openVotingModal(proposalId: number) {
+    votingProposalId = proposalId;
+    votingSupport = null;
+    txMessage = null;
+  }
+
+  function closeVotingModal() {
+    votingProposalId = null;
+    votingSupport = null;
+    txMessage = null;
+  }
+
+  async function castVote() {
+    if (!$wallet.connected || !$wallet.address) {
+      txMessage = { type: "error", text: "Please connect your wallet first" };
+      return;
+    }
+
+    if (votingSupport === null || votingProposalId === null) {
+      txMessage = { type: "error", text: "Please select Support or Oppose" };
+      return;
+    }
+
+    txPending = true;
+    txMessage = { type: "info", text: "Preparing your vote..." };
+
+    try {
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      const txHash = await kchngClient.voteOnProposal(
+        $wallet.address,
+        votingProposalId,
+        votingSupport
+      );
+
+      txMessage = {
+        type: "success",
+        text: `Vote cast successfully! Transaction: ${txHash.slice(0, 8)}...`
+      };
+
+      // Refresh proposals after successful vote
+      await loadProposals();
+
+      // Close modal after a short delay
+      setTimeout(() => closeVotingModal(), 2000);
+
+    } catch (e) {
+      txMessage = {
+        type: "error",
+        text: e instanceof Error ? e.message : "Failed to cast vote"
+      };
+    } finally {
+      txPending = false;
+    }
+  }
+
+  function hasVoted(proposal: { voters: string[] }): boolean {
+    if (!$wallet.address) return false;
+    return proposal.voters.includes($wallet.address);
+  }
+
+  function canVote(proposal: { status: number; voters: string[] }): boolean {
+    // Can only vote on proposals in voting phase (status 1)
+    if (proposal.status !== 1) return false;
+    // Can't vote twice
+    if (hasVoted(proposal)) return false;
+    // Must be connected
+    if (!$wallet.connected) return false;
+    return true;
   }
 
   function getProposalTypeName(type: number): string {
@@ -215,7 +296,18 @@
                   <div class="vote-label">Against</div>
                 </div>
                 {#if proposal.status === 1}
-                  <button class="btn-vote">Vote</button>
+                  {#if hasVoted(proposal)}
+                    <span class="already-voted">✓ You voted</span>
+                  {:else if $wallet.connected}
+                    <button
+                      class="btn-vote"
+                      onclick={() => openVotingModal(proposal.proposal_id)}
+                    >
+                      Cast Your Vote
+                    </button>
+                  {:else}
+                    <span class="connect-hint">Connect wallet to vote</span>
+                  {/if}
                 {/if}
               </div>
             </div>
@@ -276,6 +368,71 @@
 
   <p class="value-footer">Protocol: 30 min verified work → 1,000 KCHNG minted. Social peg: 1,000 KCHNG ≈ 1 meal.</p>
 </div>
+
+<!-- Voting Modal -->
+{#if votingProposalId !== null}
+  <div class="modal-overlay" onclick={closeVotingModal}>
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      <button class="modal-close" onclick={closeVotingModal}>&times;</button>
+      <h2>Cast Your Vote</h2>
+      <p class="modal-subtitle">
+        {#each proposals as p}
+          {#if p.proposal_id === votingProposalId}
+            <strong>{p.title}</strong>
+          {/if}
+        {/each}
+      </p>
+
+      <div class="vote-options">
+        <button
+          class="vote-option support"
+          class:selected={votingSupport === true}
+          onclick={() => votingSupport = true}
+          disabled={txPending}
+        >
+          <span class="vote-icon">👍</span>
+          <span class="vote-text">Support</span>
+          <span class="vote-desc">Vote in favor of this proposal</span>
+        </button>
+        <button
+          class="vote-option oppose"
+          class:selected={votingSupport === false}
+          onclick={() => votingSupport = false}
+          disabled={txPending}
+        >
+          <span class="vote-icon">👎</span>
+          <span class="vote-text">Oppose</span>
+          <span class="vote-desc">Vote against this proposal</span>
+        </button>
+      </div>
+
+      {#if txMessage}
+        <div class="tx-message {txMessage.type}">{txMessage.text}</div>
+      {/if}
+
+      <div class="modal-actions">
+        <button
+          class="btn-cancel"
+          onclick={closeVotingModal}
+          disabled={txPending}
+        >
+          Cancel
+        </button>
+        <button
+          class="btn-submit"
+          onclick={castVote}
+          disabled={votingSupport === null || txPending}
+        >
+          {#if txPending}
+            Submitting...
+          {:else}
+            Submit Vote
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .container {
@@ -481,6 +638,203 @@
     border-radius: 6px;
     font-weight: 500;
     cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-vote:hover {
+    background: #5a67d8;
+  }
+
+  .already-voted {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  .connect-hint {
+    padding: 0.5rem 1rem;
+    background: #f3f4f6;
+    color: #6b7280;
+    border-radius: 6px;
+    font-size: 0.875rem;
+  }
+
+  /* Modal styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+
+  .modal {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 480px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+    width: auto;
+    padding: 0;
+  }
+
+  .modal-close:hover {
+    color: #374151;
+  }
+
+  .modal h2 {
+    margin: 0 0 0.5rem 0;
+    color: #111827;
+  }
+
+  .modal-subtitle {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+  }
+
+  .vote-options {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .vote-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.25rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+
+  .vote-option:hover:not(:disabled) {
+    border-color: #d1d5db;
+  }
+
+  .vote-option.support.selected {
+    border-color: #10b981;
+    background: #ecfdf5;
+  }
+
+  .vote-option.oppose.selected {
+    border-color: #ef4444;
+    background: #fef2f2;
+  }
+
+  .vote-option:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .vote-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .vote-text {
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: #111827;
+    margin-bottom: 0.25rem;
+  }
+
+  .vote-desc {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-align: center;
+  }
+
+  .tx-message {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .tx-message.success {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .tx-message.error {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .tx-message.info {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel {
+    padding: 0.75rem 1.5rem;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    width: auto;
+  }
+
+  .btn-cancel:hover:not(:disabled) {
+    background: #e5e7eb;
+  }
+
+  .btn-submit {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    width: auto;
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-submit:hover:not(:disabled) {
+    opacity: 0.9;
   }
 
   .form-card {
@@ -573,5 +927,10 @@
     .proposal-votes {
       flex-wrap: wrap;
     }
+  }
+
+  .modal-subtitle {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
   }
 </style>
