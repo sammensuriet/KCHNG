@@ -1,0 +1,45 @@
+MIT License
+
+Copyright (c) 2026 KCHNG Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+ADDITIONAL TERMS FOR KCHNG BLOCKCHAIN SOFTWARE:
+
+1. REGULATORY COMPLIANCE. This software facilitates a community currency
+   system. Users are solely responsible for compliance with applicable laws,
+   including securities, tax, and anti-money laundering regulations in their
+   jurisdiction. The authors make no representation regarding the legal status
+   of KCHNG tokens in any jurisdiction.
+
+2. SMART CONTRACT RISKS. Users acknowledge that blockchain smart contracts
+   are experimental technology that may contain undiscovered bugs or
+   vulnerabilities; that the demurrage mechanism may result in loss of tokens;
+   and that transactions on public blockchains are irreversible. USE AT YOUR
+   OWN RISK.
+
+3. TRADEMARKS. "KCHNG" and associated logos are trademarks of the KCHNG
+   project and may not be used to endorse or promote derived works without
+   specific prior written permission.
+
+4. JURISDICTIONAL LIMITATIONS. Some jurisdictions do not allow the exclusion
+   of implied warranties or limitation of liability for consequential damages,
+   so the above limitations may not apply to you.
