@@ -189,7 +189,7 @@ These tests can be integrated into CI/CD:
 # Example GitHub Actions
 - name: Run KCHNG Regression Tests
   run: |
-    cd /home/pokho/dev/KCHNG
+    cd <kchng-repo>
     ./tests/regression/test_contract_functionality.sh
 ```
 

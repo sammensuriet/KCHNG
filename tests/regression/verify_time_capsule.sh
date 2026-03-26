@@ -10,7 +10,7 @@ echo ""
 
 CONTRACT_ID="CDAKPFYVD6LYCKMTQAHLOYLLYO2PVE6YJIH3SS2W4R5GEJJ75UUZCDPX"
 NETWORK="testnet"
-TIME_CAPSULE="/home/pokho/dev/KCHNG/tests/regression/time_capsule_data.json"
+TIME_CAPSULE="$(git rev-parse --show-toplevel)/tests/regression/time_capsule_data.json"
 
 echo "Verification date: $(date -Iseconds)"
 echo ""

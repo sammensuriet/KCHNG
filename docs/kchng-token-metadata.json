@@ -3,7 +3,7 @@
   "token_name": "KCHNG",
   "token_description": "Community currency with native on-chain demurrage for kchng.org",
   "website": "https://kchng.org",
-  "documentation": "https://github.com/pokho/KCHNG",
+  "documentation": "https://github.com/sammensuriet/KCHNG",
   
   "data_model": {
     "token_type": "demurrage_community_currency",

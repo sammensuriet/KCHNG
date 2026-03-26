@@ -33,6 +33,6 @@
       "note": "This would mean the fix did not work"
     }
   },
-  "verification_command": "bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule_7day.sh",
+  "verification_command": "bash <PROJECT_ROOT>/tests/regression/verify_time_capsule_7day.sh",
   "verification_status": "PENDING"
 }

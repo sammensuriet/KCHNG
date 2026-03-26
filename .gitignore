@@ -51,3 +51,6 @@ test_snapshots/
 
 # Local cargo builds
 .cargo/
+
+# Meeting notes
+docs/meetings/

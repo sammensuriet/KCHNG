@@ -436,9 +436,9 @@ The systems are not directly competitive but could potentially inform each other
 - [vistara-apps/erc-8004-example](https://github.com/vistara-apps/erc-8004-example)
 
 ### KCHNG Documentation
-- `/home/pokho/dev/KCHNG/docs/time-standard-token-design.md`
-- `/home/pokho/dev/KCHNG/docs/2026-01-15_role-based-reputation-design.md`
-- `/home/pokho/dev/KCHNG/docs/PRD.md`
+- `./docs/time-standard-token-design.md`
+- `./docs/2026-01-15_role-based-reputation-design.md`
+- `./docs/PRD.md`
 
 ---
 

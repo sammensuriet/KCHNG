@@ -44,7 +44,7 @@
       "bug_result": "period_rate_bps = 1200 * 30 / 36500 = 0"
     }
   },
-  "verification_command": "bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule.sh",
+  "verification_command": "bash <PROJECT_ROOT>/tests/regression/verify_time_capsule.sh",
   "bug_report": "docs/2026-01-02_demurrage-critical-bug.md",
   "verification_status": "PENDING",
   "notes": [

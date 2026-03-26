@@ -235,7 +235,7 @@ cat > "$TIME_CAPSULE_FILE" << EOF
       "bug_result": "period_rate_bps = 1200 * 30 / 36500 = 0"
     }
   },
-  "verification_command": "bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule.sh",
+  "verification_command": "bash $(git rev-parse --show-toplevel)/tests/regression/verify_time_capsule.sh",
   "bug_report": "docs/2026-01-02_demurrage-critical-bug.md",
   "verification_status": "PENDING"
 }
@@ -251,7 +251,7 @@ echo ""
 echo "Step 7: Create verification script"
 echo "─────────────────────────────────────────────────────────────────"
 
-cat > /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule.sh << 'VERIFYSCRIPT'
+cat > $(git rev-parse --show-toplevel)/tests/regression/verify_time_capsule.sh << 'VERIFYSCRIPT'
 #!/bin/bash
 # Verify Time Capsule Test Results
 # Run this 30+ days after setup
@@ -390,9 +390,9 @@ echo ""
 echo "Verification complete: $(date -Iseconds)"
 VERIFYSCRIPT
 
-chmod +x /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule.sh
+chmod +x $(git rev-parse --show-toplevel)/tests/regression/verify_time_capsule.sh
 
-echo "✓ Verification script created: /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule.sh"
+echo "✓ Verification script created: $(git rev-parse --show-toplevel)/tests/regression/verify_time_capsule.sh"
 echo ""
 
 # ============================================================================
@@ -415,7 +415,7 @@ echo "  IF BUG EXISTS: Balance stays at $WORKER_BALANCE KCHNG"
 echo "  IF WORKING:  Balance drops to ~$((WORKER_BALANCE - WORKER_BALANCE / 100)) KCHNG"
 echo ""
 echo "To verify results, run:"
-echo "  bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule.sh"
+echo "  bash $(git rev-parse --show-toplevel)/tests/regression/verify_time_capsule.sh"
 echo ""
 echo "Data saved to: $TIME_CAPSULE_FILE"
 echo ""

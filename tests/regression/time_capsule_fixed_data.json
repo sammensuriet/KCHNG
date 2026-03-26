@@ -43,7 +43,7 @@
       "note": "This would mean the fix in the new contract did not work"
     }
   },
-  "verification_command": "bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule_fixed.sh",
+  "verification_command": "bash <PROJECT_ROOT>/tests/regression/verify_time_capsule_fixed.sh",
   "comparison_contract": {
     "address": "CDAKPFYVD6LYCKMTQAHLOYLLYO2PVE6YJIH3SS2W4R5GEJJ75UUZCDPX",
     "description": "Old buggy contract for side-by-side comparison",

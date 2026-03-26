@@ -132,7 +132,7 @@ echo "Step 5: Verify bug in contract source code"
 echo "─────────────────────────────────────────────────────────────────"
 echo ""
 
-CONTRACT_FILE="/home/pokho/dev/KCHNG/packages/contracts/src/lib.rs"
+CONTRACT_FILE="$(git rev-parse --show-toplevel)/packages/contracts/src/lib.rs"
 
 if [ -f "$CONTRACT_FILE" ]; then
     echo "Checking line 709 of contract source..."

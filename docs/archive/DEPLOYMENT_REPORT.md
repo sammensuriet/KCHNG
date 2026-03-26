@@ -351,7 +351,7 @@ KCHNG/
 ### References
 - Wörgl Demurrage Currency: https://en.wikipedia.org/wiki/W%C3%B6rgl
 - Stellar Soroban Docs: https://developers.stellar.org/docs/build/smart-contracts
-- Design Document: `/home/pokho/dev/KCHNG/docs/time-standard-token-design.md`
+- Design Document: `./docs/time-standard-token-design.md`
 
 ---
 

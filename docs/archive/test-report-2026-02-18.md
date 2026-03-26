@@ -239,7 +239,7 @@ Burn per 28-day period for 10,000 KCHNG = 92 KCHNG
 ### Time Capsule Verification
 
 ```bash
-bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule_7day.sh
+bash ./tests/regression/verify_time_capsule_7day.sh
 ```
 
 ### Manual Balance Check

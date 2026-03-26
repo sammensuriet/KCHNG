@@ -143,9 +143,9 @@ services:
   kchng-frontend:
     # ... existing config ...
 
-  gbamgbam-frontend:
-    build: ../gbamgbam
-    container_name: gbamgbam-frontend
+  another-app-frontend:
+    build: ../another-app
+    container_name: another-app-frontend
     ports:
       - "5174:5174"
     restart: unless-stopped
@@ -154,8 +154,8 @@ services:
 Each app can use a different Node.js version in its Nix package:
 
 ```nix
-# In gbamgbam flake.nix
-packages.gbamgbam = pkgs.callPackage ./gbamgbam.nix {
+# In another-app flake.nix
+packages.another-app = pkgs.callPackage ./another-app.nix {
   nodejs = pkgs.nodejs_18;  # Different version!
 };
 ```

@@ -36,11 +36,11 @@ services:
       - kchng-network
 
   # Future: GbamGbam service
-  # gbamgbam-frontend:
+  # another-app-frontend:
   #   build:
-  #     context: ./gbamgbam
-  #   image: localhost/gbamgbam-frontend:latest
-  #   container_name: gbamgbam-frontend
+  #     context: ./another-app
+  #   image: localhost/another-app-frontend:latest
+  #   container_name: another-app-frontend
   #   ports:
   #     - "5174:5174"
   #   environment:

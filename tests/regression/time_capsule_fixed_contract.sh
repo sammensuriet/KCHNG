@@ -13,7 +13,7 @@ ADMIN_KEY="kchng_admin"
 ADMIN_PUBKEY="GCW4XHQLIK3VHXUGNXJ4NFLW5JDWZZ3UT2XJCYTZSO6AQJZUUDB7RVMS"
 
 # Time capsule data file
-TIME_CAPSULE_FILE="/home/pokho/dev/KCHNG/tests/regression/time_capsule_fixed_data.json"
+TIME_CAPSULE_FILE="$(git rev-parse --show-toplevel)/tests/regression/time_capsule_fixed_data.json"
 
 echo "╔══════════════════════════════════════════════════════════════════════╗"
 echo "║     KCHNG DEMURRAGE TIME CAPSULE TEST - FIXED CONTRACT                 ║"
@@ -170,7 +170,7 @@ echo ""
 echo "Step 5: Save time capsule data"
 echo "─────────────────────────────────────────────────────────────────"
 
-mkdir -p /home/pokho/dev/KCHNG/tests/regression
+mkdir -p $(git rev-parse --show-toplevel)/tests/regression
 
 # Export variables for python script
 export CONTRACT_ID NETWORK CURRENT_TIME SETUP_DATE DEADLINE_DATE
@@ -237,7 +237,7 @@ data = {
             "note": "This would mean the fix in the new contract did not work"
         }
     },
-    "verification_command": "bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule_fixed.sh",
+    "verification_command": "bash $(git rev-parse --show-toplevel)/tests/regression/verify_time_capsule_fixed.sh",
     "comparison_contract": {
         "address": "CDAKPFYVD6LYCKMTQAHLOYLLYO2PVE6YJIH3SS2W4R5GEJJ75UUZCDPX",
         "description": "Old buggy contract for side-by-side comparison",
@@ -270,10 +270,10 @@ echo "Step 6: Verification script"
 echo "─────────────────────────────────────────────────────────────────"
 echo ""
 echo "Verification script already created at:"
-echo "  /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule_fixed.sh"
+echo "  $(git rev-parse --show-toplevel)/tests/regression/verify_time_capsule_fixed.sh"
 echo ""
 echo "Make it executable:"
-chmod +x /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule_fixed.sh
+chmod +x $(git rev-parse --show-toplevel)/tests/regression/verify_time_capsule_fixed.sh
 echo ""
 
 # ============================================================================
@@ -299,7 +299,7 @@ echo "  IF BUG STILL EXISTS: Account 2 still at 1000 KCHNG"
 echo "  IF FIX WORKS: Account 2 at about 990 KCHNG - about 1pct loss"
 echo ""
 echo "To verify results, run:"
-echo "  bash /home/pokho/dev/KCHNG/tests/regression/verify_time_capsule_fixed.sh"
+echo "  bash $(git rev-parse --show-toplevel)/tests/regression/verify_time_capsule_fixed.sh"
 echo ""
 echo "Data saved to: $TIME_CAPSULE_FILE"
 echo ""

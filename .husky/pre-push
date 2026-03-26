@@ -6,7 +6,7 @@ cd packages/contracts && cargo test --target x86_64-unknown-linux-gnu
 
 # Build and deploy frontend to Netlify
 echo "Building frontend..."
-cd /home/pokho/dev/KCHNG && pnpm --filter shared build && pnpm --filter frontend build
+cd "$(git rev-parse --show-toplevel)" && pnpm --filter shared build && pnpm --filter frontend build
 
 echo "Deploying to Netlify..."
 netlify deploy --prod --dir=packages/frontend/build --no-build --filter=@kchng/frontend

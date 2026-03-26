@@ -87,7 +87,7 @@
           echo "  nix develop                    - Enter dev shell"
           echo ""
           echo "Deployment:"
-          echo "  See https://github.com/pokho/okdeployman"
+          echo "  See deployment documentation in docs/"
         '';
       };
 

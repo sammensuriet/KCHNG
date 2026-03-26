@@ -50,13 +50,13 @@ Since `@kchng/shared` is currently a private package, install directly from the 
 
 ```bash
 # Using pnpm
-pnpm add git+https://github.com/pokho/KCHNG.git#main --filter=@kchng/shared
+pnpm add git+https://github.com/sammensuriet/KCHNG.git#main --filter=@kchng/shared
 
 # Or from a specific tag/commit
-pnpm add git+https://github.com/pokho/KCHNG.git#v1.0.0
+pnpm add git+https://github.com/sammensuriet/KCHNG.git#v1.0.0
 
 # Or using GitHub shorthand
-pnpm add github:pokho/KCHNG#main --filter=@kchng/shared
+pnpm add github:sammensuriet/KCHNG#main --filter=@kchng/shared
 ```
 
 ### Install Stellar SDK

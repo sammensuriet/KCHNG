@@ -6,7 +6,7 @@ echo "This will take 10-20 minutes"
 echo ""
 
 # Run with timeout to prevent hanging
-timeout 300 bash /home/pokho/dev/KCHNG/tests/regression/full_behavioral_tests.sh 2>&1 | tee /tmp/behavioral_test_output.txt
+timeout 300 bash $(git rev-parse --show-toplevel)/tests/regression/full_behavioral_tests.sh 2>&1 | tee /tmp/behavioral_test_output.txt
 
 EXIT_CODE=$?
 

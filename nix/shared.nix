@@ -40,7 +40,7 @@ pkgs.buildNpmPackage rec {
   # Metadata
   meta = with pkgs.lib; {
     description = "KCHNG shared utilities, types, and network configurations";
-    homepage = "https://github.com/pokho/kchng";
+    homepage = "https://github.com/sammensuriet/KCHNG";
     license = licenses.mit;
     platforms = platforms.linux;
   };
