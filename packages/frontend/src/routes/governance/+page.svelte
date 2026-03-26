@@ -178,6 +178,101 @@
     return true;
   }
 
+  function canProcess(proposal: { status: number; review_end: number; vote_end: number }): boolean {
+    // Can process review -> voting (status 0, review_end passed)
+    if (proposal.status === 0) {
+      const now = Math.floor(Date.now() / 1000);
+      return now >= proposal.review_end;
+    }
+    // Can process voting -> approved/rejected (status 1, vote_end passed)
+    if (proposal.status === 1) {
+      const now = Math.floor(Date.now() / 1000);
+      return now >= proposal.vote_end;
+    }
+    return false;
+  }
+
+  function canImplement(proposal: { status: number; implementation_date: number }): boolean {
+    // Can implement approved proposals (status 2) after implementation date
+    if (proposal.status !== 2) return false;
+    const now = Math.floor(Date.now() / 1000);
+    return now >= proposal.implementation_date;
+  }
+
+  async function processProposal(proposalId: number) {
+    if (!$wallet.connected || !$wallet.address) {
+      txMessage = { type: "error", text: "Please connect your wallet first" };
+      return;
+    }
+
+    txPending = true;
+    txMessage = { type: "info", text: "Making it official..." };
+
+    try {
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      const txHash = await kchngClient.processProposal($wallet.address, proposalId);
+
+      txMessage = {
+        type: "success",
+        text: `Proposal processed! Transaction: ${txHash.slice(0, 8)}...`
+      };
+
+      // Refresh proposals
+      await loadProposals();
+
+      // Clear message after delay
+      setTimeout(() => txMessage = null, 3000);
+
+    } catch (e) {
+      txMessage = {
+        type: "error",
+        text: e instanceof Error ? e.message : "Failed to process proposal"
+      };
+    } finally {
+      txPending = false;
+    }
+  }
+
+  async function implementProposal(proposalId: number) {
+    if (!$wallet.connected || !$wallet.address) {
+      txMessage = { type: "error", text: "Please connect your wallet first" };
+      return;
+    }
+
+    txPending = true;
+    txMessage = { type: "info", text: "Implementing proposal..." };
+
+    try {
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      const txHash = await kchngClient.implementProposal($wallet.address, proposalId);
+
+      txMessage = {
+        type: "success",
+        text: `Proposal implemented! Changes are now active. Transaction: ${txHash.slice(0, 8)}...`
+      };
+
+      // Refresh proposals
+      await loadProposals();
+
+      // Clear message after delay
+      setTimeout(() => txMessage = null, 3000);
+
+    } catch (e) {
+      txMessage = {
+        type: "error",
+        text: e instanceof Error ? e.message : "Failed to implement proposal"
+      };
+    } finally {
+      txPending = false;
+    }
+  }
+
   function getProposalTypeName(type: number): string {
     return proposalTypes.find(t => t.value === type)?.label || "Unknown";
   }
@@ -310,6 +405,61 @@
                   {/if}
                 {/if}
               </div>
+
+              <!-- Proposal Actions -->
+              {#if canProcess(proposal) || canImplement(proposal)}
+                <div class="proposal-actions">
+                  {#if canProcess(proposal)}
+                    <button
+                      class="btn-process"
+                      onclick={() => processProposal(proposal.proposal_id)}
+                      disabled={txPending}
+                    >
+                      {#if txPending}
+                        <span class="btn-spinner"></span>
+                      {/if}
+                      Make It Official
+                    </button>
+                    <p class="action-hint">
+                      {#if proposal.status === 0}
+                        The review period has ended. Process to move to voting.
+                      {:else if proposal.status === 1}
+                        Voting has ended. Process to tally votes and determine outcome.
+                      {/if}
+                    </p>
+                  {/if}
+
+                  {#if canImplement(proposal)}
+                    <div class="implementation-ready">
+                      <div class="impact-preview">
+                        <h4>Community Impact:</h4>
+                        {#if proposal.new_rate_bps}
+                          <p class="impact-text">
+                            📊 Demurrage rate will change from current to <strong>{(proposal.new_rate_bps / 100).toFixed(1)}%</strong> annually.
+                          </p>
+                          <p class="impact-note">
+                            This affects how inactive balances decay, promoting circulation in your community.
+                          </p>
+                        {:else}
+                          <p class="impact-text">
+                            📋 This proposal will enact changes to trust parameters.
+                          </p>
+                        {/if}
+                      </div>
+                      <button
+                        class="btn-implement"
+                        onclick={() => implementProposal(proposal.proposal_id)}
+                        disabled={txPending}
+                      >
+                        {#if txPending}
+                          <span class="btn-spinner"></span>
+                        {/if}
+                        Implement Now
+                      </button>
+                    </div>
+                  {/if}
+                </div>
+              {/if}
             </div>
           {/each}
         </div>

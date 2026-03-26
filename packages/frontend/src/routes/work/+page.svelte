@@ -3,6 +3,8 @@
   import { wallet } from "$lib/stores/wallet";
   import { t } from "$lib/i18n";
   import FileUpload from "$lib/components/FileUpload.svelte";
+  import type { VerifierData, WorkClaim } from "@kchng/shared";
+  import { WorkType, ClaimStatus } from "@kchng/shared";
 
   let activeTab = $state<"submit" | "verify" | "my-claims">("submit");
 
@@ -16,15 +18,19 @@
   let submitMessage = $state<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
   // Work claims
-  let workClaims = $state<Array<{
-    claim_id: number;
-    worker: string;
-    work_type: number;
-    minutes_worked: number;
-    status: number;
-    multiplier: number;
-    submitted_at: number;
-  }>>([]);
+  let workClaims = $state<WorkClaim[]>([]);
+
+  // Verifier state
+  let verifierData = $state<VerifierData | null>(null);
+  let isVerifier = $state(false);
+  let pendingClaims = $state<WorkClaim[]>([]);
+  let verifierLoading = $state(false);
+  let showRegisterModal = $state(false);
+  let registerTxPending = $state(false);
+
+  // Verification action state
+  let verifyingClaimId = $state<number | null>(null);
+  let verifyAction = $state<"approve" | "reject" | null>(null);
 
   let loading = $state(false);
 
@@ -38,8 +44,12 @@
     { value: 3, label: t('work.workTypeCritical'), multiplier: 2.0, examples: t('work.workTypeCriticalEx') },
   ]);
 
+  // Required stake for verifier (100K KCHNG ≈ 100 meals)
+  const VERIFIER_STAKE = 100000n;
+
   onMount(async () => {
     await loadWorkClaims();
+    await loadVerifierStatus();
   });
 
   async function loadWorkClaims() {
@@ -53,6 +63,99 @@
     } catch (e) {
       console.error("Failed to load work claims:", e);
       loading = false;
+    }
+  }
+
+  async function loadVerifierStatus() {
+    if (!$wallet.connected || !$wallet.address) return;
+
+    verifierLoading = true;
+    try {
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+
+      // Check if user is a verifier
+      try {
+        verifierData = await kchngClient.getVerifier($wallet.address);
+        isVerifier = verifierData !== null && verifierData.stake > 0n;
+
+        // Load pending claims if verifier
+        if (isVerifier) {
+          const pendingIds = await kchngClient.getVerifierPendingClaims($wallet.address);
+          pendingClaims = [];
+          for (const id of pendingIds) {
+            try {
+              const claim = await kchngClient.getWorkClaim(id);
+              pendingClaims.push(claim);
+            } catch {
+              // Skip claims that can't be loaded
+            }
+          }
+        }
+      } catch {
+        // Not a verifier yet
+        isVerifier = false;
+        verifierData = null;
+      }
+    } catch (e) {
+      console.error("Failed to load verifier status:", e);
+    } finally {
+      verifierLoading = false;
+    }
+  }
+
+  async function registerAsVerifier() {
+    if (!$wallet.connected || !$wallet.address || !$wallet.trustId) {
+      submitMessage = { type: "error", text: t('work.mustJoinTrust') };
+      return;
+    }
+
+    registerTxPending = true;
+    try {
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      await kchngClient.registerVerifier($wallet.address, $wallet.trustId);
+
+      // Reload verifier status
+      await loadVerifierStatus();
+      showRegisterModal = false;
+    } catch (e) {
+      console.error("Failed to register as verifier:", e);
+      submitMessage = {
+        type: "error",
+        text: e instanceof Error ? e.message : "Failed to register as verifier"
+      };
+    } finally {
+      registerTxPending = false;
+    }
+  }
+
+  async function verifyClaim(claimId: number, approve: boolean) {
+    if (!$wallet.connected || !$wallet.address) return;
+
+    verifyingClaimId = claimId;
+    verifyAction = approve ? "approve" : "reject";
+
+    try {
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      if (approve) {
+        await kchngClient.approveWorkClaim($wallet.address, claimId);
+      } else {
+        await kchngClient.rejectWorkClaim($wallet.address, claimId);
+      }
+
+      // Reload pending claims
+      await loadVerifierStatus();
+    } catch (e) {
+      console.error("Failed to verify claim:", e);
+    } finally {
+      verifyingClaimId = null;
+      verifyAction = null;
     }
   }
 
@@ -120,6 +223,15 @@
   function getStatusName(status: number): string {
     const statuses = [t('work.statusPending'), t('work.statusApproved'), t('work.statusRejected'), t('work.statusExpired')];
     return statuses[status] || "Unknown";
+  }
+
+  function calculateClaimTokens(claim: WorkClaim): number {
+    return (claim.minutes_worked * (claim.multiplier / 100) * 1000) / 30;
+  }
+
+  function formatAddress(address: string): string {
+    if (!address) return "";
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   }
 </script>
 
@@ -239,42 +351,206 @@
 
   {:else if activeTab === "verify"}
     <div class="tab-content">
-      <div class="info-banner">
-        <strong>{t('work.becomeVerifier')}</strong> {t('work.becomeVerifierDesc')}
-      </div>
-
-      <div class="verifier-status">
-        <h2>{t('work.verifierStatus')}</h2>
-        {#if !$wallet.connected}
+      {#if !$wallet.connected}
+        <div class="info-banner">
+          <strong>{t('work.stepUp')}</strong> {t('work.stepUpDesc')}
+        </div>
+        <div class="verifier-status">
+          <h2>{t('work.verifierStatus')}</h2>
           <p>{t('work.checkStatus')}</p>
           <button onclick={() => wallet.connect($wallet.network)}>{t('common.connectWallet')}</button>
-        {:else}
-          <div class="status-grid">
-            <div class="status-card">
-              <div class="status-label">{t('work.registeredVerifier')}</div>
-              <div class="status-value">{t('work.no')}</div>
-              <button class="btn-register">{t('work.registerVerifier')}</button>
-            </div>
-            <div class="status-card">
-              <div class="status-label">{t('work.requiredStake')}</div>
-              <div class="status-value">100,000 KCHNG</div>
-            </div>
-            <div class="status-card">
-              <div class="status-label">{t('work.yourStake')}</div>
-              <div class="status-value">0 KCHNG</div>
-            </div>
-            <div class="status-card">
-              <div class="status-label">{t('work.reputation')}</div>
-              <div class="status-value">-</div>
+        </div>
+      {:else if verifierLoading}
+        <div class="loading">{t('work.loading')}</div>
+      {:else if !isVerifier}
+        <!-- Step Up for Your Community section -->
+        <div class="step-up-section">
+          <div class="info-banner community-banner">
+            <strong>🌱 {t('work.stepUp')}</strong>
+            <p>{t('work.stepUpDescFull')}</p>
+          </div>
+
+          <div class="verifier-benefits">
+            <h3>{t('work.whyVerifier')}</h3>
+            <div class="benefits-grid">
+              <div class="benefit-card">
+                <div class="benefit-icon">🛡️</div>
+                <div class="benefit-title">{t('work.protectCommunity')}</div>
+                <div class="benefit-desc">{t('work.protectCommunityDesc')}</div>
+              </div>
+              <div class="benefit-card">
+                <div class="benefit-icon">⭐</div>
+                <div class="benefit-title">{t('work.buildReputation')}</div>
+                <div class="benefit-desc">{t('work.buildReputationDesc')}</div>
+              </div>
+              <div class="benefit-card">
+                <div class="benefit-icon">🤝</div>
+                <div class="benefit-title">{t('work.strengthenTrust')}</div>
+                <div class="benefit-desc">{t('work.strengthenTrustDesc')}</div>
+              </div>
             </div>
           </div>
 
-          <div class="pending-claims">
-            <h3>{t('work.pendingClaimsVerify')}</h3>
-            <div class="empty-state">{t('work.noPendingClaims')}</div>
+          <div class="stake-info">
+            <h3>{t('work.commitmentRequired')}</h3>
+            <div class="stake-card">
+              <div class="stake-amount">{Number(VERIFIER_STAKE).toLocaleString()} KCHNG</div>
+              <div class="stake-meals">≈ {Number(VERIFIER_STAKE / 1000n).toLocaleString()} meals</div>
+              <div class="stake-note">{t('work.stakeNote')}</div>
+            </div>
+          </div>
+
+          <button
+            class="btn-step-up"
+            onclick={() => showRegisterModal = true}
+            disabled={!$wallet.isTrustMember}
+          >
+            {#if !$wallet.isTrustMember}
+              {t('work.mustJoinTrustFirst')}
+            {:else}
+              {t('work.stepUpButton')}
+            {/if}
+          </button>
+        </div>
+
+        <!-- Registration Modal -->
+        {#if showRegisterModal}
+          <div class="modal-overlay" onclick={() => showRegisterModal = false}>
+            <div class="modal" onclick={(e) => e.stopPropagation()}>
+              <h2>{t('work.stepUpTitle')}</h2>
+              <p>{t('work.stepUpModalDesc')}</p>
+
+              <div class="modal-info">
+                <div class="modal-row">
+                  <span>{t('work.stakeAmount')}</span>
+                  <span class="modal-value">{Number(VERIFIER_STAKE).toLocaleString()} KCHNG</span>
+                </div>
+                <div class="modal-row">
+                  <span>{t('work.mealEquivalent')}</span>
+                  <span class="modal-value">{Number(VERIFIER_STAKE / 1000n).toLocaleString()} meals</span>
+                </div>
+                <div class="modal-row">
+                  <span>{t('work.returnable')}</span>
+                  <span class="modal-value">{t('work.yesFullReturn')}</span>
+                </div>
+              </div>
+
+              <div class="modal-actions">
+                <button
+                  class="btn-confirm"
+                  onclick={registerAsVerifier}
+                  disabled={registerTxPending}
+                >
+                  {#if registerTxPending}
+                    <span class="btn-spinner"></span>
+                    {t('work.registering')}
+                  {:else}
+                    {t('work.confirmStepUp')}
+                  {/if}
+                </button>
+                <button class="btn-cancel" onclick={() => showRegisterModal = false}>
+                  {t('common.cancel')}
+                </button>
+              </div>
+            </div>
           </div>
         {/if}
-      </div>
+      {:else}
+        <!-- Active Verifier Dashboard -->
+        <div class="verifier-dashboard">
+          <div class="verifier-header">
+            <h2>✓ {t('work.activeVerifier')}</h2>
+            <p class="verifier-subtitle">{t('work.reviewNeighborWork')}</p>
+          </div>
+
+          <div class="verifier-stats">
+            <div class="stat-item">
+              <span class="stat-label">{t('work.yourStake')}</span>
+              <span class="stat-value">{verifierData?.stake ? Number(verifierData.stake).toLocaleString() : 0} KCHNG</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{t('work.reputation')}</span>
+              <span class="stat-value">{verifierData?.reputation_score ?? 500}/1000</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{t('work.verified')}</span>
+              <span class="stat-value">{verifierData?.verified_claims ?? 0}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{t('work.rejected')}</span>
+              <span class="stat-value">{verifierData?.rejected_claims ?? 0}</span>
+            </div>
+          </div>
+
+          <div class="pending-claims-section">
+            <h3>{t('work.pendingClaimsVerify')} ({pendingClaims.length})</h3>
+
+            {#if pendingClaims.length === 0}
+              <div class="empty-state">
+                <div class="empty-icon">✓</div>
+                <h3>{t('work.allCaughtUp')}</h3>
+                <p>{t('work.noPendingClaimsVerifier')}</p>
+              </div>
+            {:else}
+              <div class="claims-to-verify">
+                {#each pendingClaims as claim (claim.claim_id)}
+                  <div class="claim-verify-card">
+                    <div class="claim-verify-header">
+                      <span class="claimant">{t('work.from')} {formatAddress(claim.worker)}</span>
+                      <span class="claim-time">{new Date(claim.submitted_at * 1000).toLocaleDateString()}</span>
+                    </div>
+
+                    <div class="claim-verify-details">
+                      <div class="detail-row">
+                        <span class="detail-label">{t('work.type')}</span>
+                        <span>{getWorkTypeName(claim.work_type)}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">{t('work.minutes')}</span>
+                        <span>{claim.minutes_worked}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">{t('work.tokens')}</span>
+                        <span class="token-highlight">{calculateClaimTokens(claim).toFixed(2)} KCHNG</span>
+                      </div>
+                    </div>
+
+                    {#if claim.evidence_hash}
+                      <div class="evidence-section">
+                        <span class="evidence-label">{t('work.evidenceProvided')}</span>
+                        <span class="evidence-indicator">📎</span>
+                      </div>
+                    {/if}
+
+                    <div class="verify-actions">
+                      <button
+                        class="btn-verify"
+                        onclick={() => verifyClaim(claim.claim_id, true)}
+                        disabled={verifyingClaimId === claim.claim_id}
+                      >
+                        {#if verifyingClaimId === claim.claim_id && verifyAction === "approve"}
+                          <span class="btn-spinner"></span>
+                        {/if}
+                        ✓ {t('work.verify')}
+                      </button>
+                      <button
+                        class="btn-cannot-verify"
+                        onclick={() => verifyClaim(claim.claim_id, false)}
+                        disabled={verifyingClaimId === claim.claim_id}
+                      >
+                        {#if verifyingClaimId === claim.claim_id && verifyAction === "reject"}
+                          <span class="btn-spinner"></span>
+                        {/if}
+                        ✗ {t('work.cannotVerify')}
+                      </button>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        </div>
+      {/if}
     </div>
 
   {:else if activeTab === "my-claims"}
@@ -721,6 +997,368 @@
     margin-right: 0.5rem;
   }
 
+  /* Step Up Section Styles */
+  .step-up-section {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .community-banner {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border: 1px solid #10b981;
+    color: #065f46;
+  }
+
+  .community-banner p {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9rem;
+  }
+
+  .verifier-benefits {
+    margin: 2rem 0;
+  }
+
+  .verifier-benefits h3 {
+    margin-bottom: 1rem;
+    color: #374151;
+  }
+
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+
+  .benefit-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.25rem;
+    text-align: center;
+  }
+
+  .benefit-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .benefit-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.25rem;
+  }
+
+  .benefit-desc {
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+
+  .stake-info {
+    margin: 2rem 0;
+  }
+
+  .stake-info h3 {
+    margin-bottom: 1rem;
+    color: #374151;
+  }
+
+  .stake-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    color: white;
+  }
+
+  .stake-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+
+  .stake-meals {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+  }
+
+  .stake-note {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    font-style: italic;
+  }
+
+  .btn-step-up {
+    display: block;
+    width: 100%;
+    max-width: 400px;
+    margin: 2rem auto 0;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .btn-step-up:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+
+  /* Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+
+  .modal {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 450px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal h2 {
+    margin: 0 0 1rem 0;
+    color: #374151;
+  }
+
+  .modal p {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-info {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .modal-row:last-child {
+    border-bottom: none;
+  }
+
+  .modal-value {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .modal-actions button {
+    flex: 1;
+  }
+
+  .btn-confirm {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+
+  .btn-cancel {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  /* Verifier Dashboard Styles */
+  .verifier-dashboard {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .verifier-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .verifier-header h2 {
+    color: #10b981;
+    margin-bottom: 0.5rem;
+  }
+
+  .verifier-subtitle {
+    color: #6b7280;
+    font-size: 1rem;
+  }
+
+  .verifier-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    min-width: 120px;
+  }
+
+  .stat-item .stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-item .stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #374151;
+    margin-top: 0.25rem;
+  }
+
+  .pending-claims-section h3 {
+    margin-bottom: 1rem;
+    color: #374151;
+  }
+
+  .claims-to-verify {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .claim-verify-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .claim-verify-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .claimant {
+    font-weight: 500;
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #374151;
+  }
+
+  .claim-time {
+    font-size: 0.8rem;
+    color: #6b7280;
+  }
+
+  .claim-verify-details {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .detail-row .detail-label {
+    font-size: 0.75rem;
+    margin-right: 0;
+  }
+
+  .detail-row span:last-child {
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .token-highlight {
+    color: #667eea;
+    font-weight: 600 !important;
+  }
+
+  .evidence-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: #f3f4f6;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .evidence-label {
+    color: #6b7280;
+  }
+
+  .evidence-indicator {
+    font-size: 1rem;
+  }
+
+  .verify-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .btn-verify, .btn-cannot-verify {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: auto;
+  }
+
+  .btn-verify {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+
+  .btn-verify:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  }
+
+  .btn-cannot-verify {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .btn-cannot-verify:hover:not(:disabled) {
+    background: #e5e7eb;
+    color: #374151;
+  }
+
+  .btn-verify:disabled, .btn-cannot-verify:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   @media (max-width: 640px) {
     .container {
       padding: 1rem;
@@ -732,6 +1370,40 @@
 
     .claim-details {
       grid-template-columns: 1fr;
+    }
+
+    .benefits-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .claim-verify-details {
+      grid-template-columns: 1fr;
+    }
+
+    .verify-actions {
+      flex-direction: column;
+    }
+
+    .verifier-stats {
+      gap: 0.5rem;
+    }
+
+    .stat-item {
+      min-width: 80px;
+      padding: 0.75rem;
+    }
+
+    .stat-item .stat-value {
+      font-size: 1rem;
+    }
+
+    .modal {
+      margin: 1rem;
+      padding: 1.5rem;
+    }
+
+    .modal-actions {
+      flex-direction: column;
     }
   }
 </style>

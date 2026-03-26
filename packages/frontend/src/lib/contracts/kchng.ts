@@ -372,6 +372,46 @@ export class KchngClient {
     }
   }
 
+  /**
+   * Get verifier data for an address
+   */
+  async getVerifier(verifierAddress: string): Promise<VerifierData> {
+    try {
+      const address = new Address(verifierAddress);
+      const result = await this.simulateContractCall(this.contractId, "get_verifier", [
+        address.toScVal(),
+      ]);
+
+      if (result) {
+        return this.verifierDataFromScVal(result);
+      }
+      throw new Error("Verifier not found");
+    } catch (error) {
+      console.error("Error fetching verifier data:", error);
+      throw new Error("Failed to fetch verifier data from contract");
+    }
+  }
+
+  /**
+   * Get pending claim IDs for a verifier
+   */
+  async getVerifierPendingClaims(verifierAddress: string): Promise<number[]> {
+    try {
+      const address = new Address(verifierAddress);
+      const result = await this.simulateContractCall(this.contractId, "get_verifier_pending_claims", [
+        address.toScVal(),
+      ]);
+
+      if (result) {
+        return this.u64ArrayFromScVal(result);
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching pending claims:", error);
+      return [];
+    }
+  }
+
   // ==========================================================================
   // GRACE PERIODS
   // ==========================================================================
@@ -1116,6 +1156,35 @@ export class KchngClient {
         votes_for: 0,
         votes_against: 0,
         voters: [],
+      };
+    }
+  }
+
+  /**
+   * Convert VerifierData ScVal to VerifierData
+   * Fields: trust_id (Option<Address>), stake (U256), reputation_score (u32),
+   *         verified_claims (u32), rejected_claims (u32), fraud_reports (u32),
+   *         aspect_scores (Map<Bytes, u32>)
+   */
+  private verifierDataFromScVal(val: xdr.ScVal): VerifierData {
+    try {
+      return {
+        trust_id: this.getStructField(val, 0) ? this.optionAddressFromScVal(this.getStructField(val, 0)!) : null,
+        stake: this.getStructField(val, 1) ? this.u256FromScVal(this.getStructField(val, 1)!) : 0n,
+        reputation_score: this.getStructField(val, 2) ? this.u32FromScVal(this.getStructField(val, 2)!) : 0,
+        verified_claims: this.getStructField(val, 3) ? this.u32FromScVal(this.getStructField(val, 3)!) : 0,
+        rejected_claims: this.getStructField(val, 4) ? this.u32FromScVal(this.getStructField(val, 4)!) : 0,
+        fraud_reports: this.getStructField(val, 5) ? this.u32FromScVal(this.getStructField(val, 5)!) : 0,
+      };
+    } catch (error) {
+      console.error("[KchngClient] Failed to parse VerifierData:", error);
+      return {
+        trust_id: null,
+        stake: 0n,
+        reputation_score: 0,
+        verified_claims: 0,
+        rejected_claims: 0,
+        fraud_reports: 0,
       };
     }
   }

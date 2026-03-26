@@ -49,6 +49,14 @@
   let oracleLoading = $state(false);
   let showOracleModal = $state(false);
 
+  // Governor management state
+  let isGovernor = $state(false);
+  let governorTrustId = $state<string | null>(null);
+  let currentSuccessor = $state<string | null>(null);
+  let showSuccessorModal = $state(false);
+  let showStepDownModal = $state(false);
+  let newSuccessorAddress = $state("");
+
   onMount(async () => {
     await loadData();
     await checkOracleStatus();
@@ -108,6 +116,84 @@
     }
   }
 
+  async function designateSuccessor() {
+    if (!$wallet.connected || !$wallet.address || !newSuccessorAddress.trim()) {
+      txMessage = { type: "error", text: "Please enter a valid successor address" };
+      return;
+    }
+
+    txPending = true;
+    txMessage = { type: "info", text: "Naming your successor..." };
+
+    try {
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const kchngClient = createKchngClient($wallet.network);
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      const txHash = await kchngClient.designateSuccessor($wallet.address, newSuccessorAddress.trim());
+
+      txMessage = {
+        type: "success",
+        text: `Successor named! Transaction: ${txHash.slice(0, 8)}...`
+      };
+
+      currentSuccessor = newSuccessorAddress.trim();
+      newSuccessorAddress = "";
+      showSuccessorModal = false;
+
+      // Refresh data
+      await loadData();
+
+    } catch (e) {
+      txMessage = {
+        type: "error",
+        text: e instanceof Error ? e.message : "Failed to designate successor"
+      };
+    } finally {
+      txPending = false;
+    }
+  }
+
+  async function stepDownAsGovernor() {
+    if (!$wallet.connected || !$wallet.address) {
+      txMessage = { type: "error", text: "Please connect your wallet first" };
+      return;
+    }
+
+    txPending = true;
+    txMessage = { type: "info", text: "Passing the torch..." };
+
+    try {
+      const { createKchngClient } = await import("$lib/contracts/kchng");
+      const { RoleType } = await import("@kchng/shared");
+      const kchngClient = createKchngClient($wallet.network);
+      kchngClient.setSignTransactionCallback(wallet.signTransaction);
+
+      const txHash = await kchngClient.stepDown($wallet.address, RoleType.Governor);
+
+      txMessage = {
+        type: "success",
+        text: `You've passed the torch! Transaction: ${txHash.slice(0, 8)}...`
+      };
+
+      isGovernor = false;
+      governorTrustId = null;
+      currentSuccessor = null;
+      showStepDownModal = false;
+
+      // Refresh data
+      await loadData();
+
+    } catch (e) {
+      txMessage = {
+        type: "error",
+        text: e instanceof Error ? e.message : "Failed to step down"
+      };
+    } finally {
+      txPending = false;
+    }
+  }
+
   async function loadData() {
     try {
       const { createKchngClient } = await import("$lib/contracts/kchng");
@@ -137,6 +223,18 @@
       if ($wallet.connected && $wallet.address) {
         const accountData = await kchngClient.getAccountData($wallet.address);
         userTrustId = accountData.trust_id;
+
+        // Check if user is a governor of any trust
+        for (const trust of trustData) {
+          if (trust.governor === $wallet.address) {
+            isGovernor = true;
+            governorTrustId = trust.id;
+            // Get full trust info to check successor
+            const fullTrustInfo = await kchngClient.getTrustInfo(trust.id);
+            currentSuccessor = fullTrustInfo.successor;
+            break;
+          }
+        }
       }
 
       loading = false;
@@ -507,6 +605,63 @@
     </div>
   </div>
 
+  <!-- Governor Management Section -->
+  {#if isGovernor}
+    <div class="governor-section">
+      <h2>🏛️ Trust Governor</h2>
+      <p class="governor-description">
+        As the governor of your trust, you can name a successor and pass the torch when you're ready.
+      </p>
+
+      <div class="governor-card">
+        <div class="governor-status">
+          <span class="status-icon governor-icon">👑</span>
+          <span class="status-text">You are the Governor of this trust</span>
+        </div>
+
+        <div class="successor-info">
+          <h4>Named Successor:</h4>
+          {#if currentSuccessor}
+            <div class="successor-address">
+              <span class="address-badge">{currentSuccessor.slice(0, 8)}...{currentSuccessor.slice(-6)}</span>
+              <span class="successor-note">Ready to take over when you pass the torch</span>
+            </div>
+          {:else}
+            <div class="no-successor">
+              <span class="warning-icon">⚠️</span>
+              <span>No successor named yet</span>
+            </div>
+            <p class="successor-hint">Name a trusted member to ensure smooth leadership transition.</p>
+          {/if}
+        </div>
+
+        <div class="governor-actions">
+          <button
+            class="btn-name-successor"
+            onclick={() => showSuccessorModal = true}
+            disabled={txPending}
+          >
+            {currentSuccessor ? 'Change Successor' : 'Name Your Successor'}
+          </button>
+
+          {#if currentSuccessor}
+            <button
+              class="btn-step-down"
+              onclick={() => showStepDownModal = true}
+              disabled={txPending}
+            >
+              Pass the Torch
+            </button>
+          {/if}
+        </div>
+
+        {#if txMessage && !showSuccessorModal && !showStepDownModal}
+          <div class="tx-message {txMessage.type}">{txMessage.text}</div>
+        {/if}
+      </div>
+    </div>
+  {/if}
+
   <p class="value-footer">Protocol: 30 min verified work → 1,000 KCHNG minted. Social peg: 1,000 KCHNG ≈ 1 meal.</p>
 </div>
 
@@ -555,6 +710,103 @@
             Registering...
           {:else}
             Step Up for Your Community
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Successor Designation Modal -->
+{#if showSuccessorModal}
+  <div class="modal-overlay" onclick={() => showSuccessorModal = false}>
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      <button class="modal-close" onclick={() => showSuccessorModal = false}>&times;</button>
+      <h2>Name Your Successor</h2>
+      <p class="modal-subtitle">
+        Choose a trusted member to take over as governor when you're ready to step down.
+      </p>
+
+      <div class="form-group">
+        <label>Successor Address</label>
+        <input
+          type="text"
+          bind:value={newSuccessorAddress}
+          placeholder="G... (Stellar address)"
+          disabled={txPending}
+        />
+        <small>The successor must be a member of your trust.</small>
+      </div>
+
+      {#if txMessage}
+        <div class="tx-message {txMessage.type}">{txMessage.text}</div>
+      {/if}
+
+      <div class="modal-actions">
+        <button
+          class="btn-cancel"
+          onclick={() => { showSuccessorModal = false; newSuccessorAddress = ""; txMessage = null; }}
+          disabled={txPending}
+        >
+          Cancel
+        </button>
+        <button
+          class="btn-submit"
+          onclick={designateSuccessor}
+          disabled={txPending || !newSuccessorAddress.trim()}
+        >
+          {#if txPending}
+            Naming...
+          {:else}
+            Name Successor
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Step Down Modal -->
+{#if showStepDownModal}
+  <div class="modal-overlay" onclick={() => showStepDownModal = false}>
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      <button class="modal-close" onclick={() => showStepDownModal = false}>&times;</button>
+      <h2>Pass the Torch</h2>
+      <p class="modal-subtitle">
+        Transfer governorship to your named successor. This action cannot be undone.
+      </p>
+
+      <div class="step-down-info">
+        <div class="info-row">
+          <span>Current Successor:</span>
+          <span class="successor-badge">{currentSuccessor?.slice(0, 8)}...{currentSuccessor?.slice(-6)}</span>
+        </div>
+        <p class="step-down-note">
+          Once you pass the torch, your successor will become the new governor and you will become a regular member.
+        </p>
+      </div>
+
+      {#if txMessage}
+        <div class="tx-message {txMessage.type}">{txMessage.text}</div>
+      {/if}
+
+      <div class="modal-actions">
+        <button
+          class="btn-cancel"
+          onclick={() => showStepDownModal = false}
+          disabled={txPending}
+        >
+          Cancel
+        </button>
+        <button
+          class="btn-step-down-confirm"
+          onclick={stepDownAsGovernor}
+          disabled={txPending}
+        >
+          {#if txPending}
+            Passing...
+          {:else}
+            Pass the Torch
           {/if}
         </button>
       </div>
@@ -1244,6 +1496,185 @@
   }
 
   .btn-submit:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  /* Governor Section Styles */
+  .governor-section {
+    margin-top: var(--space-xl);
+    padding: var(--space-lg);
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .governor-section h2 {
+    margin: 0 0 var(--space-md) 0;
+    font-size: var(--font-size-xl);
+  }
+
+  .governor-description {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-lg);
+    line-height: 1.6;
+  }
+
+  .governor-card {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #fbbf24;
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+  }
+
+  .governor-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: white;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-lg);
+  }
+
+  .governor-icon {
+    font-size: 1.5rem;
+  }
+
+  .successor-info {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
+  }
+
+  .successor-info h4 {
+    margin: 0 0 var(--space-sm) 0;
+    color: #92400e;
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .successor-address {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .address-badge {
+    font-family: monospace;
+    background: white;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    color: #78350f;
+  }
+
+  .successor-note {
+    font-size: var(--font-size-xs);
+    color: #92400e;
+  }
+
+  .no-successor {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: #92400e;
+  }
+
+  .warning-icon {
+    font-size: 1.25rem;
+  }
+
+  .successor-hint {
+    margin: var(--space-sm) 0 0 0;
+    font-size: var(--font-size-sm);
+    color: #78350f;
+    font-style: italic;
+  }
+
+  .governor-actions {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  .btn-name-successor {
+    padding: var(--space-sm) var(--space-lg);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    cursor: pointer;
+    width: auto;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .btn-name-successor:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+
+  .btn-step-down {
+    padding: var(--space-sm) var(--space-lg);
+    background: white;
+    color: #78350f;
+    border: 2px solid #fbbf24;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    cursor: pointer;
+    width: auto;
+    transition: all 0.2s;
+  }
+
+  .btn-step-down:hover:not(:disabled) {
+    background: #fef3c7;
+    border-color: #f59e0b;
+  }
+
+  .step-down-info {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) 0;
+  }
+
+  .successor-badge {
+    font-family: monospace;
+    background: white;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+  }
+
+  .step-down-note {
+    margin: var(--space-md) 0 0 0;
+    font-size: var(--font-size-sm);
+    color: #78350f;
+  }
+
+  .btn-step-down-confirm {
+    padding: var(--space-sm) var(--space-lg);
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    cursor: pointer;
+    width: auto;
+  }
+
+  .btn-step-down-confirm:hover:not(:disabled) {
     opacity: 0.9;
   }
 </style>
