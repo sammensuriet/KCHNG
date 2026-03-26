@@ -1,7 +1,7 @@
 {
   "name": "KCHNG - Community Work Exchange",
   "short_name": "KCHNG",
-  "description": "Community currency for collaborative communities. 30 minutes work = 1 meal. Track and reward community service.",
+  "description": "Time- and labour-backed currency for productive communities. 30 minutes work = 1 meal. Track and reward community service.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
