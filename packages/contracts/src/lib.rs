@@ -43,7 +43,6 @@ const COMMUNITY_VERIFIER_FUND_SEED: u64 = 300_000; // 300K seeds verifier fund
 
 // Demurrage split (basis points)
 const DEMURRAGE_GENESIS_SHARE_BPS: u32 = 3000; // 30% to genesis pool
-const DEMURRAGE_LOCAL_SHARE_BPS: u32 = 7000; // 70% to local verifier fund
 
 // Verifier elections
 const ELECTION_VOTE_PERIOD_DAYS: u64 = 3;
@@ -879,8 +878,9 @@ impl KchngToken {
             None => panic!("Insufficient balance"),
         };
 
-        let balance_after_demurrage =
-            Self::calculate_balance_with_demurrage(&env, from.clone(), &from_data);
+        let (balance_after_demurrage, burned) =
+            Self::calculate_demurrage_amount(&env, from.clone(), &from_data);
+        Self::apply_demurrage_split(&env, &from_data, burned);
 
         if balance_after_demurrage < amount {
             panic!("Insufficient balance");
@@ -1855,8 +1855,9 @@ impl KchngToken {
 
         // Check verifier has enough balance to stake
         let stake_amount = U256::from_u128(&env, VERIFIER_STAKE as u128);
-        let balance_after_demurrage =
-            Self::calculate_balance_with_demurrage(&env, verifier.clone(), &verifier_account);
+        let (balance_after_demurrage, burned) =
+            Self::calculate_demurrage_amount(&env, verifier.clone(), &verifier_account);
+        Self::apply_demurrage_split(&env, &verifier_account, burned);
 
         if balance_after_demurrage < stake_amount {
             panic!("Insufficient balance to stake");
@@ -3483,8 +3484,9 @@ impl KchngToken {
         };
 
         // Check from account has enough balance after demurrage
-        let balance_after_demurrage =
-            Self::calculate_balance_with_demurrage(&env, from.clone(), &from_data);
+        let (balance_after_demurrage, burned) =
+            Self::calculate_demurrage_amount(&env, from.clone(), &from_data);
+        Self::apply_demurrage_split(&env, &from_data, burned);
 
         if balance_after_demurrage < amount {
             panic!("Insufficient balance");
