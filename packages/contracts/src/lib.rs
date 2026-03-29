@@ -33,6 +33,22 @@ const MAX_SUPPLY: u128 = 1_000_000_000_000_000_000_000; // 1 quintillion
 // Verification
 const MIN_VERIFIERS: u32 = 2;
 const VERIFIER_STAKE: u64 = 100_000; // 100,000 KCHNG
+const VERIFIER_BASE_FEE: u64 = 500; // 500 KCHNG per verification
+const VERIFIER_CLAIM_PERCENTAGE_BPS: u32 = 200; // 2% of claim value for approved claims
+
+// Governor stake (community creation)
+const GOVERNOR_STAKE_AMOUNT: u64 = 500_000; // 500K KCHNG total
+const GOVERNOR_COLLATERAL: u64 = 200_000; // 200K collateral (at risk)
+const COMMUNITY_VERIFIER_FUND_SEED: u64 = 300_000; // 300K seeds verifier fund
+
+// Demurrage split (basis points)
+const DEMURRAGE_GENESIS_SHARE_BPS: u32 = 3000; // 30% to genesis pool
+const DEMURRAGE_LOCAL_SHARE_BPS: u32 = 7000; // 70% to local verifier fund
+
+// Verifier elections
+const ELECTION_VOTE_PERIOD_DAYS: u64 = 3;
+const MIN_ELECTION_QUORUM_PERCENT: u32 = 40; // 40% of members must vote
+const MIN_ELECTION_APPROVAL_PERCENT: u32 = 60; // 60% must approve
 
 // Grace Periods
 const MAX_GRACE_PERIODS_PER_YEAR: u32 = 3;
@@ -67,6 +83,15 @@ const KEY_VERIFIER_ASSIGNMENTS: u32 = 800;
 const KEY_GOVERNOR_TRUSTS: u32 = 201; // Governor-to-trust mapping (anti-gaming: Part 2)
 const KEY_LAST_GRACE_TIMES: u32 = 501; // Last grace period activation times (anti-gaming: Part 5.3)
 const KEY_REPUTATIONS: u32 = 900; // Map<Address, Map<RoleType, ReputationData>>
+
+// Verifier ecosystem
+const KEY_GENESIS_POOL: u32 = 10; // GenesisPoolData (singleton instance)
+const KEY_GENESIS_TRUST_ID: u32 = 11; // Address - genesis trust ID
+const KEY_NEXT_ELECTION_ID: u32 = 12; // U256 counter
+const KEY_TRUST_FUNDS: u32 = 1000; // Map<Address, VerifierFundData>
+const KEY_VERIFIER_ELECTIONS: u32 = 1100; // Map<u64, VerifierElection>
+const KEY_CANDIDATE_ELECTIONS: u32 = 1200; // Map<Address, u64> active election per candidate
+const KEY_COMPENSATION_CLAIMED: u32 = 1300; // Map<(Address, u64), bool> prevent double-claiming
 
 // ============================================================================
 // ENUMS
@@ -138,6 +163,24 @@ pub enum ProposalType {
     RoleProbation = 7,   // Put a role in probation status
 }
 
+/// Status of a verifier election
+#[derive(Clone, PartialEq, Debug)]
+#[contracttype]
+pub enum ElectionStatus {
+    Pending = 0,  // Voting period active
+    Approved = 1, // Elected as verifier
+    Rejected = 2, // Not enough support
+    Expired = 3,  // Quorum not met
+}
+
+/// Source of a verifier's stake
+#[derive(Clone, PartialEq, Debug)]
+#[contracttype]
+pub enum StakeSource {
+    CommunityFund = 0, // Stake covered by community verifier fund
+    SelfFunded = 1,    // Stake from verifier's own balance
+}
+
 /// Role type for reputation tracking
 #[derive(Clone, PartialEq, Debug)]
 #[contracttype]
@@ -154,6 +197,7 @@ pub enum RoleType {
 // ============================================================================
 
 /// Account data including demurrage tracking
+#[derive(Clone)]
 #[contracttype]
 pub struct AccountData {
     pub balance: U256,
@@ -177,6 +221,8 @@ pub struct TrustData {
     pub member_count: u32,
     pub is_active: bool,
     pub created_at: u64,
+    pub governor_stake: U256,              // Collateral staked by governor
+    pub governor_collateral_at_risk: U256, // Accumulated slashing on collateral
 }
 
 /// Verifier data for work verification
@@ -193,6 +239,10 @@ pub struct VerifierData {
     /// Default for new roles is 500 (neutral)
     /// Examples: "dining:guest" → 850, "ride_sharing:driver" → 920
     pub aspect_scores: Map<Bytes, u32>,
+    /// Whether stake is from community fund or verifier's own balance
+    pub stake_source: StakeSource,
+    /// Timestamp of last compensation claim (cooldown tracking)
+    pub last_compensation_claim: u64,
 }
 
 /// Work claim for time-based token issuance
@@ -314,6 +364,57 @@ pub struct MigrationResult {
     pub grace_periods_validated: u32,
     pub reputations_validated: u32,
     pub errors: Vec<String>,
+}
+
+// ============================================================================
+// VERIFIER ECOSYSTEM DATA STRUCTURES
+// ============================================================================
+
+/// Genesis pool - the perpetual verifier funding pool for the genesis trust
+/// Funded by demurrage from ALL communities (30% share)
+#[derive(Clone)]
+#[contracttype]
+pub struct GenesisPoolData {
+    pub trust_id: Address,      // Genesis trust ID (contract address)
+    pub pool_balance: U256,     // Accumulated demurrage for genesis verifiers
+    pub total_compensed: U256,  // Lifetime total paid out
+}
+
+/// Verifier fund per trust - funded by governor stake (300K seed) + 70% of local demurrage
+#[derive(Clone)]
+#[contracttype]
+pub struct VerifierFundData {
+    pub trust_id: Address,
+    pub pool_balance: U256,     // Available balance for verifier stakes + compensation
+    pub total_compensed: U256,  // Lifetime total paid out to verifiers
+    pub total_stakes_covered: U256, // Total stake amount covering community-funded verifiers
+}
+
+/// Verifier election - community members vote to elect verifiers
+#[derive(Clone)]
+#[contracttype]
+pub struct VerifierElection {
+    pub election_id: u64,
+    pub candidate: Address,
+    pub trust_id: Address,
+    pub created_at: u64,
+    pub vote_end: u64,
+    pub votes_for: u32,
+    pub votes_against: u32,
+    pub voters: Vec<Address>,
+    pub status: ElectionStatus,
+}
+
+/// Result of a verifier compensation claim
+#[derive(Clone)]
+#[contracttype]
+pub struct VerifierCompensation {
+    pub verifier: Address,
+    pub claim_id: u64,
+    pub base_fee: U256,
+    pub claim_percentage: U256,
+    pub total_compensation: U256,
+    pub paid_from: Address, // Trust fund address or genesis trust
 }
 
 // Reputation event type codes - track history in ReputationData.recent_events
@@ -498,6 +599,76 @@ pub struct MigrationCompleted {
     pub timestamp: u64,
 }
 
+/// Emitted when the genesis trust is created
+#[contractevent]
+pub struct GenesisTrustCreated {
+    #[topic]
+    pub trust_id: Address,
+    pub timestamp: u64,
+}
+
+/// Emitted when a member joins the genesis trust
+#[contractevent]
+pub struct GenesisMemberJoined {
+    #[topic]
+    pub member: Address,
+    pub member_count: u32,
+}
+
+/// Emitted when demurrage is split between genesis and local pools
+#[contractevent]
+pub struct DemurrageSplit {
+    #[topic]
+    pub account: Address,
+    pub total_burned: U256,
+    pub genesis_share: U256,
+    pub local_share: U256,
+}
+
+/// Emitted when a verifier election is created
+#[contractevent]
+pub struct VerifierElectionCreated {
+    #[topic]
+    pub candidate: Address,
+    pub election_id: u64,
+    pub trust_id: Address,
+}
+
+/// Emitted when a vote is cast on a verifier election
+#[contractevent]
+pub struct VerifierElectionVote {
+    #[topic]
+    pub voter: Address,
+    pub election_id: u64,
+    pub support: bool,
+}
+
+/// Emitted when a verifier election is finalized
+#[contractevent]
+pub struct VerifierElectionFinalized {
+    #[topic]
+    pub candidate: Address,
+    pub election_id: u64,
+    pub approved: bool,
+}
+
+/// Emitted when a verifier claims compensation
+#[contractevent]
+pub struct VerifierCompensationClaimed {
+    #[topic]
+    pub verifier: Address,
+    pub claim_id: u64,
+    pub amount: U256,
+}
+
+/// Emitted when a trust's verifier fund is updated
+#[contractevent]
+pub struct VerifierFundUpdated {
+    #[topic]
+    pub trust_id: Address,
+    pub new_balance: U256,
+}
+
 /// KCHNG Token Contract with native on-chain demurrage
 #[contract]
 pub struct KchngToken;
@@ -543,6 +714,48 @@ impl KchngToken {
         env.storage()
             .instance()
             .set(&KEY_NEXT_PROPOSAL_ID, &U256::from_u32(&env, 1));
+
+        // Create genesis trust (contract-governed community)
+        let contract_address = env.current_contract_address();
+        let genesis_trust = TrustData {
+            name: String::from_str(&env, "KCHNG Genesis Community"),
+            governor: contract_address.clone(),
+            successor: None,
+            annual_rate_bps: DEFAULT_ANNUAL_RATE_BPS,
+            demurrage_period_days: DEFAULT_PERIOD_DAYS,
+            member_count: 0, // Members join explicitly
+            is_active: true,
+            created_at: env.ledger().timestamp(),
+            governor_stake: U256::from_u32(&env, 0),
+            governor_collateral_at_risk: U256::from_u32(&env, 0),
+        };
+
+        let mut trusts: Map<Address, TrustData> = Map::new(&env);
+        trusts.set(contract_address.clone(), genesis_trust);
+        env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+
+        // Store genesis trust ID
+        env.storage().instance().set(&KEY_GENESIS_TRUST_ID, &contract_address);
+
+        // Initialize genesis pool
+        let genesis_pool = GenesisPoolData {
+            trust_id: contract_address.clone(),
+            pool_balance: U256::from_u32(&env, 0),
+            total_compensed: U256::from_u32(&env, 0),
+        };
+        env.storage().instance().set(&KEY_GENESIS_POOL, &genesis_pool);
+
+        // Initialize election counter
+        env.storage()
+            .instance()
+            .set(&KEY_NEXT_ELECTION_ID, &U256::from_u32(&env, 1));
+
+        // Emit genesis trust created event
+        GenesisTrustCreated {
+            trust_id: contract_address,
+            timestamp: env.ledger().timestamp(),
+        }
+        .publish(&env);
     }
 
     /// Initialize the token with initial supply to the creator (legacy method)
@@ -594,6 +807,38 @@ impl KchngToken {
         env.storage()
             .instance()
             .set(&KEY_NEXT_PROPOSAL_ID, &U256::from_u32(&env, 1));
+
+        // Create genesis trust (same as __constructor)
+        let contract_address = env.current_contract_address();
+        let genesis_trust = TrustData {
+            name: String::from_str(&env, "KCHNG Genesis Community"),
+            governor: contract_address.clone(),
+            successor: None,
+            annual_rate_bps: DEFAULT_ANNUAL_RATE_BPS,
+            demurrage_period_days: DEFAULT_PERIOD_DAYS,
+            member_count: 0,
+            is_active: true,
+            created_at: env.ledger().timestamp(),
+            governor_stake: U256::from_u32(&env, 0),
+            governor_collateral_at_risk: U256::from_u32(&env, 0),
+        };
+
+        let mut trusts: Map<Address, TrustData> = Map::new(&env);
+        trusts.set(contract_address.clone(), genesis_trust);
+        env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+
+        env.storage().instance().set(&KEY_GENESIS_TRUST_ID, &contract_address);
+
+        let genesis_pool = GenesisPoolData {
+            trust_id: contract_address.clone(),
+            pool_balance: U256::from_u32(&env, 0),
+            total_compensed: U256::from_u32(&env, 0),
+        };
+        env.storage().instance().set(&KEY_GENESIS_POOL, &genesis_pool);
+
+        env.storage()
+            .instance()
+            .set(&KEY_NEXT_ELECTION_ID, &U256::from_u32(&env, 1));
     }
 
     /// Get the current balance of an account (after applying demurrage)
@@ -847,6 +1092,9 @@ impl KchngToken {
         }
 
         // Create trust data
+        let stake_amount = U256::from_u128(&env, GOVERNOR_STAKE_AMOUNT as u128);
+        let collateral = U256::from_u128(&env, GOVERNOR_COLLATERAL as u128);
+
         let trust = TrustData {
             name: name.clone(),
             governor: governor.clone(),
@@ -856,7 +1104,55 @@ impl KchngToken {
             member_count: 1, // Governor counts as first member
             is_active: true,
             created_at: env.ledger().timestamp(),
+            governor_stake: collateral.clone(),
+            governor_collateral_at_risk: U256::from_u32(&env, 0),
         };
+
+        // --- Governor stake: deduct 500K from governor's balance ---
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let governor_account = accounts.get(governor.clone()).unwrap_or(AccountData {
+            balance: U256::from_u32(&env, 0),
+            last_activity: u64::MAX,
+            grace_period_end: 0,
+            trust_id: None,
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
+        });
+
+        // Apply demurrage before checking balance
+        let (balance_after_demo, burned) =
+            Self::calculate_demurrage_amount(&env, governor.clone(), &governor_account);
+        Self::apply_demurrage_split(&env, &governor_account, burned);
+
+        if balance_after_demo < stake_amount {
+            panic!("Insufficient balance for governor stake (500,000 KCHNG required)");
+        }
+
+        // Deduct 500K from governor
+        let mut updated_governor = governor_account.clone();
+        updated_governor.balance = balance_after_demo.sub(&stake_amount);
+        updated_governor.last_activity = env.ledger().timestamp();
+        updated_governor.trust_id = Some(governor.clone());
+        accounts.set(governor.clone(), updated_governor);
+
+        // Seed the trust's verifier fund with 300K
+        let fund_seed = U256::from_u128(&env, COMMUNITY_VERIFIER_FUND_SEED as u128);
+        let trust_fund = VerifierFundData {
+            trust_id: governor.clone(),
+            pool_balance: fund_seed,
+            total_compensed: U256::from_u32(&env, 0),
+            total_stakes_covered: U256::from_u32(&env, 0),
+        };
+        let mut funds: Map<Address, VerifierFundData> = env
+            .storage()
+            .persistent()
+            .get(&KEY_TRUST_FUNDS)
+            .unwrap_or(Map::new(&env));
+        funds.set(governor.clone(), trust_fund);
+        env.storage().persistent().set(&KEY_TRUST_FUNDS, &funds);
 
         // Store trust
         let mut trusts: Map<Address, TrustData> = env
@@ -878,26 +1174,10 @@ impl KchngToken {
             .persistent()
             .set(&KEY_GOVERNOR_TRUSTS, &governor_trusts);
 
-        // Update governor's account to be part of this trust
-        let mut accounts: Map<Address, AccountData> =
-            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
-        let governor_data = accounts.get(governor.clone()).unwrap_or(AccountData {
-            balance: U256::from_u32(&env, 0),
-            last_activity: u64::MAX, // u64::MAX = no previous transfer, first transfer allowed immediately
-            grace_period_end: 0,
-            trust_id: None,
-            contribution_hours: 0,
-            grace_periods_used: 0,
-            last_grace_year: 0,
-        });
-
-        let mut updated_governor = governor_data;
-        updated_governor.trust_id = Some(governor.clone());
-        accounts.set(governor.clone(), updated_governor);
+        // Save updated accounts (governor's balance already deducted above)
         env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
 
         // Initialize governor reputation (starts at 500 = neutral)
-        // This creates the reputation entry if it doesn't exist
         let _ = Self::get_reputation_data(env.clone(), governor.clone(), RoleType::Governor);
 
         // Emit trust registered event for PWA integration
@@ -1183,7 +1463,6 @@ impl KchngToken {
             RoleType::Verifier => {
                 successor_for_event = None;
 
-                // Return full stake (no slashing for voluntary release)
                 let mut verifiers: Map<Address, VerifierData> = env
                     .storage()
                     .persistent()
@@ -1191,13 +1470,36 @@ impl KchngToken {
                     .unwrap_or(Map::new(&env));
 
                 if let Some(verifier_data) = verifiers.get(address.clone()) {
-                    // Return full stake to account
-                    let mut accounts: Map<Address, AccountData> =
-                        env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
-                    if let Some(mut account) = accounts.get(address.clone()) {
-                        account.balance = account.balance.add(&verifier_data.stake);
-                        accounts.set(address.clone(), account);
-                        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+                    match verifier_data.stake_source {
+                        StakeSource::SelfFunded => {
+                            // Return full stake to verifier's account
+                            let mut accounts: Map<Address, AccountData> =
+                                env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+                            if let Some(mut account) = accounts.get(address.clone()) {
+                                account.balance = account.balance.add(&verifier_data.stake);
+                                accounts.set(address.clone(), account);
+                                env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+                            }
+                        }
+                        StakeSource::CommunityFund => {
+                            // Return stake to trust's verifier fund
+                            if let Some(trust_id) = verifier_data.trust_id.clone() {
+                                let mut funds: Map<Address, VerifierFundData> = env
+                                    .storage()
+                                    .persistent()
+                                    .get(&KEY_TRUST_FUNDS)
+                                    .unwrap_or(Map::new(&env));
+                                if let Some(mut fund) = funds.get(trust_id.clone()) {
+                                    fund.pool_balance =
+                                        fund.pool_balance.add(&verifier_data.stake);
+                                    fund.total_stakes_covered = fund
+                                        .total_stakes_covered
+                                        .sub(&verifier_data.stake);
+                                    funds.set(trust_id, fund);
+                                    env.storage().persistent().set(&KEY_TRUST_FUNDS, &funds);
+                                }
+                            }
+                        }
                     }
 
                     verifiers.remove(address.clone());
@@ -1295,6 +1597,72 @@ impl KchngToken {
         }
     }
 
+    // ============================================================================
+    // GENESIS TRUST SYSTEM
+    // ============================================================================
+
+    /// Get the genesis trust ID (contract address)
+    pub fn get_genesis_trust_id(env: Env) -> Address {
+        env.storage().instance().get(&KEY_GENESIS_TRUST_ID).unwrap()
+    }
+
+    /// Join the genesis trust (open to all, no governor stake required)
+    /// This is the bootstrap entry point for new users
+    pub fn join_genesis_trust(env: Env, member: Address) {
+        member.require_auth();
+
+        let genesis_trust_id: Address = env.storage().instance().get(&KEY_GENESIS_TRUST_ID).unwrap();
+
+        // Get member's account
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+
+        let member_data = accounts.get(member.clone()).unwrap_or(AccountData {
+            balance: U256::from_u32(&env, 0),
+            last_activity: u64::MAX,
+            grace_period_end: 0,
+            trust_id: None,
+            contribution_hours: 0,
+            grace_periods_used: 0,
+            last_grace_year: 0,
+        });
+
+        // Check if already in a trust
+        if member_data.trust_id.is_some() {
+            panic!("Already a member of a trust");
+        }
+
+        // Update member's trust membership
+        let mut updated_member = member_data;
+        updated_member.trust_id = Some(genesis_trust_id.clone());
+        accounts.set(member.clone(), updated_member);
+
+        // Update genesis trust member count
+        let mut trusts: Map<Address, TrustData> =
+            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+        let mut genesis_trust = trusts.get(genesis_trust_id.clone()).unwrap();
+        genesis_trust.member_count += 1;
+        trusts.set(genesis_trust_id.clone(), genesis_trust.clone());
+
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+        env.storage().persistent().set(&KEY_TRUSTS, &trusts);
+
+        // Update member reputation (+5 for joining)
+        Self::update_reputation(&env, &member, &RoleType::Member, 5, REP_EVENT_MEMBER_JOIN);
+
+        // Emit member joined event
+        MemberJoin {
+            member: member.clone(),
+            trust_id: genesis_trust_id,
+        }
+        .publish(&env);
+    }
+
+    /// Get genesis pool data
+    pub fn get_genesis_pool(env: Env) -> GenesisPoolData {
+        env.storage().instance().get(&KEY_GENESIS_POOL).unwrap()
+    }
+
     /// Get oracle data
     pub fn get_oracle(env: Env, oracle: Address) -> OracleData {
         let oracles: Map<Address, OracleData> =
@@ -1314,98 +1682,135 @@ impl KchngToken {
 
     /// Calculate balance after applying trust-specific percentage-based demurrage
     /// Uses the Wörgl model: ~12.7% annual (1% monthly) with trust-specific rates
-    fn calculate_balance_with_demurrage(env: &Env, _account: Address, data: &AccountData) -> U256 {
+    /// Returns (new_balance, total_burned) for demurrage split routing
+    fn calculate_demurrage_amount(
+        env: &Env,
+        _account: Address,
+        data: &AccountData,
+    ) -> (U256, U256) {
         let current_timestamp = env.ledger().timestamp();
 
         // Check if account is in a grace period
         if data.grace_period_end > 0 && current_timestamp < data.grace_period_end {
-            // Demurrage is paused during grace period
-            return data.balance.clone();
+            return (data.balance.clone(), U256::from_u32(env, 0));
         }
 
         let last_activity: u64 = data.last_activity;
 
         // Timestamp validation (anti-gaming: Part 8) - prevent future timestamps
         if last_activity > current_timestamp {
-            // Clock skew or malicious timestamp - return balance without demurrage
-            return data.balance.clone();
+            return (data.balance.clone(), U256::from_u32(env, 0));
         }
 
         if current_timestamp <= last_activity {
-            return data.balance.clone();
+            return (data.balance.clone(), U256::from_u32(env, 0));
         }
 
-        // Calculate full inactive period without cap - allows balance to reach zero over long-term inactivity
+        // Calculate full inactive period
         let inactive_seconds = current_timestamp.saturating_sub(last_activity);
-        let _inactive_days = inactive_seconds / SECONDS_PER_DAY; // Prefix with underscore to avoid unused warning
+        let inactive_days = inactive_seconds / SECONDS_PER_DAY;
 
         // Get trust-specific demurrage parameters
         let (annual_rate_bps, period_days) = match &data.trust_id {
-            None => {
-                // Not in a trust, use default rate (12% annual, 30 day period)
-                (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS)
-            }
+            None => (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS),
             Some(trust_id) => {
-                // Get trust data
                 let trusts: Map<Address, TrustData> =
                     env.storage().persistent().get(&KEY_TRUSTS).unwrap();
-
                 match trusts.get(trust_id.clone()) {
                     Some(trust) => (trust.annual_rate_bps, trust.demurrage_period_days),
-                    None => {
-                        // Trust not found, use default
-                        (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS)
-                    }
+                    None => (DEFAULT_ANNUAL_RATE_BPS, DEFAULT_PERIOD_DAYS),
                 }
             }
         };
 
-        // Use capped inactive_seconds for period calculation
-        let inactive_days = _inactive_days;
-
         // Calculate how many complete demurrage periods have passed
         if inactive_days < period_days {
-            return data.balance.clone();
+            return (data.balance.clone(), U256::from_u32(env, 0));
         }
 
         let periods = inactive_days / period_days;
 
-        // Calculate percentage-based demurrage
-        // Formula: balance * (1 - (annual_rate / 100) / (365 / period_days))^periods
-        // Simplified: For 1% monthly (12% annual), each period reduces by 1%
-        // period_rate_bps = annual_rate_bps * period_days / 36500
-
         // Calculate the per-period rate in basis points
-        // Example: 1200 bps annual (12%), 30 day period
-        // period_rate = 1200 * 10000 * 30 / 365 / 10000 = 986 bps ≈ 0.986% per period (roughly 1%)
-        // Multiply by 10000 first to avoid integer division truncation to zero, then divide by 10000 later
         let period_rate_bps = (annual_rate_bps as u64) * 10000 * period_days / 365 / 10000;
 
-        // Calculate total burn amount across all periods
+        // Calculate balance reduction and track total burned
         let mut balance = data.balance.clone();
+        let mut total_burned = U256::from_u32(env, 0);
 
         for _ in 0..periods {
-            // Calculate burn for this period: balance * period_rate_bps / 10000
             let burn_amount = {
-                // balance * period_rate_bps / 10000
                 let rate_factor = U256::from_u128(env, period_rate_bps as u128);
                 let tmp = balance.mul(&rate_factor);
                 tmp.div(&U256::from_u128(env, 10000))
             };
 
-            balance = if balance > burn_amount {
-                balance.sub(&burn_amount)
+            if balance > burn_amount {
+                total_burned = total_burned.add(&burn_amount);
+                balance = balance.sub(&burn_amount);
             } else {
-                U256::from_u32(env, 0)
-            };
-
-            // Early exit if balance is zero
-            if balance == U256::from_u32(env, 0) {
+                total_burned = total_burned.add(&balance);
+                balance = U256::from_u32(env, 0);
                 break;
             }
         }
 
+        (balance, total_burned)
+    }
+
+    /// Backward-compatible wrapper that returns only the new balance
+    fn calculate_balance_with_demurrage(env: &Env, account: Address, data: &AccountData) -> U256 {
+        let (balance, _burned) = Self::calculate_demurrage_amount(env, account, data);
         balance
+    }
+
+    /// Route burned demurrage to genesis pool and/or local verifier fund
+    /// 30% → genesis pool, 70% → local trust verifier fund (100% genesis if no trust)
+    fn apply_demurrage_split(env: &Env, account: &AccountData, burned: U256) {
+        if burned == U256::from_u32(env, 0) {
+            return;
+        }
+
+        // Calculate shares
+        let genesis_share = burned
+            .mul(&U256::from_u32(env, DEMURRAGE_GENESIS_SHARE_BPS))
+            .div(&U256::from_u32(env, 10000));
+        let local_share = burned.sub(&genesis_share);
+
+        // Always credit genesis pool
+        let mut genesis_pool: GenesisPoolData = env
+            .storage()
+            .instance()
+            .get(&KEY_GENESIS_POOL)
+            .unwrap();
+        genesis_pool.pool_balance = genesis_pool.pool_balance.add(&genesis_share);
+        env.storage().instance().set(&KEY_GENESIS_POOL, &genesis_pool);
+
+        // Credit local verifier fund if account is in a trust
+        if let Some(trust_id) = &account.trust_id {
+            let mut funds: Map<Address, VerifierFundData> = env
+                .storage()
+                .persistent()
+                .get(&KEY_TRUST_FUNDS)
+                .unwrap_or(Map::new(env));
+            let mut fund = funds.get(trust_id.clone()).unwrap_or(VerifierFundData {
+                trust_id: trust_id.clone(),
+                pool_balance: U256::from_u32(env, 0),
+                total_compensed: U256::from_u32(env, 0),
+                total_stakes_covered: U256::from_u32(env, 0),
+            });
+            fund.pool_balance = fund.pool_balance.add(&local_share);
+            funds.set(trust_id.clone(), fund);
+            env.storage().persistent().set(&KEY_TRUST_FUNDS, &funds);
+        } else {
+            // Not in any trust: local share goes to genesis pool too
+            let mut genesis_pool: GenesisPoolData = env
+                .storage()
+                .instance()
+                .get(&KEY_GENESIS_POOL)
+                .unwrap();
+            genesis_pool.pool_balance = genesis_pool.pool_balance.add(&local_share);
+            env.storage().instance().set(&KEY_GENESIS_POOL, &genesis_pool);
+        }
     }
 
     /// Get the effective demurrage rate for an account
@@ -1476,6 +1881,8 @@ impl KchngToken {
             rejected_claims: 0,
             fraud_reports: 0,
             aspect_scores: Map::new(&env), // Empty aspects map
+            stake_source: StakeSource::SelfFunded,
+            last_compensation_claim: 0,
         };
 
         verifiers.set(verifier.clone(), verifier_data);
@@ -1587,8 +1994,472 @@ impl KchngToken {
         env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
     }
 
-    /// Unregister as an oracle and return stake
-    /// If reputation is below 100 (removal threshold), 50% of stake is slashed
+    // ============================================================================
+    // VERIFIER ELECTION SYSTEM
+    // ============================================================================
+
+    /// Propose oneself as a verifier for the community
+    /// Creates an election that other members vote on
+    /// The community's verifier fund covers the 100K stake
+    pub fn propose_verifier_election(env: Env, candidate: Address) -> u64 {
+        candidate.require_auth();
+
+        // Candidate must be in a trust
+        let accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+        let account = accounts
+            .get(candidate.clone())
+            .expect("Account not found");
+        let trust_id = account
+            .trust_id
+            .clone()
+            .expect("Must be in a community to become a verifier");
+
+        // Cannot be genesis trust (genesis verifiers are appointed differently)
+        let genesis_trust_id: Address =
+            env.storage().instance().get(&KEY_GENESIS_TRUST_ID).unwrap();
+        if trust_id == genesis_trust_id {
+            panic!("Genesis trust uses appointed verifiers, not elections");
+        }
+
+        // Check not already a verifier
+        let verifiers: Map<Address, VerifierData> = env
+            .storage()
+            .persistent()
+            .get(&KEY_VERIFIERS)
+            .unwrap_or(Map::new(&env));
+        if verifiers.contains_key(candidate.clone()) {
+            panic!("Already a verifier");
+        }
+
+        // Check no active election
+        let active_elections: Map<Address, u64> = env
+            .storage()
+            .persistent()
+            .get(&KEY_CANDIDATE_ELECTIONS)
+            .unwrap_or(Map::new(&env));
+        if let Some(election_id) = active_elections.get(candidate.clone()) {
+            let elections: Map<u64, VerifierElection> = env
+                .storage()
+                .persistent()
+                .get(&KEY_VERIFIER_ELECTIONS)
+                .unwrap_or(Map::new(&env));
+            if let Some(election) = elections.get(election_id) {
+                if election.status == ElectionStatus::Pending
+                    && env.ledger().timestamp() < election.vote_end
+                {
+                    panic!("Already have an active election");
+                }
+            }
+        }
+
+        // Check trust fund has enough to cover stake (100K)
+        let funds: Map<Address, VerifierFundData> = env
+            .storage()
+            .persistent()
+            .get(&KEY_TRUST_FUNDS)
+            .unwrap_or(Map::new(&env));
+        let fund = funds.get(trust_id.clone()).expect("Community has no verifier fund");
+        let stake_amount = U256::from_u128(&env, VERIFIER_STAKE as u128);
+        if fund.pool_balance < stake_amount {
+            panic!("Community verifier fund has insufficient balance");
+        }
+
+        // Generate election ID
+        let mut election_id_u256: U256 = env
+            .storage()
+            .instance()
+            .get(&KEY_NEXT_ELECTION_ID)
+            .unwrap();
+        let election_id = election_id_u256.to_u128().unwrap() as u64;
+
+        let current_time = env.ledger().timestamp();
+
+        // Create election
+        let election = VerifierElection {
+            election_id,
+            candidate: candidate.clone(),
+            trust_id: trust_id.clone(),
+            created_at: current_time,
+            vote_end: current_time + (ELECTION_VOTE_PERIOD_DAYS * SECONDS_PER_DAY),
+            votes_for: 0,
+            votes_against: 0,
+            voters: Vec::new(&env),
+            status: ElectionStatus::Pending,
+        };
+
+        // Store election
+        let mut elections: Map<u64, VerifierElection> = env
+            .storage()
+            .persistent()
+            .get(&KEY_VERIFIER_ELECTIONS)
+            .unwrap_or(Map::new(&env));
+        elections.set(election_id, election);
+        env.storage().persistent().set(&KEY_VERIFIER_ELECTIONS, &elections);
+
+        // Track candidate's active election
+        let mut active: Map<Address, u64> = env
+            .storage()
+            .persistent()
+            .get(&KEY_CANDIDATE_ELECTIONS)
+            .unwrap_or(Map::new(&env));
+        active.set(candidate.clone(), election_id);
+        env.storage().persistent().set(&KEY_CANDIDATE_ELECTIONS, &active);
+
+        // Increment counter
+        election_id_u256 = U256::from_u128(&env, (election_id + 1) as u128);
+        env.storage().instance().set(&KEY_NEXT_ELECTION_ID, &election_id_u256);
+
+        // Emit event
+        VerifierElectionCreated {
+            candidate: candidate.clone(),
+            election_id,
+            trust_id,
+        }
+        .publish(&env);
+
+        election_id
+    }
+
+    /// Vote on a verifier election
+    /// Only members of the same trust can vote
+    pub fn vote_verifier_election(env: Env, voter: Address, election_id: u64, support: bool) {
+        voter.require_auth();
+
+        let mut elections: Map<u64, VerifierElection> = env
+            .storage()
+            .persistent()
+            .get(&KEY_VERIFIER_ELECTIONS)
+            .unwrap();
+        let mut election = elections
+            .get(election_id)
+            .expect("Election not found");
+
+        if election.status != ElectionStatus::Pending {
+            panic!("Election is not active");
+        }
+        if env.ledger().timestamp() > election.vote_end {
+            panic!("Voting period has ended");
+        }
+        if election.voters.contains(voter.clone()) {
+            panic!("Already voted");
+        }
+
+        // Voter must be in the same trust
+        let accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+        let voter_account = accounts
+            .get(voter.clone())
+            .expect("Voter account not found");
+        if voter_account.trust_id.as_ref() != Some(&election.trust_id) {
+            panic!("Only members of the same community can vote");
+        }
+
+        // Record vote
+        if support {
+            election.votes_for += 1;
+        } else {
+            election.votes_against += 1;
+        }
+        election.voters.push_back(voter.clone());
+        elections.set(election_id, election.clone());
+        env.storage().persistent().set(&KEY_VERIFIER_ELECTIONS, &elections);
+
+        // Emit event
+        VerifierElectionVote {
+            voter,
+            election_id,
+            support,
+        }
+        .publish(&env);
+    }
+
+    /// Finalize a verifier election and register the verifier if approved
+    pub fn finalize_verifier_election(env: Env, election_id: u64) {
+        let mut elections: Map<u64, VerifierElection> = env
+            .storage()
+            .persistent()
+            .get(&KEY_VERIFIER_ELECTIONS)
+            .unwrap();
+        let mut election = elections
+            .get(election_id)
+            .expect("Election not found");
+
+        if election.status != ElectionStatus::Pending {
+            panic!("Election already finalized");
+        }
+        if env.ledger().timestamp() <= election.vote_end {
+            panic!("Voting period has not ended");
+        }
+
+        // Get trust member count for quorum
+        let trusts: Map<Address, TrustData> =
+            env.storage().persistent().get(&KEY_TRUSTS).unwrap();
+        let trust = trusts.get(election.trust_id.clone()).unwrap();
+
+        let total_votes = election.votes_for + election.votes_against;
+        let quorum_required = (trust.member_count * MIN_ELECTION_QUORUM_PERCENT / 100).max(1);
+
+        if total_votes < quorum_required || total_votes == 0 {
+            election.status = ElectionStatus::Expired;
+        } else {
+            let approval_pct = (election.votes_for * 100) / total_votes;
+            if approval_pct >= MIN_ELECTION_APPROVAL_PERCENT {
+                election.status = ElectionStatus::Approved;
+
+                // Deduct stake from trust fund
+                let stake_amount = U256::from_u128(&env, VERIFIER_STAKE as u128);
+                let mut funds: Map<Address, VerifierFundData> = env
+                    .storage()
+                    .persistent()
+                    .get(&KEY_TRUST_FUNDS)
+                    .unwrap_or(Map::new(&env));
+                let mut fund = funds.get(election.trust_id.clone()).unwrap();
+                fund.pool_balance = fund.pool_balance.sub(&stake_amount);
+                fund.total_stakes_covered =
+                    fund.total_stakes_covered.add(&stake_amount);
+                funds.set(election.trust_id.clone(), fund);
+                env.storage().persistent().set(&KEY_TRUST_FUNDS, &funds);
+
+                // Register verifier with community-funded stake
+                let verifier_data = VerifierData {
+                    trust_id: Some(election.trust_id.clone()),
+                    stake: stake_amount,
+                    reputation_score: REP_NEUTRAL,
+                    verified_claims: 0,
+                    rejected_claims: 0,
+                    fraud_reports: 0,
+                    aspect_scores: Map::new(&env),
+                    stake_source: StakeSource::CommunityFund,
+                    last_compensation_claim: 0,
+                };
+                let mut verifiers: Map<Address, VerifierData> = env
+                    .storage()
+                    .persistent()
+                    .get(&KEY_VERIFIERS)
+                    .unwrap_or(Map::new(&env));
+                verifiers.set(election.candidate.clone(), verifier_data);
+                env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
+
+                // Initialize reputation
+                let _ = Self::get_reputation_data(
+                    env.clone(),
+                    election.candidate.clone(),
+                    RoleType::Verifier,
+                );
+            } else {
+                election.status = ElectionStatus::Rejected;
+            }
+        }
+
+        let approved = election.status == ElectionStatus::Approved;
+        let candidate_addr = election.candidate.clone();
+        elections.set(election_id, election);
+        env.storage().persistent().set(&KEY_VERIFIER_ELECTIONS, &elections);
+
+        // Clear active election for candidate
+        let mut active: Map<Address, u64> = env
+            .storage()
+            .persistent()
+            .get(&KEY_CANDIDATE_ELECTIONS)
+            .unwrap_or(Map::new(&env));
+        active.remove(candidate_addr.clone());
+        env.storage().persistent().set(&KEY_CANDIDATE_ELECTIONS, &active);
+
+        // Emit event
+        VerifierElectionFinalized {
+            candidate: candidate_addr,
+            election_id,
+            approved,
+        }
+        .publish(&env);
+    }
+
+    /// Get election details
+    pub fn get_election(env: Env, election_id: u64) -> VerifierElection {
+        let elections: Map<u64, VerifierElection> = env
+            .storage()
+            .persistent()
+            .get(&KEY_VERIFIER_ELECTIONS)
+            .unwrap_or(Map::new(&env));
+        elections.get(election_id).expect("Election not found")
+    }
+
+    /// Get all active elections for a trust
+    pub fn get_trust_elections(env: Env, trust_id: Address) -> Vec<u64> {
+        let elections: Map<u64, VerifierElection> = env
+            .storage()
+            .persistent()
+            .get(&KEY_VERIFIER_ELECTIONS)
+            .unwrap_or(Map::new(&env));
+
+        let mut result = Vec::new(&env);
+        for (id, election) in elections.iter() {
+            if election.trust_id == trust_id && election.status == ElectionStatus::Pending {
+                result.push_back(id);
+            }
+        }
+        result
+    }
+
+    /// Get verifier fund data for a trust
+    pub fn get_verifier_fund(env: Env, trust_id: Address) -> VerifierFundData {
+        let funds: Map<Address, VerifierFundData> = env
+            .storage()
+            .persistent()
+            .get(&KEY_TRUST_FUNDS)
+            .unwrap_or(Map::new(&env));
+        funds.get(trust_id).expect("No verifier fund for this trust")
+    }
+
+    // ============================================================================
+    // VERIFIER COMPENSATION
+    // ============================================================================
+
+    /// Claim compensation for verification work
+    /// Base fee for any participation + 2% of claim value for approved claims
+    pub fn claim_verifier_compensation(env: Env, verifier: Address, claim_id: u64) -> VerifierCompensation {
+        verifier.require_auth();
+
+        // Get the claim
+        let claims: Map<u64, WorkClaim> =
+            env.storage().persistent().get(&KEY_WORK_CLAIMS).unwrap();
+        let claim = claims.get(claim_id).expect("Claim not found");
+
+        // Must be Approved or Rejected (verifier did work either way)
+        if claim.status != ClaimStatus::Approved && claim.status != ClaimStatus::Rejected {
+            panic!("Claim must be resolved to claim compensation");
+        }
+
+        // Verify this verifier participated in the claim
+        let mut participated = false;
+        for i in 0..claim.verifiers_assigned.len() {
+            if claim.verifiers_assigned.get(i).unwrap() == verifier {
+                participated = true;
+                break;
+            }
+        }
+        if !participated {
+            panic!("Did not participate in this claim");
+        }
+
+        // Check not already claimed compensation for this claim
+        let claimed: Map<(Address, u64), bool> = env
+            .storage()
+            .persistent()
+            .get(&KEY_COMPENSATION_CLAIMED)
+            .unwrap_or(Map::new(&env));
+        let claim_key = (verifier.clone(), claim_id);
+        if claimed.get(claim_key.clone()) == Some(true) {
+            panic!("Already claimed compensation for this claim");
+        }
+
+        // Calculate compensation
+        let base_fee = U256::from_u128(&env, VERIFIER_BASE_FEE as u128);
+
+        // Claim value percentage: 2% of minted amount (for approved claims only)
+        let claim_percentage = if claim.status == ClaimStatus::Approved {
+            let base_kchng = claim.minutes_worked * KCHNG_PER_30MINUTES / 30;
+            let kchng_to_mint = (base_kchng * claim.multiplier as u64) / 100;
+            let claim_amount = U256::from_u128(&env, kchng_to_mint as u128);
+            claim_amount
+                .mul(&U256::from_u32(&env, VERIFIER_CLAIM_PERCENTAGE_BPS))
+                .div(&U256::from_u32(&env, 10000))
+        } else {
+            U256::from_u32(&env, 0)
+        };
+
+        let total_compensation = base_fee.add(&claim_percentage);
+
+        // Determine funding source
+        let verifiers: Map<Address, VerifierData> = env
+            .storage()
+            .persistent()
+            .get(&KEY_VERIFIERS)
+            .unwrap();
+        let verifier_data = verifiers.get(verifier.clone()).expect("Verifier not found");
+        let trust_id = verifier_data.trust_id.clone().expect("Verifier has no trust");
+
+        let genesis_trust_id: Address = env.storage().instance().get(&KEY_GENESIS_TRUST_ID).unwrap();
+        let paid_from;
+
+        if trust_id == genesis_trust_id {
+            // Genesis trust verifier: pay from genesis pool
+            let mut pool: GenesisPoolData =
+                env.storage().instance().get(&KEY_GENESIS_POOL).unwrap();
+            if pool.pool_balance < total_compensation {
+                panic!("Genesis pool has insufficient funds for compensation");
+            }
+            pool.pool_balance = pool.pool_balance.sub(&total_compensation);
+            pool.total_compensed = pool.total_compensed.add(&total_compensation);
+            env.storage().instance().set(&KEY_GENESIS_POOL, &pool);
+            paid_from = genesis_trust_id;
+        } else {
+            // Local trust verifier: pay from trust fund
+            let mut funds: Map<Address, VerifierFundData> = env
+                .storage()
+                .persistent()
+                .get(&KEY_TRUST_FUNDS)
+                .unwrap_or(Map::new(&env));
+            let mut fund = funds.get(trust_id.clone()).expect("No verifier fund");
+            if fund.pool_balance < total_compensation {
+                panic!("Community verifier fund has insufficient funds for compensation");
+            }
+            fund.pool_balance = fund.pool_balance.sub(&total_compensation);
+            fund.total_compensed = fund.total_compensed.add(&total_compensation);
+            funds.set(trust_id.clone(), fund);
+            env.storage().persistent().set(&KEY_TRUST_FUNDS, &funds);
+            paid_from = trust_id;
+        }
+
+        // Credit compensation to verifier's account
+        let mut accounts: Map<Address, AccountData> =
+            env.storage().persistent().get(&KEY_ACCOUNTS).unwrap();
+        let mut account = accounts.get(verifier.clone()).unwrap();
+        let current_time = env.ledger().timestamp();
+        account.balance = account.balance.add(&total_compensation);
+        account.last_activity = current_time;
+        accounts.set(verifier.clone(), account);
+        env.storage().persistent().set(&KEY_ACCOUNTS, &accounts);
+
+        // Mark compensation as claimed (prevent double-claiming)
+        let mut claimed: Map<(Address, u64), bool> = env
+            .storage()
+            .persistent()
+            .get(&KEY_COMPENSATION_CLAIMED)
+            .unwrap_or(Map::new(&env));
+        claimed.set(claim_key, true);
+        env.storage().persistent().set(&KEY_COMPENSATION_CLAIMED, &claimed);
+
+        // Update verifier tracking
+        let mut verifiers: Map<Address, VerifierData> = env
+            .storage()
+            .persistent()
+            .get(&KEY_VERIFIERS)
+            .unwrap();
+        if let Some(mut vdata) = verifiers.get(verifier.clone()) {
+            vdata.last_compensation_claim = current_time;
+            verifiers.set(verifier.clone(), vdata);
+        }
+        env.storage().persistent().set(&KEY_VERIFIERS, &verifiers);
+
+        // Emit event
+        VerifierCompensationClaimed {
+            verifier: verifier.clone(),
+            claim_id,
+            amount: total_compensation.clone(),
+        }
+        .publish(&env);
+
+        VerifierCompensation {
+            verifier,
+            claim_id,
+            base_fee,
+            claim_percentage,
+            total_compensation,
+            paid_from,
+        }
+    }
     /// If reputation is below 200 (restricted), 25% of stake is slashed
     pub fn unregister_oracle(env: Env, oracle: Address) {
         oracle.require_auth();
