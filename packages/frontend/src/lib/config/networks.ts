@@ -5,7 +5,8 @@
 import { getNetworkConfig } from "@kchng/shared";
 import type { NetworkConfig } from "@kchng/shared";
 
-export type Network = "testnet" | "mainnet" | "standalone";
+export type Network = "testnet" | "standalone";
+// Note: "mainnet" is excluded during early-stage development
 
 /**
  * Get network configuration with contract ID
@@ -25,6 +26,6 @@ export function getKchngNetworkConfig(network: Network): NetworkConfig & {
 /**
  * Current active network (can be made configurable via UI later)
  */
-export const CURRENT_NETWORK: Network = "mainnet";
+export const CURRENT_NETWORK: Network = "testnet";
 
 export const networkConfig = getKchngNetworkConfig(CURRENT_NETWORK);

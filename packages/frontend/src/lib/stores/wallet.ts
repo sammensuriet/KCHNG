@@ -8,7 +8,8 @@ import { writable, derived, get, type Readable } from "svelte/store";
 import { browser } from "$app/environment";
 import { getNetworkConfig } from "@kchng/shared";
 
-export type NetworkName = "testnet" | "mainnet" | "futurenet" | "standalone";
+export type NetworkName = "testnet" | "futurenet" | "standalone";
+// Note: "mainnet" is excluded during early-stage development
 
 export interface WalletState {
   connected: boolean;
@@ -65,7 +66,6 @@ function createWalletStore() {
 
       // Map network name to WalletNetwork enum value
       const walletNetworkMap = {
-        mainnet: WalletNetwork.PUBLIC,
         testnet: WalletNetwork.TESTNET,
         futurenet: WalletNetwork.FUTURENET,
         standalone: WalletNetwork.STANDALONE,

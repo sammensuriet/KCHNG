@@ -4,13 +4,11 @@
   import { wallet } from "$lib/stores/wallet";
   import Tooltip from "$lib/components/Tooltip.svelte";
 
-  let currentNetwork: "testnet" | "mainnet" = $state("testnet");
+  let currentNetwork = $state("testnet");
 
 
   // Contract IDs loaded dynamically from shared config (single source of truth)
-  const testnetContractId = NETWORKS.testnet.contractId;
-  const mainnetContractId = NETWORKS.mainnet.contractId;
-</script>
+  const testnetContractId = NETWORKS.testnet.contractId;</script>
 
 <svelte:head>
   <title>{t('about.title')} - KCHNG</title>
@@ -493,12 +491,6 @@
       <span class="network-label">{t('header.testnet')}</span>
       <a href="https://stellar.expert/explorer/testnet/contract/{testnetContractId}" target="_blank" rel="noopener" class="contract-link">
         {testnetContractId}
-      </a>
-    </div>
-    <div class="contract-item">
-      <span class="network-label">{t('header.mainnet')}</span>
-      <a href="https://stellar.expert/explorer/public/contract/{mainnetContractId}" target="_blank" rel="noopener" class="contract-link">
-        {mainnetContractId}
       </a>
     </div>
   </div>

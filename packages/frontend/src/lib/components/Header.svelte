@@ -37,9 +37,9 @@
 
   // Reactive arrays that update when language changes
   // Access $messages to create reactive dependency
+  // Testnet-only during early-stage development
   const networks = $derived<{ id: NetworkName; label: string }[]>([
     { id: "testnet", label: ($messages, t('header.testnet')) },
-    { id: "mainnet", label: ($messages, t('header.mainnet')) },
   ]);
 
   const feedbackCategories = $derived([
@@ -205,27 +205,7 @@
     {/if}
 
     {#if !$wallet.connected}
-      <div class="network-selector">
-        <button
-          class="btn-network"
-          onclick={() => (showNetworkSelector = !showNetworkSelector)}
-        >
-          {currentNetwork.toUpperCase()} ▼
-        </button>
-        {#if showNetworkSelector}
-          <div class="network-dropdown">
-            {#each networks as network}
-              <button
-                class="network-option"
-                class:active={currentNetwork === network.id}
-                onclick={() => switchNetwork(network.id)}
-              >
-                {network.label}
-              </button>
-            {/each}
-          </div>
-        {/if}
-      </div>
+      <div class="network-badge">TESTNET</div>
       {#if currentNetwork === "testnet"}
         <button
           class="btn-test-wallet"
@@ -586,61 +566,15 @@
     position: relative;
   }
 
-  .network-selector {
-    position: relative;
-  }
-
-  .btn-network {
+  .network-badge {
     padding: 0.5rem 1rem;
-    background: white;
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 0.875rem;
-  }
-
-  .btn-network:hover {
     background: var(--color-bg-subtle);
-    border-color: var(--color-border-dark);
-  }
-
-  .network-dropdown {
-    position: absolute;
-    top: calc(100% + 0.5rem);
-    right: 0;
-    background: var(--color-bg);
+    color: var(--color-text);
     border: 1px solid var(--color-border);
     border-radius: 6px;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    padding: 0.25rem;
-    z-index: 101;
-    min-width: 120px;
-  }
-
-  .network-option {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    background: none;
-    border: none;
-    border-radius: 4px;
-    text-align: left;
-    cursor: pointer;
     font-size: 0.875rem;
-    color: var(--color-text);
-    transition: background 0.15s;
-  }
-
-  .network-option:hover {
-    background: var(--color-border-light);
-  }
-
-  .network-option.active {
-    background: var(--color-primary-light);
-    color: var(--color-primary-text);
     font-weight: 500;
+    letter-spacing: 0.05em;
   }
 
   .btn-connect {
@@ -828,9 +762,10 @@
       gap: 0.5rem;
     }
 
-    /* Hide network selector on mobile (use default) */
-    .network-selector {
-      display: none;
+    /* Smaller network badge on mobile */
+    .network-badge {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
     }
 
     /* Hide feedback button text and reduce size */
