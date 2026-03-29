@@ -1239,6 +1239,167 @@ export class KchngClient {
     }
     return vec.map((item) => this.u64FromScVal(item));
   }
+
+  // ==========================================================================
+  // GENESIS TRUST
+  // ==========================================================================
+
+  /**
+   * Get the genesis trust ID (contract address)
+   */
+  async getGenesisTrustId(): Promise<string> {
+    const result = await this.simulateContractCall(this.contractId, "get_genesis_trust_id", []);
+    if (result) {
+      return this.addressFromScVal(result);
+    }
+    throw new Error("Genesis trust not found");
+  }
+
+  /**
+   * Join the genesis trust (open to all)
+   */
+  async joinGenesisTrust(sourceAddress: string): Promise<string> {
+    return this.submitContractCall("join_genesis_trust", [], sourceAddress);
+  }
+
+  /**
+   * Get genesis pool data
+   */
+  async getGenesisPool(): Promise<{ trust_id: string; pool_balance: bigint; total_compensed: bigint }> {
+    const result = await this.simulateContractCall(this.contractId, "get_genesis_pool", []);
+    if (result) {
+      const map = result.map();
+      if (!map) throw new Error("Invalid genesis pool data");
+      return {
+        trust_id: this.addressFromScVal(map.get("trust_id")!),
+        pool_balance: this.u256FromScVal(map.get("pool_balance")!),
+        total_compensed: this.u256FromScVal(map.get("total_compensed")!),
+      };
+    }
+    throw new Error("Genesis pool not found");
+  }
+
+  // ==========================================================================
+  // VERIFIER ELECTIONS
+  // ==========================================================================
+
+  /**
+   * Propose oneself as a verifier (creates an election)
+   */
+  async proposeVerifierElection(sourceAddress: string): Promise<number> {
+    const result = await this.submitContractCall("propose_verifier_election", [], sourceAddress);
+    return Number(result);
+  }
+
+  /**
+   * Vote on a verifier election
+   */
+  async voteVerifierElection(
+    sourceAddress: string,
+    electionId: number,
+    support: boolean,
+  ): Promise<string> {
+    const args: xdr.ScVal[] = [
+      this.u64ToScVal(electionId),
+      xdr.ScVal.scvBoolean(support),
+    ];
+    return this.submitContractCall("vote_verifier_election", args, sourceAddress);
+  }
+
+  /**
+   * Finalize a verifier election (after voting period ends)
+   */
+  async finalizeVerifierElection(sourceAddress: string, electionId: number): Promise<string> {
+    const args: xdr.ScVal[] = [this.u64ToScVal(electionId)];
+    return this.submitContractCall("finalize_verifier_election", args, sourceAddress);
+  }
+
+  /**
+   * Get election details
+   */
+  async getElection(electionId: number): Promise<{
+    election_id: number;
+    candidate: string;
+    trust_id: string;
+    created_at: number;
+    vote_end: number;
+    votes_for: number;
+    votes_against: number;
+    voters: string[];
+    status: number;
+  }> {
+    const result = await this.simulateContractCall(this.contractId, "get_election", [
+      this.u64ToScVal(electionId),
+    ]);
+    if (result) {
+      const map = result.map();
+      if (!map) throw new Error("Invalid election data");
+      return {
+        election_id: this.u64FromScVal(map.get("election_id")!),
+        candidate: this.addressFromScVal(map.get("candidate")!),
+        trust_id: this.addressFromScVal(map.get("trust_id")!),
+        created_at: this.u64FromScVal(map.get("created_at")!),
+        vote_end: this.u64FromScVal(map.get("vote_end")!),
+        votes_for: this.u32FromScVal(map.get("votes_for")!),
+        votes_against: this.u32FromScVal(map.get("votes_against")!),
+        voters: this.addressArrayFromScVal(map.get("voters")!),
+        status: this.u32FromScVal(map.get("status")!),
+      };
+    }
+    throw new Error("Election not found");
+  }
+
+  /**
+   * Get all active elections for a trust
+   */
+  async getTrustElections(trustId: string): Promise<number[]> {
+    const address = new Address(trustId);
+    const result = await this.simulateContractCall(this.contractId, "get_trust_elections", [
+      address.toScVal(),
+    ]);
+    if (result) {
+      return this.u64ArrayFromScVal(result);
+    }
+    return [];
+  }
+
+  /**
+   * Get verifier fund data for a trust
+   */
+  async getVerifierFund(trustId: string): Promise<{
+    trust_id: string;
+    pool_balance: bigint;
+    total_compensed: bigint;
+    total_stakes_covered: bigint;
+  }> {
+    const address = new Address(trustId);
+    const result = await this.simulateContractCall(this.contractId, "get_verifier_fund", [
+      address.toScVal(),
+    ]);
+    if (result) {
+      const map = result.map();
+      if (!map) throw new Error("Invalid verifier fund data");
+      return {
+        trust_id: this.addressFromScVal(map.get("trust_id")!),
+        pool_balance: this.u256FromScVal(map.get("pool_balance")!),
+        total_compensed: this.u256FromScVal(map.get("total_compensed")!),
+        total_stakes_covered: this.u256FromScVal(map.get("total_stakes_covered")!),
+      };
+    }
+    throw new Error("Verifier fund not found");
+  }
+
+  // ==========================================================================
+  // VERIFIER COMPENSATION
+  // ==========================================================================
+
+  /**
+   * Claim compensation for verification work
+   */
+  async claimVerifierCompensation(sourceAddress: string, claimId: number): Promise<string> {
+    const args: xdr.ScVal[] = [this.u64ToScVal(claimId)];
+    return this.submitContractCall("claim_verifier_compensation", args, sourceAddress);
+  }
 }
 
 /**

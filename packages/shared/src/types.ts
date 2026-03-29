@@ -88,6 +88,24 @@ export enum RoleType {
   Member = 4,
 }
 
+/**
+ * Status of a verifier election
+ */
+export enum ElectionStatus {
+  Pending = 0,   // Voting period active
+  Approved = 1,  // Elected as verifier
+  Rejected = 2,  // Not enough support
+  Expired = 3,   // Quorum not met
+}
+
+/**
+ * Source of a verifier's stake
+ */
+export enum StakeSource {
+  CommunityFund = 0, // Stake covered by community verifier fund
+  SelfFunded = 1,    // Stake from verifier's own balance
+}
+
 // ============================================================================
 // DATA STRUCTURES
 // ============================================================================
@@ -306,6 +324,58 @@ export interface Proposal {
   votes_for: number;
   votes_against: number;
   voters: AccountId[];
+}
+
+// ============================================================================
+// VERIFIER ECOSYSTEM TYPES
+// ============================================================================
+
+/**
+ * Genesis pool - perpetual verifier funding for the genesis trust
+ * Funded by 30% of all demurrage across all communities
+ */
+export interface GenesisPoolData {
+  trust_id: AccountId;
+  pool_balance: Amount;
+  total_compensed: Amount;
+}
+
+/**
+ * Verifier fund per community trust
+ * Funded by governor stake seed (300K) + 70% of local demurrage
+ */
+export interface VerifierFundData {
+  trust_id: AccountId;
+  pool_balance: Amount;
+  total_compensed: Amount;
+  total_stakes_covered: Amount;
+}
+
+/**
+ * Verifier election - community members vote to elect verifiers
+ */
+export interface VerifierElection {
+  election_id: number;
+  candidate: AccountId;
+  trust_id: AccountId;
+  created_at: Timestamp;
+  vote_end: Timestamp;
+  votes_for: number;
+  votes_against: number;
+  voters: AccountId[];
+  status: ElectionStatus;
+}
+
+/**
+ * Result of a verifier compensation claim
+ */
+export interface VerifierCompensation {
+  verifier: AccountId;
+  claim_id: number;
+  base_fee: Amount;
+  claim_percentage: Amount;
+  total_compensation: Amount;
+  paid_from: AccountId;
 }
 
 // ============================================================================
