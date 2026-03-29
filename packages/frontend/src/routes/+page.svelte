@@ -147,7 +147,7 @@
       <div class="cta-title">{translatedText('home.ctaDashboard')}</div>
       <div class="cta-desc">{translatedText('home.ctaDashboardDesc')}</div>
     </a>
-    <a href="/trusts" class="cta-card">
+    <a href="/communities" class="cta-card">
       <div class="cta-icon">🏘️</div>
       <div class="cta-title">{translatedText('home.ctaCommunities')}</div>
       <div class="cta-desc">{translatedText('home.ctaCommunitiesDesc')}</div>

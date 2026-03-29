@@ -1,26 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { t } from "$lib/i18n";
   import { wallet } from "$lib/stores/wallet";
 
-  // Term definitions for tooltips
-  const TERM_DEFINITIONS: Record<string, string> = {
-    trust: "A community organization that manages its own demurrage settings. Members share the same rate and period configuration.",
-    demurrage: "A holding cost that gradually reduces inactive balances. Designed to encourage active participation and circulation of KCHNG.",
-    "annual rate": "The percentage of balance that would be burned over one year if the account remained completely inactive.",
-    "basis points": "1 basis point = 0.01%. So 1200 basis points = 12%. Used for precise rate calculations.",
-    federated: "Independent organizations that share a common protocol. Trusts can exchange tokens with each other at calculated rates.",
-    period: "How often demurrage is calculated and applied. Shorter periods = more frequent, smaller burns. Longer periods = less frequent, larger burns.",
-    oracle: "A trusted community member who can activate community protection periods for members facing hardship."
-  };
-
-  // Reusable tooltip component inline
-  function TermTooltip(term: string) {
-    const def = TERM_DEFINITIONS[term.toLowerCase()];
-    if (!def) return term;
-    return `<span class="term-with-tooltip">${term}<sup class="tooltip-trigger">?</sup><span class="tooltip-content">${def}</span></span>`;
-  }
-
-  let trusts = $state<Array<{
+  let communities = $state<Array<{
     id: string;
     name: string;
     governor: string;
@@ -31,14 +14,14 @@
     created_at: number;
   }>>([]);
 
-  let userTrustId = $state<string | null>(null);
+  let userCommunityId = $state<string | null>(null);
   let loading = $state(true);
   let showCreateForm = $state(false);
 
-  // New trust form - defaults: 12% annual rate, 28 day period
-  let newTrustName = $state("");
-  let newTrustRatePercent = $state(12); // User enters percentage (5-15)
-  let newTrustPeriod = $state(28); // Default 28 days
+  // New community form - defaults: 12% annual rate, 28 day period
+  let newCommunityName = $state("");
+  let newCommunityRatePercent = $state(12); // User enters percentage (5-15)
+  let newCommunityPeriod = $state(28); // Default 28 days
 
   // Transaction state
   let txPending = $state(false);
@@ -51,7 +34,7 @@
 
   // Governor management state
   let isGovernor = $state(false);
-  let governorTrustId = $state<string | null>(null);
+  let governorCommunityId = $state<string | null>(null);
   let currentSuccessor = $state<string | null>(null);
   let showSuccessorModal = $state(false);
   let showStepDownModal = $state(false);
@@ -84,12 +67,12 @@
 
   async function registerAsOracle() {
     if (!$wallet.connected || !$wallet.address) {
-      txMessage = { type: "error", text: "Please connect your wallet first" };
+      txMessage = { type: "error", text: t('communities.errors.connectWallet') };
       return;
     }
 
     txPending = true;
-    txMessage = { type: "info", text: "Registering as Community Oracle..." };
+    txMessage = { type: "info", text: t('communities.oracle.registering') };
 
     try {
       const { createKchngClient } = await import("$lib/contracts/kchng");
@@ -109,7 +92,7 @@
     } catch (e) {
       txMessage = {
         type: "error",
-        text: e instanceof Error ? e.message : "Failed to register as oracle"
+        text: e instanceof Error ? e.message : t('communities.oracle.failed')
       };
     } finally {
       txPending = false;
@@ -118,12 +101,12 @@
 
   async function designateSuccessor() {
     if (!$wallet.connected || !$wallet.address || !newSuccessorAddress.trim()) {
-      txMessage = { type: "error", text: "Please enter a valid successor address" };
+      txMessage = { type: "error", text: t('communities.errors.enterSuccessor') };
       return;
     }
 
     txPending = true;
-    txMessage = { type: "info", text: "Naming your successor..." };
+    txMessage = { type: "info", text: t('communities.tx.namingSuccessor') };
 
     try {
       const { createKchngClient } = await import("$lib/contracts/kchng");
@@ -147,7 +130,7 @@
     } catch (e) {
       txMessage = {
         type: "error",
-        text: e instanceof Error ? e.message : "Failed to designate successor"
+        text: e instanceof Error ? e.message : t('communities.errors.failedSuccessor')
       };
     } finally {
       txPending = false;
@@ -156,12 +139,12 @@
 
   async function stepDownAsGovernor() {
     if (!$wallet.connected || !$wallet.address) {
-      txMessage = { type: "error", text: "Please connect your wallet first" };
+      txMessage = { type: "error", text: t('communities.errors.connectWallet') };
       return;
     }
 
     txPending = true;
-    txMessage = { type: "info", text: "Passing the torch..." };
+    txMessage = { type: "info", text: t('communities.tx.passingTorch') };
 
     try {
       const { createKchngClient } = await import("$lib/contracts/kchng");
@@ -177,7 +160,7 @@
       };
 
       isGovernor = false;
-      governorTrustId = null;
+      governorCommunityId = null;
       currentSuccessor = null;
       showStepDownModal = false;
 
@@ -187,7 +170,7 @@
     } catch (e) {
       txMessage = {
         type: "error",
-        text: e instanceof Error ? e.message : "Failed to step down"
+        text: e instanceof Error ? e.message : t('communities.errors.failedStepDown')
       };
     } finally {
       txPending = false;
@@ -199,11 +182,11 @@
       const { createKchngClient } = await import("$lib/contracts/kchng");
       const kchngClient = createKchngClient($wallet.network);
 
-      // Get all trusts
-      const trustIds = await kchngClient.getAllTrusts();
-      const trustData = await Promise.all(
-        trustIds.map(async (id) => {
-          const info = await kchngClient.getTrustInfo(id);
+      // Get all communities
+      const communityIds = await kchngClient.getAllCommunities();
+      const communityData = await Promise.all(
+        communityIds.map(async (id) => {
+          const info = await kchngClient.getCommunityInfo(id);
           return {
             id,
             name: info.name,
@@ -217,21 +200,21 @@
         })
       );
 
-      trusts = trustData;
+      communities = communityData;
 
-      // Get user's trust membership
+      // Get user's community membership
       if ($wallet.connected && $wallet.address) {
         const accountData = await kchngClient.getAccountData($wallet.address);
-        userTrustId = accountData.trust_id;
+        userCommunityId = accountData.community_id;
 
-        // Check if user is a governor of any trust
-        for (const trust of trustData) {
-          if (trust.governor === $wallet.address) {
+        // Check if user is a governor of any community
+        for (const community of communityData) {
+          if (community.governor === $wallet.address) {
             isGovernor = true;
-            governorTrustId = trust.id;
-            // Get full trust info to check successor
-            const fullTrustInfo = await kchngClient.getTrustInfo(trust.id);
-            currentSuccessor = fullTrustInfo.successor;
+            governorCommunityId = community.id;
+            // Get full community info to check successor
+            const fullCommunityInfo = await kchngClient.getCommunityInfo(community.id);
+            currentSuccessor = fullCommunityInfo.successor;
             break;
           }
         }
@@ -239,24 +222,24 @@
 
       loading = false;
     } catch (e) {
-      console.error("Failed to load trusts:", e);
+      console.error("Failed to load communities:", e);
       loading = false;
     }
   }
 
-  async function createTrust() {
+  async function createCommunity() {
     if (!$wallet.connected || !$wallet.address) {
-      txMessage = { type: "error", text: "Please connect your wallet first" };
+      txMessage = { type: "error", text: t('communities.errors.connectWallet') };
       return;
     }
 
-    if (!newTrustName.trim()) {
-      txMessage = { type: "error", text: "Please enter a trust name" };
+    if (!newCommunityName.trim()) {
+      txMessage = { type: "error", text: t('communities.errors.enterName') };
       return;
     }
 
     txPending = true;
-    txMessage = { type: "info", text: "Preparing transaction..." };
+    txMessage = { type: "info", text: t('communities.tx.preparing') };
 
     try {
       const { createKchngClient } = await import("$lib/contracts/kchng");
@@ -266,48 +249,48 @@
       kchngClient.setSignTransactionCallback(wallet.signTransaction);
 
       // Convert percentage to basis points (e.g., 12% = 1200 bps)
-      const annualRateBps = newTrustRatePercent * 100;
+      const annualRateBps = newCommunityRatePercent * 100;
 
-      // Create the trust
-      const txHash = await kchngClient.registerTrust(
+      // Create the community
+      const txHash = await kchngClient.registerCommunity(
         $wallet.address!,
-        newTrustName,
+        newCommunityName,
         annualRateBps,
-        newTrustPeriod
+        newCommunityPeriod
       );
 
       txMessage = {
         type: "success",
-        text: `Trust created! Transaction: ${txHash.slice(0, 8)}...`
+        text: `Community created! Transaction: ${txHash.slice(0, 8)}...`
       };
 
       showCreateForm = false;
-      newTrustName = "";
-      newTrustRatePercent = 12;
-      newTrustPeriod = 28;
+      newCommunityName = "";
+      newCommunityRatePercent = 12;
+      newCommunityPeriod = 28;
 
       // Refresh data
       await loadData();
-      await wallet.refreshTrustStatus();
+      await wallet.refreshCommunityStatus();
 
     } catch (e) {
       txMessage = {
         type: "error",
-        text: e instanceof Error ? e.message : "Failed to create trust"
+        text: e instanceof Error ? e.message : t('communities.errors.failedCreate')
       };
     } finally {
       txPending = false;
     }
   }
 
-  async function joinTrust(trustId: string) {
+  async function joinCommunity(communityId: string) {
     if (!$wallet.connected || !$wallet.address) {
-      txMessage = { type: "error", text: "Please connect your wallet first" };
+      txMessage = { type: "error", text: t('communities.errors.connectWallet') };
       return;
     }
 
     txPending = true;
-    txMessage = { type: "info", text: "Preparing transaction..." };
+    txMessage = { type: "info", text: t('communities.tx.preparing') };
 
     try {
       const { createKchngClient } = await import("$lib/contracts/kchng");
@@ -316,22 +299,22 @@
       // Set up the signing callback
       kchngClient.setSignTransactionCallback(wallet.signTransaction);
 
-      // Join the trust
-      const txHash = await kchngClient.joinTrust(trustId, $wallet.address);
+      // Join the community
+      const txHash = await kchngClient.joinCommunity(communityId, $wallet.address);
 
       txMessage = {
         type: "success",
-        text: `Joined trust! Transaction: ${txHash.slice(0, 8)}...`
+        text: `Joined community! Transaction: ${txHash.slice(0, 8)}...`
       };
 
       // Refresh data
       await loadData();
-      await wallet.refreshTrustStatus();
+      await wallet.refreshCommunityStatus();
 
     } catch (e) {
       txMessage = {
         type: "error",
-        text: e instanceof Error ? e.message : "Failed to join trust"
+        text: e instanceof Error ? e.message : t('communities.errors.failedJoin')
       };
     } finally {
       txPending = false;
@@ -350,70 +333,46 @@
 </script>
 
 <svelte:head>
-  <title>Community Trusts | KCHNG</title>
+  <title>{t('communities.title')}</title>
 </svelte:head>
 
 <div class="container">
-  <h1>Community Trusts</h1>
+  <h1>{t('communities.heading')}</h1>
 
   <div class="header-actions">
     <p class="subtitle">
-      <span class="term-with-tooltip">
-        Federated<sup class="tooltip-trigger">?</sup>
-        <span class="tooltip-content">{TERM_DEFINITIONS['federated']}</span>
-      </span>
-      community organizations with custom
-      <span class="term-with-tooltip">
-        demurrage<sup class="tooltip-trigger">?</sup>
-        <span class="tooltip-content">{TERM_DEFINITIONS['demurrage']}</span>
-      </span>
-      rates
+      {t('communities.subtitle')}
     </p>
     {#if !showCreateForm}
       <button class="btn-create" onclick={() => showCreateForm = true}>
-        + Create New Trust
+        {t('communities.createCommunity')}
       </button>
     {/if}
   </div>
 
   {#if showCreateForm}
     <div class="create-form">
-      <h2>Create New <span class="term-with-tooltip">
-        Trust<sup class="tooltip-trigger">?</sup>
-        <span class="tooltip-content">{TERM_DEFINITIONS['trust']}</span>
-      </span></h2>
+      <h2>{t('communities.form.heading')}</h2>
       <div class="form-group">
-        <label>Trust Name</label>
-        <input type="text" bind:value={newTrustName} placeholder="e.g., Urban Elder Care Trust" disabled={txPending} />
+        <label>{t('communities.form.name')}</label>
+        <input type="text" bind:value={newCommunityName} placeholder={t('communities.form.namePlaceholder')} disabled={txPending} />
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>
-            <span class="term-with-tooltip">
-              Annual Rate<sup class="tooltip-trigger">?</sup>
-              <span class="tooltip-content">{TERM_DEFINITIONS['annual rate']}</span>
-            </span>
-            (%)
-          </label>
-          <input type="number" bind:value={newTrustRatePercent} min="5" max="15" step="0.5" inputmode="decimal" disabled={txPending} />
+          <label>{t('communities.form.annualRate')}</label>
+          <input type="number" bind:value={newCommunityRatePercent} min="5" max="15" step="0.5" inputmode="decimal" disabled={txPending} />
           <small>Protocol limits: 5% - 15% annually (default: 12%)</small>
         </div>
         <div class="form-group">
-          <label>
-            <span class="term-with-tooltip">
-              Period<sup class="tooltip-trigger">?</sup>
-              <span class="tooltip-content">{TERM_DEFINITIONS['period']}</span>
-            </span>
-            (days)
-          </label>
-          <input type="number" bind:value={newTrustPeriod} min="7" max="365" inputmode="numeric" pattern="[0-9]*" disabled={txPending} />
+          <label>{t('communities.form.period')}</label>
+          <input type="number" bind:value={newCommunityPeriod} min="7" max="365" inputmode="numeric" pattern="[0-9]*" disabled={txPending} />
           <small>7 - 365 days (default: 28)</small>
         </div>
       </div>
 
       <div class="rate-preview">
-        <span class="preview-label">Per-period demurrage:</span>
-        <span class="preview-value">{periodRatePercent(newTrustRatePercent * 100, newTrustPeriod)} every {newTrustPeriod} days</span>
+        <span class="preview-label">{t('communities.form.periodDemurrage')}</span>
+        <span class="preview-value">{periodRatePercent(newCommunityRatePercent * 100, newCommunityPeriod)} every {newCommunityPeriod} {t('communities.form.periodDays')}</span>
       </div>
 
       {#if txMessage}
@@ -430,15 +389,15 @@
       {/if}
 
       <div class="form-actions">
-        <button onclick={createTrust} disabled={txPending}>
+        <button onclick={createCommunity} disabled={txPending}>
           {#if txPending}
             <span class="btn-spinner"></span>
-            Creating...
+            {t('communities.form.creating')}
           {:else}
-            Create Trust
+            {t('communities.form.create')}
           {/if}
         </button>
-        <button class="btn-cancel" onclick={() => { showCreateForm = false; txMessage = null; }} disabled={txPending}>Cancel</button>
+        <button class="btn-cancel" onclick={() => { showCreateForm = false; txMessage = null; }} disabled={txPending}>{t('common.cancel')}</button>
       </div>
     </div>
   {/if}
@@ -458,64 +417,58 @@
   {/if}
 
   {#if loading}
-    <div class="loading">Loading trusts...</div>
-  {:else if trusts.length === 0}
+    <div class="loading">{t('communities.loading')}</div>
+  {:else if communities.length === 0}
     <div class="empty-state">
       <div class="empty-icon">🏘️</div>
-      <h3>No Trusts Yet</h3>
-      <p>Be the first to create a community trust!</p>
+      <h3>{t('communities.empty.title')}</h3>
+      <p>{t('communities.empty.description')}</p>
     </div>
   {:else}
-    <div class="trusts-grid">
-      {#each trusts as trust (trust.id)}
-        <div class="trust-card" class:in-trust={userTrustId === trust.id}>
-          <div class="trust-header">
-            <h3>{trust.name}</h3>
-            {#if userTrustId === trust.id}
+    <div class="communities-grid">
+      {#each communities as community (community.id)}
+        <div class="community-card" class:in-community={userCommunityId === community.id}>
+          <div class="community-header">
+            <h3>{community.name}</h3>
+            {#if userCommunityId === community.id}
               <span class="member-badge">Member</span>
             {/if}
           </div>
 
-          <div class="trust-stats">
-            <div class="trust-stat">
-              <span class="stat-label">Governor</span>
-              <span class="stat-value stat-address">{trust.governor.slice(0, 8)}...</span>
+          <div class="community-stats">
+            <div class="community-stat">
+              <span class="stat-label">{t('communities.card.governor')}</span>
+              <span class="stat-value stat-address">{community.governor.slice(0, 8)}...</span>
             </div>
-            <div class="trust-stat">
-              <span class="stat-label">
-                <span class="term-with-tooltip-inline">
-                  Demurrage<sup class="tooltip-trigger-sm">?</sup>
-                  <span class="tooltip-content">{TERM_DEFINITIONS['demurrage']}</span>
-                </span>
-                Rate
-              </span>
-              <span class="stat-value rate-badge">{rateToPercentage(trust.annual_rate_bps)}/year</span>
-              <span class="stat-sub">({periodRatePercent(trust.annual_rate_bps, trust.demurrage_period_days)}/{trust.demurrage_period_days}d)</span>
+            <div class="community-stat">
+              <span class="stat-label">{t('communities.card.rate')}</span>
+              <span class="stat-value rate-badge">{rateToPercentage(community.annual_rate_bps)}/year</span>
+              <span class="stat-sub">({periodRatePercent(community.annual_rate_bps, community.demurrage_period_days)}/{community.demurrage_period_days}d)</span>
             </div>
-            <div class="trust-stat">
-              <span class="stat-label">Period</span>
-              <span class="stat-value">{trust.demurrage_period_days} days</span>
+            <div class="community-stat">
+              <span class="stat-label">{t('communities.card.period')}</span>
+              <span class="stat-value">{community.demurrage_period_days} {t('communities.form.periodDays')}</span>
             </div>
-            <div class="trust-stat">
-              <span class="stat-label">Members</span>
-              <span class="stat-value">{trust.member_count}</span>
+            <div class="community-stat">
+              <span class="stat-label">{t('communities.card.members')}</span>
+              <span class="stat-value">{community.member_count}</span>
             </div>
           </div>
 
-          <div class="trust-actions">
-            {#if userTrustId === trust.id}
-              <button class="btn-view" disabled>✓ Joined</button>
+          <div class="community-actions">
+            {#if userCommunityId === community.id}
+              <button class="btn-view" disabled>{t('communities.card.joined')}</button>
             {:else}
               <button
                 class="btn-join"
-                onclick={() => joinTrust(trust.id)}
+                onclick={() => joinCommunity(community.id)}
                 disabled={txPending}
               >
                 {#if txPending}
                   <span class="btn-spinner"></span>
-                  Joining...
+                  {t('communities.card.joining')}
                 {:else}
-                  Join Trust
+                  {t('communities.card.join')}
                 {/if}
               </button>
             {/if}
@@ -526,60 +479,42 @@
   {/if}
 
   <div class="info-box">
-    <h3>About Trusts</h3>
-    <p>
-      <span class="term-with-tooltip">
-        Trusts<sup class="tooltip-trigger">?</sup>
-        <span class="tooltip-content">{TERM_DEFINITIONS['trust']}</span>
-      </span>
-      are
-      <span class="term-with-tooltip">
-        federated<sup class="tooltip-trigger">?</sup>
-        <span class="tooltip-content">{TERM_DEFINITIONS['federated']}</span>
-      </span>
-      community organizations that set their own
-      <span class="term-with-tooltip">
-        demurrage<sup class="tooltip-trigger">?</sup>
-        <span class="tooltip-content">{TERM_DEFINITIONS['demurrage']}</span>
-      </span>
-      rates within protocol bounds (5-15% annually). Each trust is governed by a designated governor who manages membership and can propose rate changes.
-    </p>
+    <h3>{t('communities.about.title')}</h3>
+    <p>{t('communities.about.description')}</p>
     <ul>
-      <li><strong>Rate Range:</strong> 5% - 15% annual (protocol enforced)</li>
-      <li><strong>Membership:</strong> Open to anyone, join via trust interface</li>
-      <li><strong>Governance:</strong> Governor can propose rate changes via community vote</li>
-      <li><strong>Cross-Trust:</strong> Exchange tokens between trusts at calculated rates</li>
+      <li><strong>{t('communities.about.rateRange')}</strong> {t('communities.about.rateRangeValue')}</li>
+      <li><strong>{t('communities.about.membership')}</strong> {t('communities.about.membershipValue')}</li>
+      <li><strong>{t('communities.about.governance')}</strong> {t('communities.about.governanceValue')}</li>
+      <li><strong>{t('communities.about.crossCommunity')}</strong> {t('communities.about.crossCommunityValue')}</li>
     </ul>
   </div>
 
   <!-- Community Oracle Section -->
   <div class="oracle-section">
-    <h2>🛡️ Community Oracles</h2>
+    <h2>{t('communities.oracle.heading')}</h2>
     <p class="oracle-description">
-      Community Oracles help protect members in need by activating community protection periods during emergencies,
-      illness, or other hardship situations.
+      {t('communities.oracle.description')}
     </p>
 
     <div class="oracle-card">
       <div class="oracle-info">
-        <h4>Oracle Responsibilities:</h4>
+        <h4>{t('communities.oracle.responsibilities')}</h4>
         <ul>
-          <li>Verify member hardship claims (emergency, illness, etc.)</li>
-          <li>Activate community protection periods for verified members</li>
-          <li>Help maintain trust in the system</li>
-          <li>Contribute to community wellbeing and mutual aid</li>
+          <li>{t('communities.oracle.responsibility1')}</li>
+          <li>{t('communities.oracle.responsibility2')}</li>
+          <li>{t('communities.oracle.responsibility3')}</li>
         </ul>
       </div>
 
       {#if oracleLoading}
-        <div class="oracle-loading">Checking oracle status...</div>
+        <div class="oracle-loading">{t('communities.loading')}</div>
       {:else if isOracle}
         <div class="oracle-status registered">
           <span class="status-icon">✓</span>
-          <span class="status-text">You are a registered Community Oracle</span>
+          <span class="status-text">{t('communities.card.governorOf')}</span>
         </div>
         <p class="oracle-hint">
-          You can activate community protection for members from your <a href="/dashboard">dashboard</a>.
+          {t('communities.oracle.description')}
         </p>
       {:else if $wallet.connected}
         <div class="oracle-actions">
@@ -587,15 +522,15 @@
             class="btn-register-oracle"
             onclick={() => showOracleModal = true}
           >
-            Become a Community Oracle
+            {t('communities.oracle.register')}
           </button>
           <p class="oracle-note">
-            Requires a stake commitment to ensure oracle accountability.
+            {t('communities.oracle.stakeValue')}
           </p>
         </div>
       {:else}
         <div class="connect-prompt">
-          <p>Connect your wallet to register as a Community Oracle</p>
+          <p>{t('common.connectWallet')}</p>
         </div>
       {/if}
 
@@ -608,30 +543,30 @@
   <!-- Governor Management Section -->
   {#if isGovernor}
     <div class="governor-section">
-      <h2>🏛️ Trust Governor</h2>
+      <h2>{t('communities.governor.heading')}</h2>
       <p class="governor-description">
-        As the governor of your trust, you can name a successor and pass the torch when you're ready.
+        {t('communities.governor.description')}
       </p>
 
       <div class="governor-card">
         <div class="governor-status">
           <span class="status-icon governor-icon">👑</span>
-          <span class="status-text">You are the Governor of this trust</span>
+          <span class="status-text">{t('communities.governor.description')}</span>
         </div>
 
         <div class="successor-info">
-          <h4>Named Successor:</h4>
+          <h4>{t('communities.governor.successor')}</h4>
           {#if currentSuccessor}
             <div class="successor-address">
               <span class="address-badge">{currentSuccessor.slice(0, 8)}...{currentSuccessor.slice(-6)}</span>
-              <span class="successor-note">Ready to take over when you pass the torch</span>
+              <span class="successor-note">{t('communities.governor.successorDesc')}</span>
             </div>
           {:else}
             <div class="no-successor">
               <span class="warning-icon">⚠️</span>
-              <span>No successor named yet</span>
+              <span>{t('communities.governor.successor')}</span>
             </div>
-            <p class="successor-hint">Name a trusted member to ensure smooth leadership transition.</p>
+            <p class="successor-hint">{t('communities.governor.successorDesc')}</p>
           {/if}
         </div>
 
@@ -641,7 +576,7 @@
             onclick={() => showSuccessorModal = true}
             disabled={txPending}
           >
-            {currentSuccessor ? 'Change Successor' : 'Name Your Successor'}
+            {currentSuccessor ? t('communities.governor.successor') : t('communities.governor.successor')}
           </button>
 
           {#if currentSuccessor}
@@ -650,7 +585,7 @@
               onclick={() => showStepDownModal = true}
               disabled={txPending}
             >
-              Pass the Torch
+              {t('communities.governor.stepDownConfirm')}
             </button>
           {/if}
         </div>
@@ -662,7 +597,7 @@
     </div>
   {/if}
 
-  <p class="value-footer">Protocol: 30 min verified work → 1,000 KCHNG minted. Social peg: 1,000 KCHNG ≈ 1 meal.</p>
+  <p class="value-footer">{t('communities.valueFooter')}</p>
 </div>
 
 <!-- Oracle Registration Modal -->
@@ -670,23 +605,22 @@
   <div class="modal-overlay" onclick={() => showOracleModal = false}>
     <div class="modal" onclick={(e) => e.stopPropagation()}>
       <button class="modal-close" onclick={() => showOracleModal = false}>&times;</button>
-      <h2>Become a Community Oracle</h2>
+      <h2>{t('communities.oracle.register')}</h2>
       <p class="modal-subtitle">
-        Help protect community members in need by activating grace periods during hardship.
+        {t('communities.oracle.description')}
       </p>
 
       <div class="oracle-info-box">
-        <h4>What you'll do:</h4>
+        <h4>{t('communities.oracle.responsibilities')}</h4>
         <ul>
-          <li>Verify member hardship claims (emergency, illness, etc.)</li>
-          <li>Activate community protection periods</li>
-          <li>Help maintain trust in the system</li>
+          <li>{t('communities.oracle.responsibility1')}</li>
+          <li>{t('communities.oracle.responsibility2')}</li>
+          <li>{t('communities.oracle.responsibility3')}</li>
         </ul>
       </div>
 
       <div class="oracle-stake-info">
-        <strong>Stake Required:</strong> 50,000 KCHNG
-        <span class="stake-note">(≈ 50 meals - returned when you step down)</span>
+        <strong>{t('communities.oracle.stake')}</strong> {t('communities.oracle.stakeValue')}
       </div>
 
       {#if txMessage}
@@ -699,7 +633,7 @@
           onclick={() => showOracleModal = false}
           disabled={txPending}
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           class="btn-submit"
@@ -707,9 +641,9 @@
           disabled={txPending}
         >
           {#if txPending}
-            Registering...
+            {t('communities.oracle.registering')}
           {:else}
-            Step Up for Your Community
+            {t('communities.oracle.register')}
           {/if}
         </button>
       </div>
@@ -722,20 +656,20 @@
   <div class="modal-overlay" onclick={() => showSuccessorModal = false}>
     <div class="modal" onclick={(e) => e.stopPropagation()}>
       <button class="modal-close" onclick={() => showSuccessorModal = false}>&times;</button>
-      <h2>Name Your Successor</h2>
+      <h2>{t('communities.governor.successor')}</h2>
       <p class="modal-subtitle">
-        Choose a trusted member to take over as governor when you're ready to step down.
+        {t('communities.governor.successorDesc')}
       </p>
 
       <div class="form-group">
-        <label>Successor Address</label>
+        <label>{t('communities.card.governor')} Address</label>
         <input
           type="text"
           bind:value={newSuccessorAddress}
           placeholder="G... (Stellar address)"
           disabled={txPending}
         />
-        <small>The successor must be a member of your trust.</small>
+        <small>{t('communities.governor.successorNote')}</small>
       </div>
 
       {#if txMessage}
@@ -748,7 +682,7 @@
           onclick={() => { showSuccessorModal = false; newSuccessorAddress = ""; txMessage = null; }}
           disabled={txPending}
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           class="btn-submit"
@@ -756,9 +690,9 @@
           disabled={txPending || !newSuccessorAddress.trim()}
         >
           {#if txPending}
-            Naming...
+            {t('communities.governor.steppingDown')}
           {:else}
-            Name Successor
+            {t('communities.governor.successor')}
           {/if}
         </button>
       </div>
@@ -771,18 +705,18 @@
   <div class="modal-overlay" onclick={() => showStepDownModal = false}>
     <div class="modal" onclick={(e) => e.stopPropagation()}>
       <button class="modal-close" onclick={() => showStepDownModal = false}>&times;</button>
-      <h2>Pass the Torch</h2>
+      <h2>{t('communities.governor.stepDownConfirm')}</h2>
       <p class="modal-subtitle">
-        Transfer governorship to your named successor. This action cannot be undone.
+        {t('communities.governor.stepDownDesc')}
       </p>
 
       <div class="step-down-info">
         <div class="info-row">
-          <span>Current Successor:</span>
+          <span>{t('communities.governor.successor')}:</span>
           <span class="successor-badge">{currentSuccessor?.slice(0, 8)}...{currentSuccessor?.slice(-6)}</span>
         </div>
         <p class="step-down-note">
-          Once you pass the torch, your successor will become the new governor and you will become a regular member.
+          {t('communities.governor.stepDownDesc')}
         </p>
       </div>
 
@@ -796,7 +730,7 @@
           onclick={() => showStepDownModal = false}
           disabled={txPending}
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           class="btn-step-down-confirm"
@@ -804,9 +738,9 @@
           disabled={txPending}
         >
           {#if txPending}
-            Passing...
+            {t('communities.governor.steppingDown')}
           {:else}
-            Pass the Torch
+            {t('communities.governor.stepDownConfirm')}
           {/if}
         </button>
       </div>
@@ -881,7 +815,7 @@
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: #1f2937;
+    background: var(--color-tooltip-bg);
     color: white;
     padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-sm);
@@ -904,7 +838,7 @@
     left: 50%;
     transform: translateX(-50%);
     border: 6px solid transparent;
-    border-top-color: #1f2937;
+    border-top-color: var(--color-tooltip-bg);
   }
 
   .term-with-tooltip:hover .tooltip-content,
@@ -945,7 +879,7 @@
   input {
     width: 100%;
     padding: var(--space-sm);
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--color-border-dark);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-base);
   }
@@ -1013,14 +947,14 @@
     margin-bottom: var(--space-md);
   }
 
-  .trusts-grid {
+  .communities-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: var(--space-lg);
     margin-bottom: var(--space-xl);
   }
 
-  .trust-card {
+  .community-card {
     background: var(--color-bg);
     border: 2px solid var(--color-border);
     border-radius: var(--radius-lg);
@@ -1028,25 +962,25 @@
     transition: all 0.2s;
   }
 
-  .trust-card:hover {
+  .community-card:hover {
     border-color: var(--color-primary);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
   }
 
-  .trust-card.in-trust {
+  .community-card.in-community {
     border-color: var(--color-success);
-    background: #f0fdf4;
+    background: var(--color-success-light);
   }
 
-  .trust-header {
+  .community-header {
     display: flex;
     justify-content: space-between;
     align-items: start;
     margin-bottom: var(--space-md);
   }
 
-  .trust-header h3 {
+  .community-header h3 {
     margin: 0;
     font-size: var(--font-size-xl);
   }
@@ -1060,14 +994,14 @@
     font-weight: 500;
   }
 
-  .trust-stats {
+  .community-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-md);
     margin-bottom: var(--space-lg);
   }
 
-  .trust-stat {
+  .community-stat {
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
@@ -1093,14 +1027,14 @@
   }
 
   .rate-badge {
-    background: #ede9fe;
-    color: #7c3aed;
+    background: var(--color-primary-light);
+    color: var(--color-primary-text);
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
   }
 
-  .trust-actions button {
+  .community-actions button {
     width: 100%;
     padding: var(--space-sm);
     border: none;
@@ -1120,8 +1054,8 @@
   }
 
   .btn-view {
-    background: #d1fae5;
-    color: #065f46;
+    background: var(--color-success-light);
+    color: var(--color-success-text);
     cursor: not-allowed;
   }
 
@@ -1174,21 +1108,21 @@
   }
 
   .tx-message-info {
-    background: #dbeafe;
-    color: #1e40af;
-    border: 1px solid #93c5fd;
+    background: var(--color-info-light);
+    color: var(--color-info-text);
+    border: 1px solid var(--color-info);
   }
 
   .tx-message-success {
-    background: #d1fae5;
-    color: #065f46;
-    border: 1px solid #6ee7b7;
+    background: var(--color-success-light);
+    color: var(--color-success-text);
+    border: 1px solid var(--color-success);
   }
 
   .tx-message-error {
-    background: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fca5a5;
+    background: var(--color-error-light);
+    color: var(--color-error-text);
+    border: 1px solid var(--color-error);
   }
 
   .tx-message .icon {
@@ -1247,7 +1181,7 @@
       gap: var(--space-md);
     }
 
-    .trusts-grid {
+    .communities-grid {
       grid-template-columns: 1fr;
     }
 
@@ -1288,21 +1222,21 @@
   }
 
   .oracle-card {
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
+    background: var(--color-warning-light);
+    border: 1px solid var(--color-warning);
     border-radius: var(--radius-md);
     padding: var(--space-lg);
   }
 
   .oracle-info h4 {
     margin: 0 0 var(--space-sm) 0;
-    color: #92400e;
+    color: var(--color-warning-text);
   }
 
   .oracle-info ul {
     margin: 0;
     padding-left: var(--space-lg);
-    color: #78350f;
+    color: var(--color-warning-text);
   }
 
   .oracle-info li {
@@ -1320,8 +1254,8 @@
   }
 
   .oracle-status.registered {
-    background: #d1fae5;
-    color: #065f46;
+    background: var(--color-success-light);
+    color: var(--color-success-text);
   }
 
   .oracle-hint {
@@ -1331,7 +1265,7 @@
   }
 
   .oracle-hint a {
-    color: #667eea;
+    color: var(--color-primary);
   }
 
   .oracle-actions {
@@ -1340,7 +1274,7 @@
 
   .btn-register-oracle {
     padding: var(--space-md) var(--space-lg);
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     color: white;
     border: none;
     border-radius: var(--radius-sm);
@@ -1365,7 +1299,7 @@
   .connect-prompt {
     text-align: center;
     padding: var(--space-lg);
-    background: #f9fafb;
+    background: var(--color-bg-subtle);
     border-radius: var(--radius-md);
     color: var(--color-text-muted);
   }
@@ -1423,8 +1357,8 @@
   }
 
   .oracle-info-box {
-    background: #dbeafe;
-    border: 1px solid #93c5fd;
+    background: var(--color-info-light);
+    border: 1px solid var(--color-info);
     border-radius: var(--radius-md);
     padding: var(--space-md);
     margin-bottom: var(--space-md);
@@ -1432,18 +1366,18 @@
 
   .oracle-info-box h4 {
     margin: 0 0 var(--space-sm) 0;
-    color: #1e40af;
+    color: var(--color-info-text);
   }
 
   .oracle-info-box ul {
     margin: 0;
     padding-left: var(--space-lg);
-    color: #1e40af;
+    color: var(--color-info-text);
   }
 
   .oracle-stake-info {
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
+    background: var(--color-warning-light);
+    border: 1px solid var(--color-warning);
     border-radius: var(--radius-md);
     padding: var(--space-md);
     margin-bottom: var(--space-lg);
@@ -1453,7 +1387,7 @@
   .stake-note {
     display: block;
     font-size: var(--font-size-xs);
-    color: #92400e;
+    color: var(--color-warning-text);
     margin-top: var(--space-xs);
   }
 
@@ -1466,8 +1400,8 @@
 
   .btn-cancel {
     padding: var(--space-sm) var(--space-lg);
-    background: #f3f4f6;
-    color: #374151;
+    background: var(--color-border-light);
+    color: var(--color-text);
     border: none;
     border-radius: var(--radius-sm);
     font-weight: 500;
@@ -1476,12 +1410,12 @@
   }
 
   .btn-cancel:hover:not(:disabled) {
-    background: #e5e7eb;
+    background: var(--color-border);
   }
 
   .btn-submit {
     padding: var(--space-sm) var(--space-lg);
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     color: white;
     border: none;
     border-radius: var(--radius-sm);
@@ -1520,8 +1454,8 @@
   }
 
   .governor-card {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border: 2px solid #fbbf24;
+    background: linear-gradient(135deg, var(--color-warning-light) 0%, var(--color-warning-light) 100%);
+    border: 2px solid var(--color-warning);
     border-radius: var(--radius-md);
     padding: var(--space-lg);
   }
@@ -1550,7 +1484,7 @@
 
   .successor-info h4 {
     margin: 0 0 var(--space-sm) 0;
-    color: #92400e;
+    color: var(--color-warning-text);
     font-size: var(--font-size-sm);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1568,19 +1502,19 @@
     padding: var(--space-xs) var(--space-sm);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
-    color: #78350f;
+    color: var(--color-warning-text);
   }
 
   .successor-note {
     font-size: var(--font-size-xs);
-    color: #92400e;
+    color: var(--color-warning-text);
   }
 
   .no-successor {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    color: #92400e;
+    color: var(--color-warning-text);
   }
 
   .warning-icon {
@@ -1590,7 +1524,7 @@
   .successor-hint {
     margin: var(--space-sm) 0 0 0;
     font-size: var(--font-size-sm);
-    color: #78350f;
+    color: var(--color-warning-text);
     font-style: italic;
   }
 
@@ -1602,7 +1536,7 @@
 
   .btn-name-successor {
     padding: var(--space-sm) var(--space-lg);
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     color: white;
     border: none;
     border-radius: var(--radius-sm);
@@ -1620,8 +1554,8 @@
   .btn-step-down {
     padding: var(--space-sm) var(--space-lg);
     background: white;
-    color: #78350f;
-    border: 2px solid #fbbf24;
+    color: var(--color-warning-text);
+    border: 2px solid var(--color-warning);
     border-radius: var(--radius-sm);
     font-weight: 500;
     cursor: pointer;
@@ -1630,13 +1564,13 @@
   }
 
   .btn-step-down:hover:not(:disabled) {
-    background: #fef3c7;
-    border-color: #f59e0b;
+    background: var(--color-warning-light);
+    border-color: var(--color-warning);
   }
 
   .step-down-info {
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
+    background: var(--color-warning-light);
+    border: 1px solid var(--color-warning);
     border-radius: var(--radius-md);
     padding: var(--space-md);
     margin-bottom: var(--space-lg);
@@ -1660,12 +1594,12 @@
   .step-down-note {
     margin: var(--space-md) 0 0 0;
     font-size: var(--font-size-sm);
-    color: #78350f;
+    color: var(--color-warning-text);
   }
 
   .btn-step-down-confirm {
     padding: var(--space-sm) var(--space-lg);
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-warning) 100%);
     color: white;
     border: none;
     border-radius: var(--radius-sm);

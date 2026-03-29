@@ -67,8 +67,8 @@ export enum ProposalStatus {
  * Type of proposal
  */
 export enum ProposalType {
-  RateChange = 0,           // Change trust demurrage rate
-  TrustParameters = 1,      // Adjust trust parameters
+  RateChange = 0,           // Change community demurrage rate
+  TrustParameters = 1,      // Adjust community parameters
   ProtocolUpgrade = 2,      // Protocol-level upgrade
   Emergency = 3,            // Emergency measure (crisis exception)
   RemoveVerifier = 4,       // Vote to remove low-rep verifier
@@ -99,16 +99,16 @@ export interface AccountData {
   balance: Amount;
   last_activity: Timestamp;
   grace_period_end: Timestamp;     // Timestamp when grace ends (0 if not in grace)
-  trust_id: AccountId | null;      // Trust membership (null if none)
+  trust_id: AccountId | null;      // Community membership (null if none)
   contribution_hours: number;      // Total hours contributed
   grace_periods_used: number;      // Grace periods used this year
   last_grace_year: number;         // Year of last grace period
 }
 
 /**
- * Trust (community organization) data
+ * Community organization data
  */
-export interface TrustData {
+export interface CommunityData {
   name: string;
   governor: AccountId;
   successor: AccountId | null;     // Designated successor for governor role
@@ -187,7 +187,7 @@ export interface AspectMetadata {
   description: string;           // "Shared transportation services"
   domain: AspectDomain;          // AspectDomain.Transportation
   roles: AspectRole[];           // ["driver", "passenger"]
-  created_by: AccountId;         // Trust leadership that created this aspect
+  created_by: AccountId;         // Community leadership that created this aspect
   created_at: Timestamp;
   is_active: boolean;
 }

@@ -3,6 +3,7 @@
   import { wallet } from "$lib/stores/wallet";
   import { t } from "$lib/i18n";
   import { GraceType } from "@kchng/shared";
+  import OnboardingModal from "$lib/components/OnboardingModal.svelte";
 
   let accountData = $state<{
     balance: bigint;
@@ -27,9 +28,9 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
 
-  // Cross-Trust Exchange state
-  let availableTrusts = $state<Array<{ id: string; name: string }>>([]);
-  let selectedTrustId = $state<string | null>(null);
+  // Cross-Community Exchange state
+  let availableCommunities = $state<Array<{ id: string; name: string }>>([]);
+  let selectedCommunityId = $state<string | null>(null);
   let exchangeRate = $state<number | null>(null);
   let simulatedResult = $state<bigint | null>(null);
   let exchangeAmount = $state<string>("100000");
@@ -40,7 +41,7 @@
 
   onMount(async () => {
     await loadAccountData();
-    await loadAvailableTrusts();
+    await loadAvailableCommunities();
   });
 
   async function loadAccountData() {
@@ -73,37 +74,37 @@
     }
   }
 
-  async function loadAvailableTrusts() {
-    if (!$wallet.connected || !$wallet.address || !$wallet.trustId) return;
+  async function loadAvailableCommunities() {
+    if (!$wallet.connected || !$wallet.address || !$wallet.communityId) return;
 
     try {
       const { createKchngClient } = await import("$lib/contracts/kchng");
       const kchngClient = createKchngClient($wallet.network);
 
-      // Get all trusts
-      const trustIds = await kchngClient.getAllTrusts();
-      const trusts = await Promise.all(
-        trustIds
-          .filter(id => id !== $wallet.trustId) // Exclude current trust
+      // Get all communities
+      const communityIds = await kchngClient.getAllCommunities();
+      const communities = await Promise.all(
+        communityIds
+          .filter(id => id !== $wallet.communityId) // Exclude current community
           .map(async (id) => {
-            const info = await kchngClient.getTrustInfo(id);
+            const info = await kchngClient.getCommunityInfo(id);
             return { id, name: info.name };
           })
       );
 
-      availableTrusts = trusts;
+      availableCommunities = communities;
 
-      if (trusts.length > 0) {
-        selectedTrustId = trusts[0].id;
+      if (communities.length > 0) {
+        selectedCommunityId = communities[0].id;
         await updateExchangePreview();
       }
     } catch (e) {
-      console.error("Failed to load trusts:", e);
+      console.error("Failed to load communities:", e);
     }
   }
 
   async function updateExchangePreview() {
-    if (!$wallet.trustId || !selectedTrustId || !exchangeAmount) {
+    if (!$wallet.communityId || !selectedCommunityId || !exchangeAmount) {
       exchangeRate = null;
       simulatedResult = null;
       return;
@@ -115,14 +116,14 @@
       const kchngClient = createKchngClient($wallet.network);
 
       // Get exchange rate
-      exchangeRate = await kchngClient.calculateExchangeRate($wallet.trustId, selectedTrustId);
+      exchangeRate = await kchngClient.calculateExchangeRate($wallet.communityId, selectedCommunityId);
 
       // Simulate the swap
       const amount = BigInt(exchangeAmount);
       if (amount > 0n) {
-        simulatedResult = await kchngClient.simulateCrossTrustSwap(
-          $wallet.trustId,
-          selectedTrustId,
+        simulatedResult = await kchngClient.simulateCrossCommunitySwap(
+          $wallet.communityId,
+          selectedCommunityId,
           amount
         );
       }
@@ -136,8 +137,8 @@
   }
 
   async function executeExchange() {
-    if (!$wallet.connected || !$wallet.address || !$wallet.trustId || !selectedTrustId) {
-      exchangeMessage = { type: "error", text: "Please connect wallet and select a trust" };
+    if (!$wallet.connected || !$wallet.address || !$wallet.communityId || !selectedCommunityId) {
+      exchangeMessage = { type: "error", text: "Please connect wallet and select a community" };
       return;
     }
 
@@ -150,9 +151,9 @@
       kchngClient.setSignTransactionCallback(wallet.signTransaction);
 
       const amount = BigInt(exchangeAmount);
-      const txHash = await kchngClient.crossTrustSwap(
+      const txHash = await kchngClient.crossCommunitySwap(
         $wallet.address,
-        selectedTrustId,
+        selectedCommunityId,
         amount
       );
 
@@ -178,8 +179,8 @@
   }
 
   $effect(() => {
-    // Update preview when amount or trust changes
-    if (selectedTrustId && exchangeAmount) {
+    // Update preview when amount or community changes
+    if (selectedCommunityId && exchangeAmount) {
       updateExchangePreview();
     }
   });
@@ -289,21 +290,21 @@
         </div>
       {/if}
 
-      <!-- Trust Card -->
+      <!-- Community Card -->
       <div class="card">
-        <h2>{t('dashboard.trustMembership')}</h2>
+        <h2>{t('dashboard.communityMembership')}</h2>
         {#if accountData.trust_id}
-          <div class="trust-info">
+          <div class="community-info">
             <div class="stat-row">
-              <span class="stat-label">{t('dashboard.trustId')}</span>
+              <span class="stat-label">{t('dashboard.communityId')}</span>
               <span class="stat-value stat-address">{accountData.trust_id.slice(0, 8)}...</span>
             </div>
-            <a href="/trusts" class="btn-view">{t('dashboard.viewTrustDetails')}</a>
+            <a href="/communities" class="btn-view">{t('dashboard.viewCommunityDetails')}</a>
           </div>
         {:else}
-          <div class="no-trust">
-            <p>{t('dashboard.notTrustMember')}</p>
-            <a href="/trusts" class="btn-join">{t('dashboard.browseTrusts')}</a>
+          <div class="no-community">
+            <p>{t('dashboard.notCommunityMember')}</p>
+            <a href="/communities" class="btn-join">{t('dashboard.browseCommunities')}</a>
           </div>
         {/if}
       </div>
@@ -339,10 +340,10 @@
           <div class="action-desc">{t('dashboard.actionVerifyWorkDesc')}</div>
         </a>
 
-        <a href="/trusts" class="action-card">
+        <a href="/communities" class="action-card">
           <div class="action-icon">🏘️</div>
-          <div class="action-title">{t('dashboard.actionTrusts')}</div>
-          <div class="action-desc">{t('dashboard.actionTrustsDesc')}</div>
+          <div class="action-title">{t('dashboard.actionCommunities')}</div>
+          <div class="action-desc">{t('dashboard.actionCommunitiesDesc')}</div>
         </a>
 
         <a href="/governance" class="action-card">
@@ -353,8 +354,8 @@
       </div>
     </div>
 
-    <!-- Cross-Trust Exchange (only for trust members) -->
-    {#if accountData.trust_id && availableTrusts.length > 0}
+    <!-- Cross-Community Exchange (only for community members) -->
+    {#if accountData.trust_id && availableCommunities.length > 0}
       <div class="exchange-section">
         <h2>{t('dashboard.exchangeBetweenCommunities')}</h2>
         <p class="exchange-subtitle">{t('dashboard.exchangeSubtitle')}</p>
@@ -362,7 +363,7 @@
         <div class="exchange-card">
           <div class="exchange-from">
             <div class="exchange-label">{t('dashboard.fromCommunity')}</div>
-            <div class="trust-badge current">Your Community</div>
+            <div class="community-badge current">Your Community</div>
             <div class="amount-input">
               <label>{t('dashboard.amountToSend')}</label>
               <input
@@ -384,9 +385,9 @@
 
           <div class="exchange-to">
             <div class="exchange-label">{t('dashboard.toCommunity')}</div>
-            <select bind:value={selectedTrustId} onchange={() => updateExchangePreview()}>
-              {#each availableTrusts as trust (trust.id)}
-                <option value={trust.id}>{trust.name}</option>
+            <select bind:value={selectedCommunityId} onchange={() => updateExchangePreview()}>
+              {#each availableCommunities as community (community.id)}
+                <option value={community.id}>{community.name}</option>
               {/each}
             </select>
 
@@ -399,7 +400,7 @@
                 <div class="same-value-note">{t('dashboard.sameValueNote')}</div>
               </div>
             {:else}
-              <div class="no-rate">{t('dashboard.selectTrustToPreview')}</div>
+              <div class="no-rate">{t('dashboard.selectCommunityToPreview')}</div>
             {/if}
           </div>
 
@@ -446,6 +447,8 @@
   {/if}
 </div>
 
+<OnboardingModal />
+
 <style>
   .container {
     max-width: 1200px;
@@ -473,7 +476,7 @@
 
   .error {
     color: var(--color-error);
-    background: #fee2e2;
+    background: var(--color-error-light);
   }
 
   .no-wallet {
@@ -552,7 +555,7 @@
   .grace-period {
     margin-top: var(--space-md);
     padding: var(--space-sm);
-    background: #d1fae5;
+    background: var(--color-success-light);
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
@@ -570,12 +573,12 @@
 
   /* Community Protection Card */
   .community-protection-card {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    border: 2px solid #10b981;
+    background: linear-gradient(135deg, var(--color-success-light) 0%, var(--color-success-lighter) 100%);
+    border: 2px solid var(--color-success);
   }
 
   .community-protection-card h2 {
-    color: #065f46;
+    color: var(--color-success-text);
     margin-bottom: var(--space-md);
   }
 
@@ -586,12 +589,12 @@
   }
 
   .protection-label {
-    color: #047857;
+    color: var(--color-success-text);
     font-weight: 500;
   }
 
   .protection-value {
-    color: #065f46;
+    color: var(--color-success-text);
     font-weight: 600;
   }
 
@@ -609,13 +612,13 @@
 
   .protection-stat .stat-label {
     font-size: var(--font-size-xs);
-    color: #047857;
+    color: var(--color-success-text);
   }
 
   .protection-stat .stat-value {
     font-size: var(--font-size-xl);
     font-weight: 700;
-    color: #065f46;
+    color: var(--color-success-text);
   }
 
   .protection-days {
@@ -623,11 +626,11 @@
   }
 
   .stat-value.verified {
-    color: #059669;
+    color: var(--color-success);
   }
 
   .stat-value.pending {
-    color: #d97706;
+    color: var(--color-warning);
   }
 
   .extension-info {
@@ -639,28 +642,28 @@
   }
 
   .extension-label {
-    color: #047857;
+    color: var(--color-success-text);
   }
 
   .extension-value {
-    color: #065f46;
+    color: var(--color-success-text);
     font-weight: 600;
   }
 
   .protection-note {
     font-size: var(--font-size-sm);
-    color: #047857;
+    color: var(--color-success-text);
     font-style: italic;
     margin: 0;
   }
 
-  .trust-info, .no-trust {
+  .community-info, .no-community {
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
   }
 
-  .no-trust p {
+  .no-community p {
     color: var(--color-text-muted);
     margin: 0;
   }
@@ -800,7 +803,7 @@
     }
   }
 
-  /* Cross-Trust Exchange Styles */
+  /* Cross-Community Exchange Styles */
   .exchange-section {
     margin-top: var(--space-xl);
     padding: var(--space-lg);
@@ -820,8 +823,8 @@
   }
 
   .exchange-card {
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    border: 2px solid #86efac;
+    background: linear-gradient(135deg, var(--color-success-light) 0%, var(--color-success-lighter) 100%);
+    border: 2px solid var(--color-success);
     border-radius: var(--radius-md);
     padding: var(--space-lg);
     display: grid;
@@ -843,7 +846,7 @@
     letter-spacing: 0.5px;
   }
 
-  .trust-badge.current {
+  .community-badge.current {
     background: var(--color-gradient);
     color: white;
     padding: var(--space-sm) var(--space-md);
@@ -879,7 +882,7 @@
 
   .meal-equiv {
     font-size: var(--font-size-sm);
-    color: #047857;
+    color: var(--color-success-text);
     font-style: italic;
   }
 
@@ -892,7 +895,7 @@
 
   .arrow-icon {
     font-size: 2rem;
-    color: #10b981;
+    color: var(--color-success);
   }
 
   .exchange-to select {
@@ -912,7 +915,7 @@
 
   .result-preview {
     background: white;
-    border: 2px solid #10b981;
+    border: 2px solid var(--color-success);
     border-radius: var(--radius-md);
     padding: var(--space-md);
     text-align: center;
@@ -921,12 +924,12 @@
   .result-amount {
     font-size: var(--font-size-xl);
     font-weight: 700;
-    color: #047857;
+    color: var(--color-success-text);
   }
 
   .result-meals {
     font-size: var(--font-size-sm);
-    color: #047857;
+    color: var(--color-success-text);
     margin-top: var(--space-xs);
   }
 
@@ -955,7 +958,7 @@
 
   .rate-value {
     font-weight: 600;
-    color: #047857;
+    color: var(--color-success-text);
   }
 
   .rate-explanation {
@@ -971,18 +974,18 @@
   }
 
   .exchange-message.success {
-    background: #d1fae5;
-    color: #065f46;
+    background: var(--color-success-light);
+    color: var(--color-success-text);
   }
 
   .exchange-message.error {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--color-error-light);
+    color: var(--color-error-text);
   }
 
   .exchange-message.info {
-    background: #dbeafe;
-    color: #1e40af;
+    background: var(--color-info-light);
+    color: var(--color-info-text);
   }
 
   .exchange-actions {
@@ -994,7 +997,7 @@
 
   .btn-exchange {
     padding: var(--space-md) var(--space-xl);
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success) 100%);
     color: white;
     border: none;
     border-radius: var(--radius-sm);

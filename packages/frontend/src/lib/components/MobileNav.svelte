@@ -7,7 +7,7 @@
   const navItems = [
     { href: "/dashboard", labelKey: "nav.dashboard", icon: "home" },
     { href: "/work", labelKey: "nav.work", icon: "hammer" },
-    { href: "/trusts", labelKey: "nav.communities", icon: "users" },
+    { href: "/communities", labelKey: "nav.communities", icon: "users" },
     { href: "/governance", labelKey: "nav.governance", icon: "vote" },
   ];
 

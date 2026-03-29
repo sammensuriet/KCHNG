@@ -16,19 +16,36 @@ html {
 
   /* Semantic Colors */
   --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-success-lighter: #a7f3d0;
+  --color-success-text: #065f46;
   --color-warning: #fbbf24;
+  --color-warning-light: #fef3c7;
+  --color-warning-text: #92400e;
   --color-error: #dc2626;
+  --color-error-light: #fee2e2;
+  --color-error-lighter: #fecaca;
+  --color-error-text: #991b1b;
   --color-info: #3b82f6;
+  --color-info-light: #dbeafe;
+  --color-info-text: #1e40af;
+
+  /* Primary extended */
+  --color-primary-light: #ede9fe;
+  --color-primary-text: #7c3aed;
 
   /* Neutrals */
   --color-text: #374151;
   --color-text-muted: #6b7280;
   --color-text-light: #9ca3af;
+  --color-text-darker: #111827;
   --color-border: #e5e7eb;
+  --color-border-dark: #d1d5db;
   --color-border-light: #f3f4f6;
   --color-bg: #ffffff;
   --color-bg-subtle: #f9fafb;
   --color-bg-warm: #fef3c7;
+  --color-tooltip-bg: #1f2937;
 
   /* Typography Scale */
   --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -162,7 +179,7 @@ button {
 .info-box h3,
 .info-box h4 {
   margin-top: 0;
-  color: #92400e;
+  color: var(--color-warning-text);
 }
 
 .value-footer {

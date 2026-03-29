@@ -20,7 +20,7 @@
         <h4>{t('footer.platform')}</h4>
         <a href="/dashboard">{t('nav.dashboard')}</a>
         <a href="/work">{t('nav.work')}</a>
-        <a href="/trusts">{t('nav.communities')}</a>
+        <a href="/communities">{t('nav.communities')}</a>
         <a href="/governance">{t('nav.governance')}</a>
       </div>
 

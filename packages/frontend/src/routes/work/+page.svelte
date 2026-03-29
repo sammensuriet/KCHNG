@@ -34,8 +34,8 @@
 
   let loading = $state(false);
 
-  // Derived: can submit work only if connected AND in a trust
-  let canSubmitWork = $derived($wallet.connected && $wallet.isTrustMember);
+  // Derived: can submit work only if connected AND in a community
+  let canSubmitWork = $derived($wallet.connected && $wallet.isCommunityMember);
 
   const workTypes = $derived([
     { value: 0, label: t('work.workTypeStandard'), multiplier: 1.0, examples: t('work.workTypeStandardEx') },
@@ -105,8 +105,8 @@
   }
 
   async function registerAsVerifier() {
-    if (!$wallet.connected || !$wallet.address || !$wallet.trustId) {
-      submitMessage = { type: "error", text: t('work.mustJoinTrust') };
+    if (!$wallet.connected || !$wallet.address || !$wallet.communityId) {
+      submitMessage = { type: "error", text: t('work.mustJoinCommunity') };
       return;
     }
 
@@ -116,7 +116,7 @@
       const kchngClient = createKchngClient($wallet.network);
       kchngClient.setSignTransactionCallback(wallet.signTransaction);
 
-      await kchngClient.registerVerifier($wallet.address, $wallet.trustId);
+      await kchngClient.registerVerifier($wallet.address, $wallet.communityId);
 
       // Reload verifier status
       await loadVerifierStatus();
@@ -167,8 +167,8 @@
       return;
     }
 
-    if (!$wallet.isTrustMember) {
-      submitMessage = { type: "error", text: t('work.mustJoinTrust') };
+    if (!$wallet.isCommunityMember) {
+      submitMessage = { type: "error", text: t('work.mustJoinCommunity') };
       return;
     }
 
@@ -262,10 +262,10 @@
 
   {#if activeTab === "submit"}
     <div class="tab-content">
-      {#if $wallet.connected && !$wallet.isTrustMember}
+      {#if $wallet.connected && !$wallet.isCommunityMember}
         <div class="warning-banner">
-          <strong>{t('work.trustMembershipRequired')}</strong> {t('work.mustJoinTrust')}
-          <a href="/trusts">{t('work.viewTrusts')}</a>
+          <strong>{t('work.communityMembershipRequired')}</strong> {t('work.mustJoinCommunity')}
+          <a href="/communities">{t('work.viewCommunities')}</a>
         </div>
       {/if}
 
@@ -385,8 +385,8 @@
               </div>
               <div class="benefit-card">
                 <div class="benefit-icon">🤝</div>
-                <div class="benefit-title">{t('work.strengthenTrust')}</div>
-                <div class="benefit-desc">{t('work.strengthenTrustDesc')}</div>
+                <div class="benefit-title">{t('work.strengthenCommunity')}</div>
+                <div class="benefit-desc">{t('work.strengthenCommunityDesc')}</div>
               </div>
             </div>
           </div>
@@ -403,10 +403,10 @@
           <button
             class="btn-step-up"
             onclick={() => showRegisterModal = true}
-            disabled={!$wallet.isTrustMember}
+            disabled={!$wallet.isCommunityMember}
           >
-            {#if !$wallet.isTrustMember}
-              {t('work.mustJoinTrustFirst')}
+            {#if !$wallet.isCommunityMember}
+              {t('work.mustJoinCommunityFirst')}
             {:else}
               {t('work.stepUpButton')}
             {/if}
@@ -660,21 +660,21 @@
   }
 
   .info-banner {
-    background: #dbeafe;
-    border: 1px solid #93c5fd;
+    background: var(--color-info-light);
+    border: 1px solid var(--color-info);
     border-radius: var(--radius-md);
     padding: var(--space-md);
     margin-bottom: var(--space-lg);
-    color: #1e40af;
+    color: var(--color-info-text);
   }
 
   .warning-banner {
-    background: #fef3c7;
-    border: 1px solid #fcd34d;
+    background: var(--color-warning-light);
+    border: 1px solid var(--color-warning);
     border-radius: var(--radius-md);
     padding: var(--space-md);
     margin-bottom: var(--space-lg);
-    color: #92400e;
+    color: var(--color-warning-text);
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-sm);
@@ -682,19 +682,19 @@
   }
 
   .warning-banner a {
-    color: #92400e;
+    color: var(--color-warning-text);
     text-decoration: underline;
     font-weight: 500;
     margin-left: var(--space-xs);
   }
 
   .warning-banner a:hover {
-    color: #78350f;
+    color: var(--color-warning-text);
   }
 
   .form-card {
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: 2rem;
     margin-bottom: 2rem;
@@ -712,26 +712,26 @@
     display: block;
     font-weight: 500;
     margin-bottom: 0.5rem;
-    color: #374151;
+    color: var(--color-text);
   }
 
   input, select {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--color-border-dark);
     border-radius: 6px;
     font-size: 1rem;
   }
 
   small {
     display: block;
-    color: #6b7280;
+    color: var(--color-text-muted);
     font-size: 0.875rem;
     margin-top: 0.25rem;
   }
 
   .preview-box {
-    background: #f3f4f6;
+    background: var(--color-border-light);
     border-radius: 8px;
     padding: 1.5rem;
     margin: 1.5rem 0;
@@ -741,24 +741,24 @@
   .preview-box h3 {
     margin: 0 0 1rem 0;
     font-size: 1rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
   }
 
   .token-amount {
     font-size: 2.5rem;
     font-weight: 700;
-    color: #667eea;
+    color: var(--color-primary);
     margin-bottom: 0.5rem;
   }
 
   .token-breakdown {
-    color: #6b7280;
+    color: var(--color-text-muted);
     font-size: 0.875rem;
   }
 
   button {
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     color: white;
     border: none;
     border-radius: 6px;
@@ -787,7 +787,7 @@
   }
 
   .submit-btn.submitting {
-    background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+    background: linear-gradient(135deg, var(--color-text-light) 0%, var(--color-text-muted) 100%);
   }
 
   .btn-spinner {
@@ -814,21 +814,21 @@
   }
 
   .message-info {
-    background: #dbeafe;
-    color: #1e40af;
-    border: 1px solid #93c5fd;
+    background: var(--color-info-light);
+    color: var(--color-info-text);
+    border: 1px solid var(--color-info);
   }
 
   .message-success {
-    background: #d1fae5;
-    color: #065f46;
-    border: 1px solid #6ee7b7;
+    background: var(--color-success-light);
+    color: var(--color-success-text);
+    border: 1px solid var(--color-success);
   }
 
   .message-error {
-    background: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fca5a5;
+    background: var(--color-error-light);
+    color: var(--color-error-text);
+    border: 1px solid var(--color-error);
   }
 
   .message .icon {
@@ -858,7 +858,7 @@
 
   .multiplier-card {
     background: white;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--color-border);
     border-radius: 8px;
     padding: 1.5rem;
     text-align: center;
@@ -866,25 +866,25 @@
   }
 
   .multiplier-card.selected {
-    border-color: #667eea;
-    background: #ede9fe;
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
   }
 
   .multiplier-value {
     font-size: 2rem;
     font-weight: 700;
-    color: #667eea;
+    color: var(--color-primary);
     margin-bottom: 0.5rem;
   }
 
   .multiplier-label {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
   }
 
   .multiplier-examples {
     font-size: 0.75rem;
-    color: #9ca3af;
+    color: var(--color-text-light);
     margin-top: 0.5rem;
   }
 
@@ -901,7 +901,7 @@
 
   .status-card {
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 1.5rem;
     text-align: center;
@@ -909,21 +909,21 @@
 
   .status-label {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin-bottom: 0.5rem;
   }
 
   .status-value {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin-bottom: 1rem;
   }
 
   .btn-register {
     padding: 0.5rem 1rem;
-    background: #f3f4f6;
-    color: #374151;
+    background: var(--color-border-light);
+    color: var(--color-text);
     border: none;
     border-radius: 6px;
     cursor: pointer;
@@ -937,9 +937,9 @@
   .empty-state, .loading {
     text-align: center;
     padding: 3rem;
-    background: #f9fafb;
+    background: var(--color-bg-subtle);
     border-radius: 8px;
-    color: #6b7280;
+    color: var(--color-text-muted);
   }
 
   .empty-icon {
@@ -954,7 +954,7 @@
 
   .claim-card {
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 1.5rem;
   }
@@ -977,10 +977,10 @@
     font-weight: 500;
   }
 
-  .status-0 { background: #fef3c7; color: #92400e; }
-  .status-1 { background: #d1fae5; color: #065f46; }
-  .status-2 { background: #fee2e2; color: #991b1b; }
-  .status-3 { background: #e5e7eb; color: #374151; }
+  .status-0 { background: var(--color-warning-light); color: var(--color-warning-text); }
+  .status-1 { background: var(--color-success-light); color: var(--color-success-text); }
+  .status-2 { background: var(--color-error-light); color: var(--color-error-text); }
+  .status-3 { background: var(--color-border); color: var(--color-text); }
 
   .claim-details {
     display: grid;
@@ -993,7 +993,7 @@
   }
 
   .detail-label {
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin-right: 0.5rem;
   }
 
@@ -1004,9 +1004,9 @@
   }
 
   .community-banner {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    border: 1px solid #10b981;
-    color: #065f46;
+    background: linear-gradient(135deg, var(--color-success-light) 0%, var(--color-success-lighter) 100%);
+    border: 1px solid var(--color-success);
+    color: var(--color-success-text);
   }
 
   .community-banner p {
@@ -1020,7 +1020,7 @@
 
   .verifier-benefits h3 {
     margin-bottom: 1rem;
-    color: #374151;
+    color: var(--color-text);
   }
 
   .benefits-grid {
@@ -1031,7 +1031,7 @@
 
   .benefit-card {
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 1.25rem;
     text-align: center;
@@ -1044,13 +1044,13 @@
 
   .benefit-title {
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin-bottom: 0.25rem;
   }
 
   .benefit-desc {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
   }
 
   .stake-info {
@@ -1059,11 +1059,11 @@
 
   .stake-info h3 {
     margin-bottom: 1rem;
-    color: #374151;
+    color: var(--color-text);
   }
 
   .stake-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     border-radius: 12px;
     padding: 2rem;
     text-align: center;
@@ -1099,7 +1099,7 @@
   }
 
   .btn-step-up:disabled {
-    background: #9ca3af;
+    background: var(--color-text-light);
     cursor: not-allowed;
   }
 
@@ -1130,16 +1130,16 @@
 
   .modal h2 {
     margin: 0 0 1rem 0;
-    color: #374151;
+    color: var(--color-text);
   }
 
   .modal p {
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin-bottom: 1.5rem;
   }
 
   .modal-info {
-    background: #f9fafb;
+    background: var(--color-bg-subtle);
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 1.5rem;
@@ -1149,7 +1149,7 @@
     display: flex;
     justify-content: space-between;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .modal-row:last-child {
@@ -1158,7 +1158,7 @@
 
   .modal-value {
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
   }
 
   .modal-actions {
@@ -1171,12 +1171,12 @@
   }
 
   .btn-confirm {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success) 100%);
   }
 
   .btn-cancel {
-    background: #f3f4f6;
-    color: #374151;
+    background: var(--color-border-light);
+    color: var(--color-text);
   }
 
   /* Verifier Dashboard Styles */
@@ -1191,12 +1191,12 @@
   }
 
   .verifier-header h2 {
-    color: #10b981;
+    color: var(--color-success);
     margin-bottom: 0.5rem;
   }
 
   .verifier-subtitle {
-    color: #6b7280;
+    color: var(--color-text-muted);
     font-size: 1rem;
   }
 
@@ -1213,7 +1213,7 @@
     flex-direction: column;
     align-items: center;
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 1rem 1.5rem;
     min-width: 120px;
@@ -1221,7 +1221,7 @@
 
   .stat-item .stat-label {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -1229,13 +1229,13 @@
   .stat-item .stat-value {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
     margin-top: 0.25rem;
   }
 
   .pending-claims-section h3 {
     margin-bottom: 1rem;
-    color: #374151;
+    color: var(--color-text);
   }
 
   .claims-to-verify {
@@ -1246,7 +1246,7 @@
 
   .claim-verify-card {
     background: white;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--color-border);
     border-radius: 12px;
     padding: 1.5rem;
   }
@@ -1257,19 +1257,19 @@
     align-items: center;
     margin-bottom: 1rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .claimant {
     font-weight: 500;
     font-family: monospace;
     font-size: 0.9rem;
-    color: #374151;
+    color: var(--color-text);
   }
 
   .claim-time {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
   }
 
   .claim-verify-details {
@@ -1292,11 +1292,11 @@
 
   .detail-row span:last-child {
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text);
   }
 
   .token-highlight {
-    color: #667eea;
+    color: var(--color-primary);
     font-weight: 600 !important;
   }
 
@@ -1305,14 +1305,14 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem;
-    background: #f3f4f6;
+    background: var(--color-border-light);
     border-radius: 6px;
     margin-bottom: 1rem;
     font-size: 0.85rem;
   }
 
   .evidence-label {
-    color: #6b7280;
+    color: var(--color-text-muted);
   }
 
   .evidence-indicator {
@@ -1337,21 +1337,21 @@
   }
 
   .btn-verify {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success) 100%);
   }
 
   .btn-verify:hover:not(:disabled) {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-text) 100%);
   }
 
   .btn-cannot-verify {
-    background: #f3f4f6;
-    color: #6b7280;
+    background: var(--color-border-light);
+    color: var(--color-text-muted);
   }
 
   .btn-cannot-verify:hover:not(:disabled) {
-    background: #e5e7eb;
-    color: #374151;
+    background: var(--color-border);
+    color: var(--color-text);
   }
 
   .btn-verify:disabled, .btn-cannot-verify:disabled {

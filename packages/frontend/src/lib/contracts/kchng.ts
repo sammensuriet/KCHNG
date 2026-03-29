@@ -19,7 +19,7 @@ import { getNetworkConfig } from "@kchng/shared";
 import type { NetworkName } from "$lib/stores/wallet";
 import type {
   AccountData,
-  TrustData,
+  CommunityData,
   VerifierData,
   WorkClaim,
   GracePeriod,
@@ -204,13 +204,13 @@ export class KchngClient {
   }
 
   // ==========================================================================
-  // TRUST SYSTEM
+  // COMMUNITY SYSTEM
   // ==========================================================================
 
   /**
-   * Register a new trust (community organization)
+   * Register a new community (community organization)
    */
-  async registerTrust(
+  async registerCommunity(
     sourceAddress: string,
     name: string,
     annualRateBps: number,
@@ -228,39 +228,39 @@ export class KchngClient {
   }
 
   /**
-   * Join a trust
+   * Join a community
    */
-  async joinTrust(trustId: string, sourceAddress: string): Promise<string> {
-    const trustAddress = new Address(trustId);
-    const args = [trustAddress.toScVal()];
+  async joinCommunity(communityId: string, sourceAddress: string): Promise<string> {
+    const communityAddress = new Address(communityId);
+    const args = [communityAddress.toScVal()];
 
     return this.submitContractCall("join_trust", args, sourceAddress);
   }
 
   /**
-   * Get trust info
+   * Get community info
    */
-  async getTrustInfo(trustId: string): Promise<TrustData> {
+  async getCommunityInfo(communityId: string): Promise<CommunityData> {
     try {
-      const address = new Address(trustId);
+      const address = new Address(communityId);
       const result = await this.simulateContractCall(this.contractId, "get_trust_info", [
         address.toScVal(),
       ]);
 
       if (result) {
-        return this.trustDataFromScVal(result);
+        return this.communityDataFromScVal(result);
       }
-      throw new Error("Trust not found");
+      throw new Error("Community not found");
     } catch (error) {
-      console.error("Error fetching trust info:", error);
-      throw new Error("Failed to fetch trust info from contract");
+      console.error("Error fetching community info:", error);
+      throw new Error("Failed to fetch community info from contract");
     }
   }
 
   /**
-   * Get all trusts
+   * Get all communities
    */
-  async getAllTrusts(): Promise<string[]> {
+  async getAllCommunities(): Promise<string[]> {
     try {
       const result = await this.simulateContractCall(this.contractId, "get_all_trusts", []);
 
@@ -269,15 +269,15 @@ export class KchngClient {
       }
       return [];
     } catch (error) {
-      console.error("Error fetching all trusts:", error);
-      throw new Error("Failed to fetch trusts from contract");
+      console.error("Error fetching all communities:", error);
+      throw new Error("Failed to fetch communities from contract");
     }
   }
 
   /**
    * Designate a successor for the governor role (sociocratic succession)
    * Only the current governor can call this
-   * The successor must be a member of the trust
+   * The successor must be a member of the community
    */
   async designateSuccessor(
     sourceAddress: string,
@@ -290,7 +290,7 @@ export class KchngClient {
 
   /**
    * Voluntarily step down from a role (sociocratic role release)
-   * For governors: transfers to successor if designated, otherwise disables trust
+   * For governors: transfers to successor if designated, otherwise disables community
    * For verifiers/oracles: returns full stake (no slashing for voluntary release)
    */
   async stepDown(sourceAddress: string, role: RoleType): Promise<string> {
@@ -347,9 +347,9 @@ export class KchngClient {
   /**
    * Register as a verifier
    */
-  async registerVerifier(sourceAddress: string, trustId: string): Promise<string> {
-    const trustAddress = new Address(trustId);
-    const args = [trustAddress.toScVal()];
+  async registerVerifier(sourceAddress: string, communityId: string): Promise<string> {
+    const communityAddress = new Address(communityId);
+    const args = [communityAddress.toScVal()];
     return this.submitContractCall("register_verifier", args, sourceAddress);
   }
 
@@ -503,17 +503,17 @@ export class KchngClient {
   }
 
   // ==========================================================================
-  // CROSS-TRUST EXCHANGE
+  // CROSS-COMMUNITY EXCHANGE
   // ==========================================================================
 
   /**
-   * Calculate exchange rate between two trusts
+   * Calculate exchange rate between two communities
    * Returns rate in basis points
    */
-  async calculateExchangeRate(sourceTrust: string, destTrust: string): Promise<number> {
+  async calculateExchangeRate(sourceCommunity: string, destCommunity: string): Promise<number> {
     try {
-      const sourceAddress = new Address(sourceTrust);
-      const destAddress = new Address(destTrust);
+      const sourceAddress = new Address(sourceCommunity);
+      const destAddress = new Address(destCommunity);
 
       const result = await this.simulateContractCall(this.contractId, "calculate_exchange_rate", [
         sourceAddress.toScVal(),
@@ -531,25 +531,25 @@ export class KchngClient {
   }
 
   /**
-   * Execute a cross-trust swap
+   * Execute a cross-community swap
    */
-  async crossTrustSwap(sourceAddress: string, destTrust: string, amount: bigint): Promise<string> {
-    const destAddress = new Address(destTrust);
+  async crossCommunitySwap(sourceAddress: string, destCommunity: string, amount: bigint): Promise<string> {
+    const destAddress = new Address(destCommunity);
     const args = [destAddress.toScVal(), this.u256ToScVal(amount)];
     return this.submitContractCall("cross_trust_swap", args, sourceAddress);
   }
 
   /**
-   * Simulate a cross-trust swap to see the result
+   * Simulate a cross-community swap to see the result
    */
-  async simulateCrossTrustSwap(
-    sourceTrust: string,
-    destTrust: string,
+  async simulateCrossCommunitySwap(
+    sourceCommunity: string,
+    destCommunity: string,
     amount: bigint
   ): Promise<bigint> {
     try {
-      const sourceAddress = new Address(sourceTrust);
-      const destAddress = new Address(destTrust);
+      const sourceAddress = new Address(sourceCommunity);
+      const destAddress = new Address(destCommunity);
 
       const result = await this.simulateContractCall(
         this.contractId,
@@ -566,8 +566,8 @@ export class KchngClient {
       }
       return 0n;
     } catch (error) {
-      console.error("Error simulating cross-trust swap:", error);
-      throw new Error("Failed to simulate cross-trust swap");
+      console.error("Error simulating cross-community swap:", error);
+      throw new Error("Failed to simulate cross-community swap");
     }
   }
 
@@ -583,14 +583,14 @@ export class KchngClient {
     proposalType: ProposalType,
     title: string,
     description: string,
-    trustId: string | null,
+    communityId: string | null, // maps to trust_id on-chain
     newRateBps?: number
   ): Promise<string> {
     const args = [
       xdr.ScVal.scvU32(proposalType),
       xdr.ScVal.scvString(title),
       xdr.ScVal.scvString(description),
-      trustId ? new Address(trustId).toScVal() : xdr.ScVal.scvVoid(),
+      communityId ? new Address(communityId).toScVal() : xdr.ScVal.scvVoid(),
       newRateBps !== undefined
         ? xdr.ScVal.scvU32(newRateBps)
         : xdr.ScVal.scvVoid(),
@@ -919,8 +919,8 @@ export class KchngClient {
   /**
    * Convert AccountData ScVal to AccountData
    * Fields: balance (U256), last_activity (u64), grace_period_end (u64),
-   *         trust_id (Option<Address>), contribution_hours (u64),
-   *         grace_periods_used (u32), last_grace_year (u32)
+   *         trust_id (Option<Address>) [on-chain field name for community ID],
+   *         contribution_hours (u64), grace_periods_used (u32), last_grace_year (u32)
    */
   private accountDataFromScVal(val: xdr.ScVal): AccountData {
     try {
@@ -948,12 +948,12 @@ export class KchngClient {
   }
 
   /**
-   * Convert TrustData ScVal to TrustData
+   * Convert CommunityData ScVal to CommunityData
    * Fields: name (String), governor (Address), successor (Option<Address>),
    *         annual_rate_bps (u32), demurrage_period_days (u64),
    *         member_count (u32), is_active (bool), created_at (u64)
    */
-  private trustDataFromScVal(val: xdr.ScVal): TrustData {
+  private communityDataFromScVal(val: xdr.ScVal): CommunityData {
     try {
       return {
         name: this.getStructField(val, 0) ? this.stringFromScVal(this.getStructField(val, 0)!) : "",
@@ -966,7 +966,7 @@ export class KchngClient {
         created_at: this.getStructField(val, 7) ? this.u64FromScVal(this.getStructField(val, 7)!) : 0,
       };
     } catch (error) {
-      console.error("[KchngClient] Failed to parse TrustData:", error);
+      console.error("[KchngClient] Failed to parse CommunityData:", error);
       return {
         name: "",
         governor: "",
@@ -1086,7 +1086,7 @@ export class KchngClient {
   /**
    * Convert Proposal ScVal to Proposal
    * Fields: proposal_id (u64), proposer (Address), proposal_type (ProposalType enum),
-   *         title (String), description (String), trust_id (Option<Address>),
+   *         title (String), description (String), trust_id (Option<Address>) [on-chain field name for community ID],
    *         new_rate_bps (Option<u32>), target_address (Option<Address>), stake (u64),
    *         created_at (u64), review_end (u64), vote_end (u64),
    *         implementation_date (u64), status (ProposalStatus enum), votes_for (u32),
@@ -1162,8 +1162,9 @@ export class KchngClient {
 
   /**
    * Convert VerifierData ScVal to VerifierData
-   * Fields: trust_id (Option<Address>), stake (U256), reputation_score (u32),
-   *         verified_claims (u32), rejected_claims (u32), fraud_reports (u32),
+   * Fields: trust_id (Option<Address>) [on-chain field name for community ID],
+   *         stake (U256), reputation_score (u32), verified_claims (u32),
+   *         rejected_claims (u32), fraud_reports (u32),
    *         aspect_scores (Map<Bytes, u32>)
    */
   private verifierDataFromScVal(val: xdr.ScVal): VerifierData {

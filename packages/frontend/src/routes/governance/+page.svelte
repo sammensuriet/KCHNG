@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { wallet } from "$lib/stores/wallet";
+  import { t } from "$lib/i18n";
   import { ProposalStatus } from "@kchng/shared";
 
   let activeTab = $state<"proposals" | "create">("proposals");
@@ -38,10 +39,10 @@
   let txMessage = $state<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
   const proposalTypes = [
-    { value: 0, label: "Rate Change" },
-    { value: 1, label: "Trust Parameters" },
-    { value: 2, label: "Protocol Upgrade" },
-    { value: 3, label: "Emergency Measure" },
+    { value: 0, label: "governance.types.rateChange" },
+    { value: 1, label: "governance.types.communityParameters" },
+    { value: 2, label: "governance.types.protocolUpgrade" },
+    { value: 3, label: "governance.types.emergency" },
   ];
 
   onMount(async () => {
@@ -274,12 +275,20 @@
   }
 
   function getProposalTypeName(type: number): string {
-    return proposalTypes.find(t => t.value === type)?.label || "Unknown";
+    const key = proposalTypes.find(p => p.value === type)?.label;
+    return key ? t(key) : "Unknown";
   }
 
   function getStatusName(status: number): string {
-    const statuses = ["Review", "Voting", "Approved", "Rejected", "Implemented", "Expired"];
-    return statuses[status] || "Unknown";
+    const statuses = [
+      "governance.status.review",
+      "governance.status.voting",
+      "governance.status.approved",
+      "governance.status.rejected",
+      "governance.status.implemented",
+      "governance.status.expired"
+    ];
+    return statuses[status] ? t(statuses[status]) : "Unknown";
   }
 
   function getStatusClass(status: number): string {
@@ -300,31 +309,33 @@
   }
 </script>
 
+<svelte:head>
+  <title>{t('governance.title')}</title>
+</svelte:head>
+
 <div class="container">
-  <h1>Governance</h1>
-  <p class="subtitle">Community-driven proposal and voting system</p>
+  <h1>{t('governance.heading')}</h1>
+  <p class="subtitle">{t('governance.subtitle')}</p>
 
   <div class="tabs">
     <button
       class:active={activeTab === "proposals"}
       onclick={() => activeTab = "proposals"}
     >
-      Proposals
+      {t('governance.tabProposals')}
     </button>
     <button
       class:active={activeTab === "create"}
       onclick={() => activeTab = "create"}
     >
-      Create Proposal
+      {t('governance.tabCreate')}
     </button>
   </div>
 
   {#if activeTab === "proposals"}
     <div class="tab-content">
       <div class="info-banner">
-        <strong>Governance Process:</strong> Proposals go through a 7-day review period,
-        followed by a 3-day voting period. Approved proposals have a 30-day implementation notice.
-        Rate changes require trust governor approval; protocol changes require admin approval.
+        <strong>{t('governance.process.heading')}</strong> {t('governance.process.description')}
       </div>
 
       {#if loading}
@@ -332,9 +343,9 @@
       {:else if proposals.length === 0}
         <div class="empty-state">
           <div class="empty-icon">🗳️</div>
-          <h3>No Proposals Yet</h3>
-          <p>Be the first to create a governance proposal!</p>
-          <button onclick={() => activeTab = "create"}>Create Proposal</button>
+          <h3>{t('governance.empty.title')}</h3>
+          <p>{t('governance.empty.description')}</p>
+          <button onclick={() => activeTab = "create"}>{t('governance.empty.action')}</button>
         </div>
       {:else}
         <div class="proposals-list">
@@ -349,7 +360,7 @@
                 </div>
                 <div class="proposal-meta">
                   <span class="proposal-type">{getProposalTypeName(proposal.proposal_type)}</span>
-                  <span class="proposal-id">#{proposal.proposal_id}</span>
+                  <span class="proposal-id">{t('governance.proposalId').replace('{id}', String(proposal.proposal_id))}</span>
                   <span class="proposal-date">{formatDate(proposal.created_at)}</span>
                 </div>
               </div>
@@ -358,7 +369,7 @@
 
               {#if proposal.new_rate_bps}
                 <div class="proposal-rate">
-                  <strong>Proposed Rate:</strong> {(proposal.new_rate_bps / 100).toFixed(1)}%
+                  <strong>{t('governance.proposedRate')}</strong> {(proposal.new_rate_bps / 100).toFixed(1)}%
                 </div>
               {/if}
 
@@ -392,16 +403,16 @@
                 </div>
                 {#if proposal.status === 1}
                   {#if hasVoted(proposal)}
-                    <span class="already-voted">✓ You voted</span>
+                    <span class="already-voted">{t('governance.alreadyVoted')}</span>
                   {:else if $wallet.connected}
                     <button
                       class="btn-vote"
                       onclick={() => openVotingModal(proposal.proposal_id)}
                     >
-                      Cast Your Vote
+                      {t('governance.castVote')}
                     </button>
                   {:else}
-                    <span class="connect-hint">Connect wallet to vote</span>
+                    <span class="connect-hint">{t('governance.connectWalletToVote')}</span>
                   {/if}
                 {/if}
               </div>
@@ -418,13 +429,13 @@
                       {#if txPending}
                         <span class="btn-spinner"></span>
                       {/if}
-                      Make It Official
+                      {t('governance.makeOfficial')}
                     </button>
                     <p class="action-hint">
                       {#if proposal.status === 0}
-                        The review period has ended. Process to move to voting.
+                        {t('governance.processToVoting')}
                       {:else if proposal.status === 1}
-                        Voting has ended. Process to tally votes and determine outcome.
+                        {t('governance.processToTally')}
                       {/if}
                     </p>
                   {/if}
@@ -442,7 +453,7 @@
                           </p>
                         {:else}
                           <p class="impact-text">
-                            📋 This proposal will enact changes to trust parameters.
+                            📋 This proposal will enact changes to community parameters.
                           </p>
                         {/if}
                       </div>
@@ -454,7 +465,7 @@
                         {#if txPending}
                           <span class="btn-spinner"></span>
                         {/if}
-                        Implement Now
+                        {t('governance.implementNow')}
                       </button>
                     </div>
                   {/if}
@@ -469,24 +480,24 @@
   {:else if activeTab === "create"}
     <div class="tab-content">
       <div class="form-card">
-        <h2>Create Governance Proposal</h2>
+        <h2>{t('governance.create.heading')}</h2>
 
         <div class="form-group">
-          <label>Proposal Type</label>
+          <label>{t('governance.create.proposalType')}</label>
           <select bind:value={proposalType}>
             {#each proposalTypes as type}
-              <option value={type.value}>{type.label}</option>
+              <option value={type.value}>{t(type.label)}</option>
             {/each}
           </select>
         </div>
 
         <div class="form-group">
-          <label>Title</label>
+          <label>{t('governance.create.title')}</label>
           <input type="text" bind:value={proposalTitle} placeholder="Brief description of your proposal" />
         </div>
 
         <div class="form-group">
-          <label>Description</label>
+          <label>{t('governance.create.description')}</label>
           <textarea
             bind:value={proposalDescription}
             placeholder="Detailed explanation of the proposal and its rationale"
@@ -496,27 +507,27 @@
 
         {#if proposalType === 0}
           <div class="form-group">
-            <label>New Annual Rate (%)</label>
+            <label>{t('governance.create.newRate')}</label>
             <input type="number" bind:value={newRateBps} min="500" max="1500" step="100" />
-            <small>Protocol limits: 5% - 15% annually</small>
+            <small>{t('governance.create.rateLimits')}</small>
           </div>
         {/if}
 
         <div class="info-box">
-          <h4>Proposal Timeline</h4>
+          <h4>{t('governance.create.timeline')}</h4>
           <ul>
-            <li><strong>Review Period:</strong> 7 days for community discussion</li>
-            <li><strong>Voting Period:</strong> 3 days for trust members to vote</li>
-            <li><strong>Implementation:</strong> 30 days notice after approval</li>
+            <li>{t('governance.create.reviewPeriod')}</li>
+            <li>{t('governance.create.votingPeriod')}</li>
+            <li>{t('governance.create.implementation')}</li>
           </ul>
         </div>
 
-        <button onclick={createProposal}>Create Proposal</button>
+        <button onclick={createProposal}>{t('governance.create.submit')}</button>
       </div>
     </div>
   {/if}
 
-  <p class="value-footer">Protocol: 30 min verified work → 1,000 KCHNG minted. Social peg: 1,000 KCHNG ≈ 1 meal.</p>
+  <p class="value-footer">{t('governance.valueFooter')}</p>
 </div>
 
 <!-- Voting Modal -->
@@ -524,7 +535,7 @@
   <div class="modal-overlay" onclick={closeVotingModal}>
     <div class="modal" onclick={(e) => e.stopPropagation()}>
       <button class="modal-close" onclick={closeVotingModal}>&times;</button>
-      <h2>Cast Your Vote</h2>
+      <h2>{t('governance.voteModal.title')}</h2>
       <p class="modal-subtitle">
         {#each proposals as p}
           {#if p.proposal_id === votingProposalId}
@@ -541,8 +552,8 @@
           disabled={txPending}
         >
           <span class="vote-icon">👍</span>
-          <span class="vote-text">Support</span>
-          <span class="vote-desc">Vote in favor of this proposal</span>
+          <span class="vote-text">{t('governance.voteModal.support')}</span>
+          <span class="vote-desc">{t('governance.voteModal.supportDesc')}</span>
         </button>
         <button
           class="vote-option oppose"
@@ -551,8 +562,8 @@
           disabled={txPending}
         >
           <span class="vote-icon">👎</span>
-          <span class="vote-text">Oppose</span>
-          <span class="vote-desc">Vote against this proposal</span>
+          <span class="vote-text">{t('governance.voteModal.oppose')}</span>
+          <span class="vote-desc">{t('governance.voteModal.opposeDesc')}</span>
         </button>
       </div>
 
@@ -566,7 +577,7 @@
           onclick={closeVotingModal}
           disabled={txPending}
         >
-          Cancel
+          {t('governance.voteModal.cancel')}
         </button>
         <button
           class="btn-submit"
@@ -574,9 +585,9 @@
           disabled={votingSupport === null || txPending}
         >
           {#if txPending}
-            Submitting...
+            {t('governance.voteModal.submitting')}
           {:else}
-            Submit Vote
+            {t('governance.voteModal.submit')}
           {/if}
         </button>
       </div>
@@ -597,7 +608,7 @@
   }
 
   .subtitle {
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin: 0 0 2rem 0;
   }
 
@@ -605,7 +616,7 @@
     display: flex;
     gap: 0.5rem;
     margin-bottom: 2rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .tabs button {
@@ -615,13 +626,13 @@
     border-bottom: 2px solid transparent;
     cursor: pointer;
     font-weight: 500;
-    color: #6b7280;
+    color: var(--color-text-muted);
     transition: all 0.2s;
   }
 
   .tabs button.active {
-    color: #667eea;
-    border-bottom-color: #667eea;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
   }
 
   .tab-content {
@@ -634,18 +645,18 @@
   }
 
   .info-banner {
-    background: #dbeafe;
-    border: 1px solid #93c5fd;
+    background: var(--color-info-light);
+    border: 1px solid var(--color-info);
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 2rem;
-    color: #1e40af;
+    color: var(--color-info-text);
   }
 
   .loading, .empty-state {
     text-align: center;
     padding: 3rem;
-    background: #f9fafb;
+    background: var(--color-bg-subtle);
     border-radius: 8px;
   }
 
@@ -661,8 +672,8 @@
   }
 
   .proposal-card {
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: 1.5rem;
   }
@@ -691,12 +702,12 @@
     white-space: nowrap;
   }
 
-  .status-review { background: #fef3c7; color: #92400e; }
-  .status-voting { background: #dbeafe; color: #1e40af; }
-  .status-approved { background: #d1fae5; color: #065f46; }
-  .status-rejected { background: #fee2e2; color: #991b1b; }
-  .status-implemented { background: #ede9fe; color: #7c3aed; }
-  .status-expired { background: #e5e7eb; color: #374151; }
+  .status-review { background: var(--color-warning-light); color: var(--color-warning-text); }
+  .status-voting { background: var(--color-info-light); color: var(--color-info-text); }
+  .status-approved { background: var(--color-success-light); color: var(--color-success-text); }
+  .status-rejected { background: var(--color-error-light); color: var(--color-error-text); }
+  .status-implemented { background: var(--color-primary-light); color: var(--color-primary-text); }
+  .status-expired { background: var(--color-border); color: var(--color-text); }
 
   .proposal-meta {
     display: flex;
@@ -706,25 +717,25 @@
   }
 
   .proposal-type {
-    background: #ede9fe;
-    color: #7c3aed;
+    background: var(--color-primary-light);
+    color: var(--color-primary-text);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-weight: 500;
   }
 
   .proposal-id, .proposal-date {
-    color: #6b7280;
+    color: var(--color-text-muted);
   }
 
   .proposal-description {
-    color: #4b5563;
+    color: var(--color-text);
     line-height: 1.6;
     margin: 1rem 0;
   }
 
   .proposal-rate {
-    background: #f3f4f6;
+    background: var(--color-border-light);
     padding: 0.75rem;
     border-radius: 6px;
     margin-bottom: 1rem;
@@ -742,7 +753,7 @@
   }
 
   .timeline-label {
-    color: #6b7280;
+    color: var(--color-text-muted);
   }
 
   .timeline-value {
@@ -763,11 +774,11 @@
   }
 
   .vote-for {
-    background: #d1fae5;
+    background: var(--color-success-light);
   }
 
   .vote-against {
-    background: #fee2e2;
+    background: var(--color-error-light);
   }
 
   .vote-count {
@@ -777,12 +788,12 @@
 
   .vote-label {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
   }
 
   .btn-vote {
     padding: 0.5rem 1rem;
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
     border: none;
     border-radius: 6px;
@@ -792,7 +803,7 @@
   }
 
   .btn-vote:hover {
-    background: #5a67d8;
+    background: var(--color-primary-dark);
   }
 
   .already-voted {
@@ -800,8 +811,8 @@
     align-items: center;
     gap: 0.25rem;
     padding: 0.5rem 1rem;
-    background: #d1fae5;
-    color: #065f46;
+    background: var(--color-success-light);
+    color: var(--color-success-text);
     border-radius: 6px;
     font-weight: 500;
     font-size: 0.875rem;
@@ -809,8 +820,8 @@
 
   .connect-hint {
     padding: 0.5rem 1rem;
-    background: #f3f4f6;
-    color: #6b7280;
+    background: var(--color-border-light);
+    color: var(--color-text-muted);
     border-radius: 6px;
     font-size: 0.875rem;
   }
@@ -831,7 +842,7 @@
   }
 
   .modal {
-    background: white;
+    background: var(--color-bg);
     border-radius: 12px;
     padding: 2rem;
     max-width: 480px;
@@ -848,22 +859,22 @@
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
-    color: #6b7280;
+    color: var(--color-text-muted);
     width: auto;
     padding: 0;
   }
 
   .modal-close:hover {
-    color: #374151;
+    color: var(--color-text);
   }
 
   .modal h2 {
     margin: 0 0 0.5rem 0;
-    color: #111827;
+    color: var(--color-text-darker);
   }
 
   .modal-subtitle {
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin-bottom: 1.5rem;
   }
 
@@ -879,26 +890,26 @@
     flex-direction: column;
     align-items: center;
     padding: 1.25rem;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--color-border);
     border-radius: 12px;
-    background: white;
+    background: var(--color-bg);
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
   }
 
   .vote-option:hover:not(:disabled) {
-    border-color: #d1d5db;
+    border-color: var(--color-border-dark);
   }
 
   .vote-option.support.selected {
-    border-color: #10b981;
-    background: #ecfdf5;
+    border-color: var(--color-success);
+    background: var(--color-success-light);
   }
 
   .vote-option.oppose.selected {
-    border-color: #ef4444;
-    background: #fef2f2;
+    border-color: var(--color-error);
+    background: var(--color-error-light);
   }
 
   .vote-option:disabled {
@@ -914,13 +925,13 @@
   .vote-text {
     font-weight: 600;
     font-size: 1.125rem;
-    color: #111827;
+    color: var(--color-text-darker);
     margin-bottom: 0.25rem;
   }
 
   .vote-desc {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: var(--color-text-muted);
     text-align: center;
   }
 
@@ -932,18 +943,18 @@
   }
 
   .tx-message.success {
-    background: #d1fae5;
-    color: #065f46;
+    background: var(--color-success-light);
+    color: var(--color-success-text);
   }
 
   .tx-message.error {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--color-error-light);
+    color: var(--color-error-text);
   }
 
   .tx-message.info {
-    background: #dbeafe;
-    color: #1e40af;
+    background: var(--color-info-light);
+    color: var(--color-info-text);
   }
 
   .modal-actions {
@@ -954,8 +965,8 @@
 
   .btn-cancel {
     padding: 0.75rem 1.5rem;
-    background: #f3f4f6;
-    color: #374151;
+    background: var(--color-border-light);
+    color: var(--color-text);
     border: none;
     border-radius: 6px;
     font-weight: 500;
@@ -964,12 +975,12 @@
   }
 
   .btn-cancel:hover:not(:disabled) {
-    background: #e5e7eb;
+    background: var(--color-border);
   }
 
   .btn-submit {
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     color: white;
     border: none;
     border-radius: 6px;
@@ -988,8 +999,8 @@
   }
 
   .form-card {
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: 2rem;
   }
@@ -1006,13 +1017,13 @@
     display: block;
     font-weight: 500;
     margin-bottom: 0.5rem;
-    color: #374151;
+    color: var(--color-text);
   }
 
   input, select, textarea {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--color-border-dark);
     border-radius: 6px;
     font-size: 1rem;
     font-family: inherit;
@@ -1020,14 +1031,14 @@
 
   small {
     display: block;
-    color: #6b7280;
+    color: var(--color-text-muted);
     font-size: 0.875rem;
     margin-top: 0.25rem;
   }
 
   .info-box {
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
+    background: var(--color-warning-light);
+    border: 1px solid var(--color-warning);
     border-radius: 8px;
     padding: 1rem;
     margin: 1.5rem 0;
@@ -1035,7 +1046,7 @@
 
   .info-box h4 {
     margin: 0 0 0.5rem 0;
-    color: #92400e;
+    color: var(--color-warning-text);
   }
 
   .value-footer {
@@ -1050,12 +1061,12 @@
   .info-box ul {
     margin: 0;
     padding-left: 1.5rem;
-    color: #78350f;
+    color: var(--color-warning-text);
   }
 
   button {
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient);
     color: white;
     border: none;
     border-radius: 6px;
@@ -1080,7 +1091,7 @@
   }
 
   .modal-subtitle {
-    color: #6b7280;
+    color: var(--color-text-muted);
     margin-bottom: 1.5rem;
   }
 </style>

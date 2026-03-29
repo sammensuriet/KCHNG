@@ -18,8 +18,8 @@ export interface WalletState {
   walletName: string | null;
   error: string | null;
   network: NetworkName;
-  trustId: string | null;
-  isTrustMember: boolean;
+  communityId: string | null;
+  isCommunityMember: boolean;
   isTestWallet: boolean;
 }
 
@@ -36,8 +36,8 @@ const initialState: WalletState = {
   walletName: null,
   error: null,
   network: "testnet",
-  trustId: null,
-  isTrustMember: false,
+  communityId: null,
+  isCommunityMember: false,
   isTestWallet: false,
 };
 
@@ -234,15 +234,15 @@ function createWalletStore() {
       const accountData = await kchngClient.getAccountData(address);
 
       // Extract trust membership status
-      const trustId = accountData.trust_id;
-      const isTrustMember = trustId !== null;
+      const communityId = accountData.trust_id;
+      const isCommunityMember = communityId !== null;
 
       update((s) => ({
         ...s,
         balance: accountData.balance,
         lastActivity: Number(accountData.last_activity),
-        trustId,
-        isTrustMember,
+        communityId,
+        isCommunityMember,
         error: null,
       }));
     } catch (e) {
@@ -253,8 +253,8 @@ function createWalletStore() {
         ...s,
         error: errorMsg,
         balance: 0n,
-        trustId: null,
-        isTrustMember: false,
+        communityId: null,
+        isCommunityMember: false,
       }));
     }
   }
@@ -278,7 +278,7 @@ function createWalletStore() {
   /**
    * Refresh trust status after joining/leaving a trust
    */
-  async function refreshTrustStatus() {
+  async function refreshCommunityStatus() {
     const state = get({ subscribe });
     if (state.connected && state.address) {
       await loadBalance(state.address, state.network);
@@ -319,7 +319,7 @@ function createWalletStore() {
     refreshBalance,
     switchNetwork,
     signTransaction,
-    refreshTrustStatus,
+    refreshCommunityStatus,
   };
 }
 
