@@ -12,6 +12,9 @@ soroban-sdk = "25.3"
 
 [dev-dependencies]
 soroban-sdk = { version = "25.3", features = ["testutils"] }
+serde_json = "1"
+rand = "0.8"
+ed25519-dalek = "2"
 
 [features]
 testutils = ["soroban-sdk/testutils"]

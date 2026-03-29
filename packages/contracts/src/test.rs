@@ -40,6 +40,12 @@ fn advance_90_days(env: &Env) {
     advance_time(env, 90 * 24 * 60 * 60);
 }
 
+/// Fund a governor address with 1M KCHNG (enough for 500K stake + 500K remaining)
+fn fund_governor(client: &KchngTokenClient, admin: &Address, governor: &Address) {
+    let gov_fund = U256::from_u32(&client.env, 1_000_000);
+    client.transfer(admin, governor, &gov_fund);
+}
+
 // ==========================================================================
 // LEGACY TESTS (Basic Token Functionality)
 // ==========================================================================
@@ -161,6 +167,10 @@ fn test_register_trust() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register a trust with 12% annual rate (1200 bps)
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Urban Elder Care"),
@@ -175,6 +185,9 @@ fn test_register_trust() {
     assert_eq!(trust_info.annual_rate_bps, 1200);
     assert_eq!(trust_info.demurrage_period_days, 28);
     assert!(trust_info.is_active);
+
+    // Verify governor balance after 500K stake deduction (1M funded - 500K stake = 500K)
+    assert_eq!(client.balance(&governor), U256::from_u32(&env, 500_000));
 }
 
 #[test]
@@ -190,6 +203,10 @@ fn test_join_trust() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -226,6 +243,10 @@ fn test_submit_work_claim() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust and join it (required for work claims)
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -280,6 +301,10 @@ fn test_approve_work_claim() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust and join it
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -361,6 +386,10 @@ fn test_activate_grace_period() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -413,6 +442,10 @@ fn test_calculate_exchange_rate() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust A (12% rate)
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_a, &gov_fund);
+
     client.register_trust(
         &trust_a,
         &String::from_str(&env, "Trust A"),
@@ -421,6 +454,10 @@ fn test_calculate_exchange_rate() {
     );
 
     // Register trust B (8% rate)
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_b, &gov_fund);
+
     client.register_trust(
         &trust_b,
         &String::from_str(&env, "Trust B"),
@@ -450,12 +487,20 @@ fn test_cross_trust_swap() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_a, &gov_fund);
+
     client.register_trust(
         &trust_a,
         &String::from_str(&env, "Trust A"),
         &1200u32,
         &30u64,
     );
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_b, &gov_fund);
+
     client.register_trust(
         &trust_b,
         &String::from_str(&env, "Trust B"),
@@ -490,12 +535,20 @@ fn test_cross_trust_large_amounts() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts with different rates
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_a, &gov_fund);
+
     client.register_trust(
         &trust_a,
         &String::from_str(&env, "Trust A"),
         &1200u32,
         &30u64,
     );
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_b, &gov_fund);
+
     client.register_trust(
         &trust_b,
         &String::from_str(&env, "Trust B"),
@@ -549,12 +602,20 @@ fn test_cross_trust_simulate_calculation() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_a, &gov_fund);
+
     client.register_trust(
         &trust_a,
         &String::from_str(&env, "Trust A"),
         &1500u32,
         &30u64,
     ); // 15%
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_b, &gov_fund);
+
     client.register_trust(
         &trust_b,
         &String::from_str(&env, "Trust B"),
@@ -600,12 +661,20 @@ fn test_cross_trust_with_zero_balance_should_panic() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_a, &gov_fund);
+
     client.register_trust(
         &trust_a,
         &String::from_str(&env, "Trust A"),
         &1200u32,
         &30u64,
     );
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_b, &gov_fund);
+
     client.register_trust(
         &trust_b,
         &String::from_str(&env, "Trust B"),
@@ -634,18 +703,30 @@ fn test_cross_trust_rate_precision() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trusts with extreme rate differences
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_a, &gov_fund);
+
     client.register_trust(
         &trust_a,
         &String::from_str(&env, "High Rate"),
         &1500u32,
         &30u64,
     ); // 15%
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_b, &gov_fund);
+
     client.register_trust(
         &trust_b,
         &String::from_str(&env, "Low Rate"),
         &500u32,
         &30u64,
     ); // 5%
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &trust_c, &gov_fund);
+
     client.register_trust(
         &trust_c,
         &String::from_str(&env, "Mid Rate"),
@@ -689,6 +770,10 @@ fn test_create_proposal() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -730,6 +815,10 @@ fn test_vote_on_proposal() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust and proposal
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -791,6 +880,10 @@ fn test_proposal_full_lifecycle() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust with multiple members
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -897,6 +990,10 @@ fn test_proposal_expiration_no_votes() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust with at least 2 members
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -979,6 +1076,10 @@ fn test_emergency_rate_change() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -1085,6 +1186,10 @@ fn test_proposal_quorum_requirement() {
     // Setup trust with 5 members (governor + 4 voters)
     // 40% quorum of 5 = 5 * 40 / 100 = 200 / 100 = 2
     // So we need at least 2 votes for quorum
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -1169,6 +1274,10 @@ fn test_grace_period_pause_demurrage() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -1265,6 +1374,10 @@ fn test_grace_period_contribution_requirement() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -1300,6 +1413,10 @@ fn test_grace_period_annual_limit() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -1380,6 +1497,10 @@ fn test_grace_period_annual_limit_exceeded() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -1473,6 +1594,10 @@ fn test_grace_period_duration_limits() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -1559,6 +1684,10 @@ fn test_grace_period_duration_limit_exceeded() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -1624,6 +1753,10 @@ fn test_grace_period_is_in_grace() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2006,6 +2139,10 @@ fn test_role_score_initializes_to_neutral() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup: register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2049,6 +2186,10 @@ fn test_role_score_positive_delta() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup: register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2094,6 +2235,10 @@ fn test_role_score_negative_delta() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup: register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2139,6 +2284,10 @@ fn test_role_score_upper_bound() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup: register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2178,6 +2327,10 @@ fn test_role_score_lower_bound() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup: register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2217,6 +2370,10 @@ fn test_role_score_multiple_aspects() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup: register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2270,6 +2427,10 @@ fn test_role_score_prevent_self_scoring() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup: register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2312,6 +2473,10 @@ fn test_work_claim_mints_new_tokens() {
     let initial_total_supply = client.total_supply();
 
     // Setup: register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2388,6 +2553,10 @@ fn test_multiple_work_claims_increase_supply() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup: register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2562,7 +2731,7 @@ fn test_governor_cannot_create_multiple_trusts() {
     let contract_id = env.register(KchngToken, (&governor, &initial_supply));
     let client = KchngTokenClient::new(&env, &contract_id);
 
-    // Register first trust
+    // Register first trust (governor IS admin with 10M balance)
     client.register_trust(
         &governor,
         &String::from_str(&env, "First Trust"),
@@ -2592,6 +2761,10 @@ fn test_leave_trust() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2733,6 +2906,10 @@ fn test_grace_period_contribution_increased_to_100() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2790,6 +2967,10 @@ fn test_grace_period_cooldown_first_succeeds() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust, oracle, verifiers
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2851,6 +3032,10 @@ fn test_grace_period_cooldown_second_fails() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust, oracle, verifiers
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2920,6 +3105,10 @@ fn test_governance_no_division_by_zero() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -2993,6 +3182,10 @@ fn test_reputation_initialization() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust - should initialize governor reputation
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3020,6 +3213,10 @@ fn test_verifier_reputation_on_approval() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3076,6 +3273,10 @@ fn test_worker_reputation_on_claim_approved() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3132,6 +3333,10 @@ fn test_worker_reputation_on_claim_rejected() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3182,6 +3387,10 @@ fn test_governor_reputation_on_member_join() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3217,6 +3426,10 @@ fn test_governor_reputation_on_member_leave() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust and member
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3249,6 +3462,10 @@ fn test_verifier_probation_check() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust and verifier
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3286,6 +3503,10 @@ fn test_unregister_verifier() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust and verifier
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3325,6 +3546,10 @@ fn test_multi_trust_verifier_check() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust and verifier
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3354,6 +3579,10 @@ fn test_reputation_decay() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3400,6 +3629,10 @@ fn test_oracle_reputation_on_grace_period() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3471,6 +3704,10 @@ fn test_report_grace_abuse() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup: register trust, oracle, verifiers
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3554,6 +3791,10 @@ fn test_non_oracle_cannot_report_abuse() {
     let client = KchngTokenClient::new(&env, &contract_id);
 
     // Setup
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    client.transfer(&admin, &governor, &gov_fund);
+
     client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3593,6 +3834,10 @@ fn test_migrate_data_success() {
 
     // Setup some data in the old contract
     let governor = Address::generate(&env);
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    old_client.transfer(&admin, &governor, &gov_fund);
+
     old_client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3755,6 +4000,10 @@ fn test_migrate_data_validates_persistent() {
     let oracle = Address::generate(&env);
 
     // Register trust
+    // Fund governor
+    let gov_fund = U256::from_u32(&env, 1_000_000);
+    old_client.transfer(&admin, &governor, &gov_fund);
+
     old_client.register_trust(
         &governor,
         &String::from_str(&env, "Test Trust"),
@@ -3842,4 +4091,269 @@ fn test_getter_functions() {
     // Migration status should be None initially
     let status = client.get_migration_status();
     assert!(status.is_none());
+}
+
+// ==========================================================================
+// VERIFIER ECOSYSTEM TESTS
+// ==========================================================================
+
+#[test]
+fn test_genesis_trust_created_on_deploy() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Genesis trust should be created automatically by the constructor
+    let genesis_trust_id = client.get_genesis_trust_id();
+
+    // The genesis trust ID should be the contract address itself
+    assert_eq!(genesis_trust_id, contract_id);
+
+    // Verify the genesis trust info
+    let trust_info = client.get_trust_info(&genesis_trust_id);
+    assert_eq!(
+        trust_info.name,
+        String::from_str(&env, "KCHNG Genesis Community")
+    );
+    assert!(trust_info.is_active);
+    assert_eq!(trust_info.member_count, 0); // No members until they join
+
+    // Verify genesis pool is initialized
+    let pool = client.get_genesis_pool();
+    assert_eq!(pool.pool_balance, U256::from_u32(&env, 0));
+}
+
+#[test]
+fn test_join_genesis_trust() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let member = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    let genesis_trust_id = client.get_genesis_trust_id();
+
+    // Member joins genesis trust
+    client.join_genesis_trust(&member);
+
+    // Verify membership
+    let account = client.get_account(&member);
+    assert_eq!(account.trust_id, Some(genesis_trust_id.clone()));
+
+    // Verify member count increased
+    let trust_info = client.get_trust_info(&genesis_trust_id);
+    assert_eq!(trust_info.member_count, 1);
+}
+
+#[test]
+fn test_governor_stake_on_register_trust() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Fund governor with exactly 1M
+    fund_governor(&client, &admin, &governor);
+
+    // Verify balance before
+    assert_eq!(client.balance(&governor), U256::from_u32(&env, 1_000_000));
+
+    // Register trust
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Stake Test Trust"),
+        &1200u32,
+        &28u64,
+    );
+
+    // Verify 500K was deducted
+    assert_eq!(client.balance(&governor), U256::from_u32(&env, 500_000));
+
+    // Verify trust info shows governor stake (200K collateral portion)
+    let trust_info = client.get_trust_info(&governor);
+    assert_eq!(trust_info.governor_stake, U256::from_u32(&env, 200_000));
+}
+
+#[test]
+#[should_panic(expected = "Insufficient balance for governor stake")]
+fn test_register_trust_insufficient_funds() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Fund governor with only 400K (below 500K required)
+    client.transfer(&admin, &governor, &U256::from_u32(&env, 400_000));
+
+    // Try to register trust - should panic due to insufficient stake
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Underfunded Trust"),
+        &1200u32,
+        &28u64,
+    );
+}
+
+#[test]
+fn test_verifier_fund_seeded_on_register_trust() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Fund and register trust
+    fund_governor(&client, &admin, &governor);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Fund Test Trust"),
+        &1200u32,
+        &28u64,
+    );
+
+    // Verify verifier fund was seeded with 300K
+    let fund = client.get_verifier_fund(&governor);
+    assert_eq!(fund.pool_balance, U256::from_u32(&env, 300_000));
+    assert_eq!(fund.total_compensed, U256::from_u32(&env, 0));
+    assert_eq!(fund.total_stakes_covered, U256::from_u32(&env, 0));
+}
+
+#[test]
+fn test_verifier_compensation() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let worker = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let verifier2 = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup trust
+    fund_governor(&client, &admin, &governor);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Compensation Test Trust"),
+        &1200u32,
+        &28u64,
+    );
+
+    // Setup verifiers
+    client.join_trust(&worker, &governor);
+    client.join_trust(&verifier, &governor);
+    client.join_trust(&verifier2, &governor);
+    let stake_amount = U256::from_u32(&env, 100_000);
+    client.transfer(&admin, &verifier, &stake_amount);
+    advance_24_hours(&env);
+    client.transfer(&admin, &verifier2, &stake_amount);
+    client.register_verifier(&verifier, &governor);
+    client.register_verifier(&verifier2, &governor);
+
+    // Submit and approve a work claim (30 minutes = 1000 KCHNG)
+    let evidence_hash = Bytes::from_slice(&env, b"compensation_test");
+    let claim_id = client.submit_work_claim(
+        &worker,
+        &WorkType::BasicCare,
+        &30u64,
+        &evidence_hash,
+        &None::<i64>,
+        &None::<i64>,
+    );
+    client.approve_work_claim(&verifier, &claim_id);
+    client.approve_work_claim(&verifier2, &claim_id);
+
+    // Get verifier balance before compensation
+    let balance_before = client.balance(&verifier);
+
+    // Claim compensation
+    let comp = client.claim_verifier_compensation(&verifier, &claim_id);
+
+    // Verify compensation structure
+    assert_eq!(comp.verifier, verifier);
+    assert_eq!(comp.claim_id, claim_id);
+    assert_eq!(comp.base_fee, U256::from_u32(&env, 500)); // VERIFIER_BASE_FEE
+
+    // For approved claims: 2% of 1000 KCHNG = 20 KCHNG
+    assert_eq!(comp.claim_percentage, U256::from_u32(&env, 20));
+    assert_eq!(comp.total_compensation, U256::from_u32(&env, 520)); // 500 + 20
+
+    // Verify balance increased by compensation amount
+    let balance_after = client.balance(&verifier);
+    assert_eq!(balance_after, balance_before.add(&U256::from_u32(&env, 520)));
+}
+
+#[test]
+#[should_panic(expected = "Already claimed compensation for this claim")]
+fn test_verifier_compensation_double_claim_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let governor = Address::generate(&env);
+    let worker = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    let verifier2 = Address::generate(&env);
+    let initial_supply = U256::from_u32(&env, 10_000_000);
+
+    let contract_id = env.register(KchngToken, (&admin, &initial_supply));
+    let client = KchngTokenClient::new(&env, &contract_id);
+
+    // Setup trust
+    fund_governor(&client, &admin, &governor);
+    client.register_trust(
+        &governor,
+        &String::from_str(&env, "Double Claim Test Trust"),
+        &1200u32,
+        &28u64,
+    );
+
+    // Setup verifiers
+    client.join_trust(&worker, &governor);
+    client.join_trust(&verifier, &governor);
+    client.join_trust(&verifier2, &governor);
+    let stake_amount = U256::from_u32(&env, 100_000);
+    client.transfer(&admin, &verifier, &stake_amount);
+    advance_24_hours(&env);
+    client.transfer(&admin, &verifier2, &stake_amount);
+    client.register_verifier(&verifier, &governor);
+    client.register_verifier(&verifier2, &governor);
+
+    // Submit and approve a work claim
+    let evidence_hash = Bytes::from_slice(&env, b"double_claim_test");
+    let claim_id = client.submit_work_claim(
+        &worker,
+        &WorkType::BasicCare,
+        &30u64,
+        &evidence_hash,
+        &None::<i64>,
+        &None::<i64>,
+    );
+    client.approve_work_claim(&verifier, &claim_id);
+    client.approve_work_claim(&verifier2, &claim_id);
+
+    // Claim compensation once - should succeed
+    client.claim_verifier_compensation(&verifier, &claim_id);
+
+    // Try to claim again - should panic
+    client.claim_verifier_compensation(&verifier, &claim_id);
 }
