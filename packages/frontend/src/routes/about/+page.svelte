@@ -1,6 +1,11 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
   import { NETWORKS } from "@kchng/shared";
+  import { wallet } from "$lib/stores/wallet";
+  import Tooltip from "$lib/components/Tooltip.svelte";
+
+  let currentNetwork: "testnet" | "mainnet" = $state("testnet");
+
 
   // Contract IDs loaded dynamically from shared config (single source of truth)
   const testnetContractId = NETWORKS.testnet.contractId;
@@ -642,6 +647,38 @@
   </div>
 </section>
 
+<section class="section wallet-cta-section">
+  <h2>{t('about.walletCtaTitle')}</h2>
+  <p>
+    {@html t('about.walletCtaDesc')}
+  </p>
+
+    {#if $wallet.connected}
+      <div class="wallet-connected-info">
+        <span class="connected-badge">{t('dashboard.active')}</span>
+        <span class="connected-address">{$wallet.address?.slice(0, 6)}...{$wallet.address?.slice(-4)}</span>
+      </div>
+      <div class="cta-actions">
+        <a href="/dashboard" class="cta-button">{t('nav.dashboard')} →</a>
+      </div>
+    {:else}
+      <div class="cta-actions">
+        <button class="cta-button" onclick={() => wallet.connect(currentNetwork)}>
+          {t('about.walletCtaButton')} <Tooltip term="wallet" />
+        </button>
+      </div>
+      <p class="cta-note">
+        {t('about.walletCtaOr')}
+        <button class="link-button" onclick={() => wallet.createTestWallet()}>
+          {t('about.walletCtaTest')} <Tooltip term="testnet" />
+        </button>
+      </p>
+      <p class="cta-note">
+        {t('about.walletCtaNote')} <Tooltip term="freighter" />
+      </p>
+    {/if}
+</section>
+
 <section class="section cta-section">
   <h2>{t('about.questionsTitle')}</h2>
   <p>
@@ -1073,5 +1110,76 @@
     .multiplier-grid {
       grid-template-columns: repeat(2, 1fr);
     }
+  }
+
+  /* Wallet CTA Section */
+  .wallet-cta-section {
+    text-align: center;
+    padding: var(--space-xl);
+    background: linear-gradient(135deg, #ede9fe 0%, #f0fdf4 100%);
+    border-radius: var(--radius-lg);
+    max-width: 700px;
+  }
+
+  .wallet-cta-section h2 {
+    border-bottom: none;
+  }
+
+  .wallet-cta-section p {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-base);
+  }
+
+  .cta-actions {
+    margin-top: var(--space-lg);
+    display: flex;
+    justify-content: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .wallet-connected-info {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: white;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+  }
+
+  .connected-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #dcfce7;
+    color: #166534;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+  }
+
+  .connected-address {
+    font-family: monospace;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .link-button {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    padding: 0;
+    display: inline;
+    text-decoration: underline;
+  }
+
+  .link-button:hover {
+    color: var(--color-primary-dark);
   }
 </style>

@@ -1,10 +1,28 @@
 <script lang="ts">
   import { calculateBalanceWithDemurrage } from "@kchng/shared";
   import { t, initI18n, currentLanguage, messages } from "$lib/i18n";
+  import { wallet, type NetworkName } from "$lib/stores/wallet";
+  import { get } from "svelte/store";
   import { onMount } from "svelte";
 
   // Reactive translation function
-  $: translatedText = (key: string, params?: Record<string, string | number>) => t(key, params);
+  const translatedText = (key: string, params?: Record<string, string | number>) => t(key, params);
+
+  // Test wallet creation state
+  let isCreatingTestWallet = $state(false);
+  let currentNetwork = $state<NetworkName>("testnet");
+
+  async function handleCreateTestWallet() {
+    if (isCreatingTestWallet) return;
+    isCreatingTestWallet = true;
+    try {
+      await wallet.createTestWallet();
+    } catch (error) {
+      console.error("Failed to create test wallet:", error);
+    } finally {
+      isCreatingTestWallet = false;
+    }
+  }
 
   onMount(() => {
     initI18n();
@@ -41,6 +59,28 @@
   <p class="audience">
     {translatedText('home.audience')}
   </p>
+  {#if !$wallet.connected}
+    <div class="hero-cta">
+      <button
+        class="btn-cta btn-cta-secondary"
+        onclick={handleCreateTestWallet}
+        disabled={isCreatingTestWallet}
+      >
+        {#if isCreatingTestWallet}
+          <span class="btn-spinner-inline"></span>
+          {translatedText('home.creatingTestAccount')}
+        {:else}
+          {translatedText('home.createTestAccount')}
+        {/if}
+      </button>
+      <button
+        class="btn-cta btn-cta-primary"
+        onclick={() => wallet.connect(currentNetwork)}
+      >
+        {translatedText('home.connectExistingWallet')}
+      </button>
+    </div>
+  {/if}
 </div>
 
 <div class="why-section">
@@ -200,6 +240,70 @@
     max-width: 500px;
     margin: 0 auto;
     line-height: 1.6;
+  }
+
+  .hero-cta {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+    flex-wrap: wrap;
+  }
+
+  .btn-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    text-decoration: none;
+  }
+
+  .btn-cta-primary {
+    background: var(--color-gradient);
+    color: white;
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .btn-cta-secondary {
+    background: var(--color-bg);
+    color: var(--color-text);
+    border: 2px solid var(--color-border);
+  }
+
+  .btn-cta-secondary:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    transform: translateY(-2px);
+  }
+
+  .btn-cta-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-spinner-inline {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-top-color: var(--color-text);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 
   /* Steps / How It Works */

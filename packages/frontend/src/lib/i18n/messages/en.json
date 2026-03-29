@@ -138,7 +138,22 @@
     "ctaWork": "Work",
     "ctaWorkDesc": "Submit and verify work",
     "ctaGovernance": "Governance",
-    "ctaGovernanceDesc": "Vote on proposals"
+    "ctaGovernanceDesc": "Vote on proposals",
+    "createTestAccount": "Create Test Account",
+    "creatingTestAccount": "Creating...",
+    "connectExistingWallet": "Connect Existing Wallet",
+    "cta": {
+      "dashboard": "Dashboard",
+      "dashboardDesc": "View your balance and activity",
+      "communities": "Communities",
+      "communitiesDesc": "Join or create a community",
+      "work": "Work",
+      "workDesc": "Submit and verify work",
+      "governance": "Governance",
+      "governanceDesc": "Vote on proposals",
+      "chat": "Chat",
+      "chatDesc": "Talk with your community"
+    }
   },
   "nav": {
     "about": "About",
@@ -220,7 +235,9 @@
     "learn": "Learn",
     "platform": "Platform",
     "connect": "Connect",
-    "builtFor": "Built for communities."
+    "builtFor": "Built for communities.",
+    "legal": "Legal",
+    "terms": "Terms of Service"
   },
   "demurrage": {
     "title": "Demurrage Status",
@@ -293,6 +310,9 @@
     "actionGovernanceDesc": "Vote on proposals",
     "connectWallet": "Connect Wallet",
     "pleaseConnectWallet": "Please connect your wallet to view your dashboard.",
+    "createTestAccount": "Create Test Account",
+    "creatingTestAccount": "Creating...",
+    "walletCtaHint": "Test accounts are funded with XLM on Stellar Testnet for experimentation.",
     "exchangeBetweenCommunities": "Exchange Between Communities",
     "exchangeSubtitle": "Transfer KCHNG to another community while preserving value. 1,000 KCHNG always equals 1 meal, regardless of which community you're in.",
     "fromCommunity": "From Community",
@@ -305,7 +325,47 @@
     "executeExchange": "Execute Exchange",
     "exchanging": "Processing...",
     "sameValueNote": "Same value, different community — 1,000 KCHNG ≈ 1 meal everywhere",
-    "exchangeNote": "Cross-community exchanges maintain the same purchasing power. Your 100 meals worth here = 100 meals worth there."
+    "exchangeNote": "Cross-community exchanges maintain the same purchasing power. Your 100 meals worth here = 100 meals worth there.",
+    "rolePanel": {
+      "title": "Your Roles",
+      "noRoles": "You do not hold any special roles yet.",
+      "governor": {
+        "label": "Governor",
+        "description": "You manage this community's membership, demurrage rate, and verifiers.",
+        "manageMembers": "Manage Members",
+        "setRate": "Set Demurrage Rate",
+        "manageVerifiers": "Manage Verifiers",
+        "stepDown": "Step Down as Governor",
+        "nameSuccessor": "Name Successor"
+      },
+      "verifier": {
+        "label": "Verifier",
+        "description": "You review and approve community work claims to ensure fair distribution.",
+        "pendingClaims": "Pending Claims",
+        "reputation": "Reputation Score",
+        "stake": "Your Stake",
+        "verified": "Claims Verified",
+        "rejected": "Claims Rejected",
+        "stepDown": "Step Down as Verifier"
+      },
+      "oracle": {
+        "label": "Oracle",
+        "description": "You can activate grace periods for members experiencing hardship or emergencies.",
+        "grantGrace": "Grant Grace Period",
+        "gracePeriodsGranted": "Grace Periods Granted",
+        "reputation": "Reputation Score",
+        "stake": "Your Stake",
+        "stepDown": "Step Down as Oracle"
+      },
+      "member": {
+        "label": "Member",
+        "description": "You are a member of this community and can submit work, vote, and transact."
+      },
+      "worker": {
+        "label": "Worker",
+        "description": "You submit verified work to earn KCHNG tokens."
+      }
+    }
   },
   "work": {
     "title": "Work Verification",
@@ -578,7 +638,13 @@
     "contractTitle": "Contract Version",
     "contractNote": "Currently deployed contract addresses on Stellar:",
     "questionsTitle": "Questions?",
-    "chatWithUs": "Chat with us →"
+    "chatWithUs": "Chat with us →",
+    "walletCtaTitle": "Ready to Get Started?",
+    "walletCtaDesc": "Connect your Stellar wallet to start earning and spending KCHNG in your community.",
+    "walletCtaButton": "Connect Wallet",
+    "walletCtaOr": "or",
+    "walletCtaTest": "Create a Test Wallet",
+    "walletCtaNote": "You'll need a Stellar-compatible wallet like Freighter to participate."
   },
   "communicate": {
     "title": "Community Chat | KCHNG",
@@ -724,6 +790,70 @@
     "chatWithUs": "Chat with us →",
     "orAbout": "Or <a href=\"/about\">learn more about how KCHNG works</a>"
   },
+  "tooltip": {
+    "governorPanel": "As a community Governor, you manage your community's parameters, designate successors, and oversee community health.",
+    "governorStake": "Your collateral is at risk if your reputation drops below the probation threshold.",
+    "verifierPanel": "As a Verifier, you review and approve/reject work claims from community members.",
+    "verifierPendingClaims": "These claims need your review. Timely verification helps keep the community economy flowing.",
+    "verifierStake": "Your stake (100,000 KCHNG) is held as collateral. It is returned in full on voluntary step-down.",
+    "oraclePanel": "As an Oracle, you can activate grace periods for community members experiencing hardship.",
+    "oracleStake": "Your oracle stake (5,000,000 KCHNG) is returnable on voluntary step-down.",
+    "memberPanel": "Your community membership status and contribution history.",
+    "communityFund": "The verifier fund is seeded by the governor (300K KCHNG) and sustained by 70% of local demurrage.",
+    "genesisPool": "The genesis pool receives 30% of all demurrage across all communities, funding genesis verifiers.",
+    "electionStatus": "Verifier elections require 40% quorum and 60% approval to pass."
+  },
+  "roles": {
+    "loading": "Detecting roles...",
+    "noneFound": "No special roles detected for this account.",
+    "governorPanel": {
+      "title": "Governor Dashboard",
+      "subtitle": "Community management tools",
+      "communityName": "Community Name",
+      "memberCount": "Members",
+      "demurrageRate": "Demurrage Rate",
+      "demurragePeriod": "Demurrage Period",
+      "collateralAtRisk": "Collateral at Risk",
+      "governorStake": "Governor Stake",
+      "governorReputation": "Governor Reputation",
+      "verifierFundBalance": "Verifier Fund Balance",
+      "activeElections": "Active Elections",
+      "designateSuccessor": "Designate Successor",
+      "stepDown": "Step Down as Governor",
+      "days": "days"
+    },
+    "verifierPanel": {
+      "title": "Verifier Dashboard",
+      "subtitle": "Work verification queue",
+      "stake": "Stake",
+      "reputation": "Reputation",
+      "verifiedClaims": "Verified Claims",
+      "rejectedClaims": "Rejected Claims",
+      "pendingReview": "Pending Your Review",
+      "viewClaims": "View Pending Claims",
+      "noPending": "No claims pending your review"
+    },
+    "oraclePanel": {
+      "title": "Oracle Dashboard",
+      "subtitle": "Grace period management",
+      "stake": "Stake",
+      "reputation": "Reputation",
+      "gracePeriodsGranted": "Grace Periods Granted",
+      "grantsThisYear": "Grants This Year",
+      "activateGrace": "Activate Grace Period",
+      "viewMembers": "View Community Members"
+    },
+    "memberPanel": {
+      "title": "Community Membership",
+      "subtitle": "Your community status",
+      "community": "Community",
+      "contributionHours": "Contribution Hours",
+      "gracePeriodsUsed": "Grace Periods Used",
+      "memberReputation": "Member Reputation",
+      "workerReputation": "Worker Reputation",
+      "thisYear": "this year"
+    }
+  },
   "governance": {
     "title": "Governance | KCHNG",
     "heading": "Governance",
@@ -791,5 +921,57 @@
       "cancel": "Cancel"
     },
     "valueFooter": "Protocol: 30 min verified work → 1,000 KCHNG minted. Social peg: 1,000 KCHNG ≈ 1 meal."
+  },
+  "tooltip": {
+    "wallet": "A digital wallet stores your KCHNG tokens and lets you send and receive payments on the Stellar blockchain.",
+    "stellar": "Stellar is a public blockchain network that KCHNG runs on. It provides fast, low-cost transactions.",
+    "freighter": "Freighter is a free browser extension wallet for Stellar. You can install it from freighter.app.",
+    "testnet": "Testnet is a testing network where tokens have no real value. Perfect for trying KCHNG without risk.",
+    "demurrage": "A gradual reduction of unused token balances over time, designed to encourage circulation and prevent hoarding. Active accounts are not affected.",
+    "community": "A community is a group of people who use KCHNG together, with their own verifiers and demurrage settings.",
+    "verifier": "A community member who reviews and approves or rejects work claims. Verifiers stake tokens to ensure honest verification. At least 2 verifiers are required per claim.",
+    "oracle": "A trusted community member who can activate grace periods for members experiencing hardship, such as emergencies or illness. Oracles stake tokens as a commitment to honest service.",
+    "governance": "The system by which community members propose, vote on, and implement changes to community parameters, rates, and roles.",
+    "slashing": "A penalty that deducts a portion of a role-holder's staked tokens for misconduct or poor performance. Verifiers face 10% slashing; oracles face 25%.",
+    "minting": "The creation of new KCHNG tokens as a direct reward for verified community work. Minting increases total supply without debiting any existing account.",
+    "gracePeriod": "A temporary pause on demurrage for a member experiencing hardship. Activated by an oracle for emergencies, illness, or by community vote. Limited to 3 per year.",
+    "stake": "Tokens locked as a commitment when taking on a trusted role (verifier, oracle). The stake is fully returnable when stepping down, but can be partially slashed for misconduct.",
+    "balance": "Your current KCHNG token balance. 1,000 KCHNG is minted per 30 minutes of verified community work.",
+    "contributions": "Your total verified community work hours and grace period usage for the current year."
+  },
+  "terms": {
+    "title": "Glossary",
+    "demurrage": "Demurrage",
+    "demurrageDef": "A gradual reduction applied to inactive token balances. Encourages spending and circulation rather than hoarding.",
+    "oracle": "Oracle",
+    "oracleDef": "A trusted community role responsible for activating grace periods during member hardship. Requires a stake of 5,000,000 KCHNG.",
+    "verifier": "Verifier",
+    "verifierDef": "A community member who reviews work claims and votes to approve or reject them. Requires a stake of 100,000 KCHNG.",
+    "governor": "Governor",
+    "governorDef": "The community leader who manages membership, sets demurrage rates (within 5-15%), and administers verifiers.",
+    "governance": "Governance",
+    "governanceDef": "The proposal and voting system that lets community members collectively decide on changes.",
+    "slashing": "Slashing",
+    "slashingDef": "A penalty that removes a portion of a role-holder's stake for misconduct or poor performance.",
+    "minting": "Minting",
+    "mintingDef": "Creating new KCHNG tokens as a reward for verified work. 30 minutes of standard work mints 1,000 KCHNG.",
+    "gracePeriod": "Grace Period",
+    "gracePeriodDef": "A temporary pause on demurrage for members in hardship. Activated by an oracle or community vote. Limited to 3 per year.",
+    "stake": "Stake",
+    "stakeDef": "Tokens locked by a trusted role-holder as a commitment. Fully returnable on step-down, but subject to slashing for misconduct.",
+    "workClaim": "Work Claim",
+    "workClaimDef": "A submission recording community work performed, including type, duration, and evidence. Requires verifier approval to mint tokens.",
+    "community": "Community",
+    "communityDef": "A group of people using KCHNG together with shared rules, demurrage rates, and verifiers. Each community is independent.",
+    "reputation": "Reputation",
+    "reputationDef": "A per-role trust score (0-1000, starting at 500). Low scores can trigger probation with limited abilities and higher slashing rates.",
+    "probation": "Probation",
+    "probationDef": "A restricted state triggered when a role's reputation drops below 200. Limits abilities and increases slashing penalties.",
+    "basisPoint": "Basis Point",
+    "basisPointDef": "One hundredth of a percent (0.01%). Demurrage rates are expressed in basis points for precision. 1,200 bps = 12%.",
+    "crossCommunityExchange": "Cross-Community Exchange",
+    "crossCommunityExchangeDef": "Transferring KCHNG between communities while preserving purchasing power. Exchange rates adjust for different demurrage rates.",
+    "tf2t": "Tit-for-2-Tats (TF2T)",
+    "tf2tDef": "A penalty detection mechanism: 2 or more consecutive negative events trigger an additional -25 bonus penalty. Prevents gaming through alternating behavior."
   }
 }

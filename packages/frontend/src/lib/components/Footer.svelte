@@ -14,6 +14,7 @@
       <div class="footer-section">
         <h4>{t('footer.learn')}</h4>
         <a href="/about">{t('nav.about')}</a>
+        <a href="/terms">{t('footer.terms')}</a>
       </div>
 
       <div class="footer-section">

@@ -662,6 +662,53 @@ export class KchngClient {
   }
 
   // ==========================================================================
+  // REPUTATION
+  // ==========================================================================
+
+  /**
+   * Get reputation score for an address and role
+   * Returns score 0-1000 (500 = neutral)
+   */
+  async getReputation(address: string, role: RoleType): Promise<number> {
+    try {
+      const accountAddress = new Address(address);
+      const result = await this.simulateContractCall(this.contractId, "get_reputation", [
+        accountAddress.toScVal(),
+        xdr.ScVal.scvU32(role),
+      ]);
+
+      if (result) {
+        return this.u32FromScVal(result);
+      }
+      return 500; // neutral default
+    } catch (error) {
+      console.warn("[KchngClient] Error fetching reputation:", error);
+      return 500;
+    }
+  }
+
+  /**
+   * Check if an address is on probation for a given role
+   */
+  async isOnProbation(address: string, role: RoleType): Promise<boolean> {
+    try {
+      const accountAddress = new Address(address);
+      const result = await this.simulateContractCall(this.contractId, "is_on_probation", [
+        accountAddress.toScVal(),
+        xdr.ScVal.scvU32(role),
+      ]);
+
+      if (result) {
+        return this.boolFromScVal(result);
+      }
+      return false;
+    } catch (error) {
+      console.warn("[KchngClient] Error checking probation:", error);
+      return false;
+    }
+  }
+
+  // ==========================================================================
   // HELPER METHODS
   // ==========================================================================
 
